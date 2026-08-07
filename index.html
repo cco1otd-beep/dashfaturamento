@@ -265,9 +265,6 @@
         <tbody id="tblDetalhe"></tbody>
       </table>
     </div>
-    <div style="display:flex;justify-content:center;margin-top:12px;">
-      <button class="btn-clear" id="btnMore">Mostrar mais</button>
-    </div>
   </div>
 
   <div class="footer">
@@ -276,7 +273,7 @@
   </div>
 </div>
 
-<script src="data.js"></script>
+<script>document.write('<script src="data.js?v=' + Date.now() + '"><\/script>');</script>
 <script src="common.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <script>
@@ -302,7 +299,10 @@ let filters = {
   rotas: new Set(),
 };
 let activePreset = "atual";
-let tableLimit = 40;
+let tblRows = [];
+let tblPageTick = 0;
+const TBL_PAGE_SIZE = 12;
+const TBL_PAGE_MS = 5000;
 
 /* ---------------- clock & header meta ---------------- */
 function tickClock() {
@@ -850,32 +850,41 @@ function renderRanking(rows) {
   draw("rankMenos", menos);
 }
 
-/* ---------------- render: tabela detalhada ---------------- */
+/* ---------------- render: tabela detalhada (paginação automática, igual ao painel operacional) ---------------- */
+let tblRowFn = () => "";
+let tblEmpty = "";
+function paintDetailPage() {
+  const totalPages = Math.max(1, Math.ceil(tblRows.length / TBL_PAGE_SIZE));
+  const page = tblPageTick % totalPages;
+  const slice = tblRows.slice(page * TBL_PAGE_SIZE, page * TBL_PAGE_SIZE + TBL_PAGE_SIZE);
+  const tbody = document.getElementById("tblDetalhe");
+  tbody.classList.remove("page-fade");
+  tbody.innerHTML = slice.length ? slice.map(tblRowFn).join("") : tblEmpty;
+  void tbody.offsetWidth;
+  tbody.classList.add("page-fade");
+  document.getElementById("tblCount").textContent = tblRows.length + " viagens no período" + (totalPages > 1 ? " · página " + (page + 1) + "/" + totalPages : "");
+}
+setInterval(() => {
+  tblPageTick++;
+  paintDetailPage();
+}, TBL_PAGE_MS);
+
 function renderTable(rows) {
   const search = (document.getElementById("tblSearch").value || "").toLowerCase();
   let filtered = rows;
   if (search) {
     filtered = rows.filter((r) => [r.id, r.cliente, r.motorista, r.placa, r.rota].some((v) => v && String(v).toLowerCase().includes(search)));
   }
-  const sorted = [...filtered].sort((a, b) => new Date(b.dtCargaI || b.dtSol || 0) - new Date(a.dtCargaI || a.dtSol || 0));
-  document.getElementById("tblCount").textContent = sorted.length + " viagens no período";
-  const slice = sorted.slice(0, tableLimit);
-  document.getElementById("tblDetalhe").innerHTML = slice.length
-    ? slice
-        .map((r) => {
-          const statusBadge = r.status === "concluido" ? '<span class="badge b-green">Concluída</span>' : r.status === "em_transito" ? '<span class="badge b-amber">Em trânsito</span>' : '<span class="badge b-red">Aguardando</span>';
-          return `<tr><td>${r.id}</td><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 22))}</td><td>${statusBadge}</td><td>${OTD.fmtBRL(r.frete)}</td><td>${r.dtCargaI ? new Date(r.dtCargaI).toLocaleDateString("pt-BR") : "—"}</td><td>${r.dtDescI ? new Date(r.dtDescI).toLocaleDateString("pt-BR") : "—"}</td></tr>`;
-        })
-        .join("")
-    : `<tr><td colspan="9"><div class="empty-state">Nenhuma viagem encontrada para os filtros atuais</div></td></tr>`;
-  document.getElementById("btnMore").style.display = sorted.length > tableLimit ? "inline-block" : "none";
+  tblRows = [...filtered].sort((a, b) => new Date(b.dtCargaI || b.dtSol || 0) - new Date(a.dtCargaI || a.dtSol || 0));
+  tblRowFn = (r) => {
+    const statusBadge = r.status === "concluido" ? '<span class="badge b-green">Concluída</span>' : r.status === "em_transito" ? '<span class="badge b-amber">Em trânsito</span>' : '<span class="badge b-red">Aguardando</span>';
+    return `<tr><td>${r.id}</td><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 22))}</td><td>${statusBadge}</td><td>${OTD.fmtBRL(r.frete)}</td><td>${r.dtCargaI ? new Date(r.dtCargaI).toLocaleDateString("pt-BR") : "—"}</td><td>${r.dtDescI ? new Date(r.dtDescI).toLocaleDateString("pt-BR") : "—"}</td></tr>`;
+  };
+  tblEmpty = `<tr><td colspan="9"><div class="empty-state">Nenhuma viagem encontrada para os filtros atuais</div></td></tr>`;
+  tblPageTick = 0;
+  paintDetailPage();
 }
 document.getElementById("tblSearch").addEventListener("input", () => {
-  tableLimit = 40;
-  renderTable(OTD.filterAll(filters));
-});
-document.getElementById("btnMore").addEventListener("click", () => {
-  tableLimit += 40;
   renderTable(OTD.filterAll(filters));
 });
 
@@ -890,7 +899,6 @@ function renderAll() {
   renderHighlights(rows);
   renderDimensionCharts(rows);
   renderRanking(rows);
-  tableLimit = 40;
   renderTable(rows);
 }
 
