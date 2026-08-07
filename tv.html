@@ -125,7 +125,7 @@
 
 <div class="tv-progress"><div class="tv-progress-bar" id="tvProgressBar"></div></div>
 
-<script src="data.js"></script>
+<script>document.write('<script src="data.js?v=' + Date.now() + '"><\/script>');</script>
 <script src="common.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <script>
@@ -141,7 +141,7 @@ Chart.defaults.font.size = 12.5;
 Chart.defaults.borderColor = "rgba(255,255,255,.06)";
 
 const SLIDE_SECONDS = 60;      // tempo de cada tela
-const RELOAD_MINUTES = 30;     // recarrega a pagina periodicamente p/ pegar novo data.js
+const RELOAD_MINUTES = 10;     // recarrega a pagina periodicamente p/ pegar a atualizacao diaria do data.js (sem precisar mexer no Raspberry Pi)
 
 const filters = { months: new Set([OTD.nowKey()]), dateFrom: null, dateTo: null, clientes: new Set(), motoristas: new Set(), placas: new Set(), rotas: new Set() };
 const charts = {};
@@ -310,8 +310,12 @@ buildAll();
 showSlide(0);
 setInterval(nextSlide, SLIDE_SECONDS * 1000);
 
-// recarrega periodicamente para captar atualizacoes do data.js
-setTimeout(() => location.reload(), RELOAD_MINUTES * 60 * 1000);
+// recarrega periodicamente para captar a atualizacao diaria do data.js.
+// usa uma URL com parametro de cache-bust (em vez de location.reload()) para forcar o
+// navegador a buscar o HTML e o data.js de novo, ignorando qualquer cache antigo.
+setInterval(() => {
+  location.href = location.pathname + "?_=" + Date.now();
+}, RELOAD_MINUTES * 60 * 1000);
 </script>
 </body>
 </html>
