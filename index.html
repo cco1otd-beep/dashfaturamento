@@ -251,7 +251,7 @@ canvas.clickable{cursor:pointer;}
   <div class="hleft">
     <span class="brand-dot"></span>
     <div class="topbar-text">
-      <div class="topbar-title">TORRE DE CONTROLE LOGÍSTICA <span>— FATURAMENTO</span></div>
+      <div class="topbar-title">TORRE DE CONTROLE LOGÍSTICA <span>— FATURAMENTO</span><span id="hdr-grupo" style="color:var(--w2);font-weight:800"></span></div>
       <div class="topbar-sub">Operações &amp; Análise Gerencial</div>
     </div>
   </div>
@@ -1118,7 +1118,7 @@ body.tv main{ max-width:none !important; width:100vw !important; padding:12px 34
       if(typeof runFilter==='function'){ runFilter(); }
     }catch(e){}
   }
-  function start(){ ui(); applySeg(); show(0); setTimeout(function(){ var u=new URL(location.href); u.searchParams.set('_',Date.now()); location.replace(u.toString()); }, REFRESH); }
+  function start(){ ui(); applySeg(); var _g=q.get('grupo'),_ge=document.getElementById('hdr-grupo'); if(_ge)_ge.textContent=' · '+(_g||'GERAL'); show(0); setTimeout(function(){ var u=new URL(location.href); u.searchParams.set('_',Date.now()); location.replace(u.toString()); }, REFRESH); }
   if(document.readyState==='complete') setTimeout(start,500); else window.addEventListener('load',function(){ setTimeout(start,500); });
 })();
 </script>
