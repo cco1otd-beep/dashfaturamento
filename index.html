@@ -21,7 +21,7 @@
 }
 *{box-sizing:border-box;}
 body{
-  font-family:'Inter',-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   background:
     radial-gradient(1200px 700px at 88% -12%,rgba(240,128,14,.12),transparent 60%),
     radial-gradient(900px 520px at 4% 112%,rgba(45,212,191,.06),transparent 55%),
@@ -87,7 +87,7 @@ body{
 select,input[type=date]{
   background:var(--d2);color:var(--w2);border:1px solid var(--border);
   border-radius:8px;padding:5px 9px;font-size:11.5px;cursor:pointer;height:31px;
-  font-family:'Inter',sans-serif;transition:border-color .15s;
+  font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;transition:border-color .15s;
 }
 select:hover,input[type=date]:hover{border-color:var(--od);}
 select:focus,input[type=date]:focus{outline:none;border-color:var(--o);}
@@ -97,7 +97,7 @@ select option{background:var(--d3);color:var(--w2);}
 .btn-reset{
   background:var(--d2);color:var(--w3);border:1px solid var(--border);
   border-radius:8px;padding:5px 13px;height:31px;font-size:11.5px;font-weight:700;cursor:pointer;
-  font-family:'Inter',sans-serif;transition:all .15s;
+  font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;transition:all .15s;
 }
 .btn-reset:hover{color:var(--rd);border-color:var(--rd);}
 #fstatus{font-size:10px;color:var(--w3);margin-left:auto;white-space:nowrap;}
@@ -137,7 +137,7 @@ select option{background:var(--d3);color:var(--w2);}
 /* ── TABS ── */
 .tabs-wrap{background:rgba(11,10,9,.96);backdrop-filter:blur(18px);border-bottom:1px solid var(--border-soft);position:sticky;top:110px;z-index:180;display:flex;overflow-x:auto;}
 .tabs-wrap::-webkit-scrollbar{height:0;}
-.tab-btn{padding:11px 19px;font-size:12.5px;font-weight:700;color:var(--w3);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;letter-spacing:.3px;font-family:'Inter',sans-serif;}
+.tab-btn{padding:11px 19px;font-size:12.5px;font-weight:700;color:var(--w3);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;letter-spacing:.3px;font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
 .tab-btn:hover{color:var(--w2);background:rgba(240,128,14,.05);}
 .tab-btn.on{color:var(--o);border-bottom-color:var(--o);}
 
@@ -223,6 +223,25 @@ canvas.clickable{cursor:pointer;}
 .header-clock .date{font-size:10.5px;color:var(--w3);text-transform:capitalize;}
 .topbar-logo img{height:42px;}
 @media(max-width:768px){.header-clock,.topbar-sub{display:none;}.topbar-title{font-size:15px;}}
+
+/* ── AJUSTE FINO: cards no formato torre ── */
+.grid-8{grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:14px;}
+.kpi{min-height:122px;padding:18px;gap:5px;justify-content:center;}
+.kpi-ico2{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:9px;}
+.kpi-lbl{color:var(--w3);}
+.kpi-val{font-size:27px;}
+.kpi-val.sm{font-size:17px;}
+.kpi-ico{display:none;}
+.topbar{min-height:66px;}
+.topbar-title{font-size:22px;}
+
+/* ── BADGES TORRE ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:10.8px;font-weight:800;}
+.badge.b-green{background:rgba(74,222,128,.14);color:#4ADE80;}
+.badge.b-amber{background:rgba(255,193,69,.16);color:#FFC145;}
+.badge.b-red{background:rgba(241,85,63,.16);color:#F1553F;}
+.badge.b-grey{background:rgba(255,255,255,.08);color:#ABA69C;}
+.badge.b-blue{background:rgba(79,163,227,.16);color:#4FA3E3;}
 </style>
 </head>
 <body>
@@ -470,7 +489,7 @@ const META=RAW.meta,HOJE=META.hoje,DIAS_P=10,DIAS_M=31;
 
 Chart.defaults.color='#6E6A62';
 Chart.defaults.borderColor='rgba(255,255,255,0.05)';
-const OC=['#F0800E','#4FA3E3','#4ADE80','#FFC145','#F1553F','#A78BFA','#FB923C','#34D399','#F472B6','#60A5FA','#FBBF24','#4ADE80'];
+const OC=['#F0800E','#2DD4BF','#4FA3E3','#FFC145','#B18CFF','#4ADE80','#F1553F','#FF7AB6','#C4650A','#9AA5B1'];
 
 const fBRL=v=>'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fI=v=>Math.round(v||0).toLocaleString('pt-BR');
@@ -590,16 +609,15 @@ function resetFilters(){
 
 /* ── KPI BUILDER ── */
 function buildKPIs(id,items){
-  document.getElementById(id).innerHTML=items.map(k=>`
-    <div class="glass kpi ${k.gc||''}">
-      <div class="kpi-bar" style="background:${k.ac||'#F0800E'}"></div>
-      <div class="kpi-lbl" style="color:${k.ac||'#F0800E'}">${k.l}</div>
-      <div class="kpi-val${k.sm?' sm':''}" style="color:${k.vc||'#F6F4F0'}">${k.v}</div>
-      <div class="kpi-sub">${k.s||''}</div>
-      <div class="kpi-ico">${k.i||''}</div>
-    </div>`).join('');
+  function _tint(hex,a){var h=(hex||'#F0800E').replace('#','');var r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);return 'rgba('+r+','+g+','+b+','+a+')';}
+  document.getElementById(id).innerHTML=items.map(function(k){var ac=k.ac||'#F0800E';return ''+
+    '<div class="glass kpi '+(k.gc||'')+'">'+
+      '<div class="kpi-ico2" style="background:'+_tint(ac,.14)+';color:'+ac+'">'+(k.i||'')+'</div>'+
+      '<div class="kpi-lbl">'+k.l+'</div>'+
+      '<div class="kpi-val'+(k.sm?' sm':'')+'" style="color:'+(k.vc||'#F6F4F0')+'">'+k.v+'</div>'+
+      '<div class="kpi-sub">'+(k.s||'')+'</div>'+
+    '</div>';}).join('');
 }
-
 /* ── CHART HELPERS ── */
 const valLblPlugin={id:'valLbl',afterDatasetsDraw(chart){
   const{ctx,data,scales:{x,y}}=chart;if(!x||!y)return;
@@ -607,7 +625,7 @@ const valLblPlugin={id:'valLbl',afterDatasetsDraw(chart){
   data.datasets[0].data.forEach((v,i)=>{
     const meta=chart.getDatasetMeta(0);if(!meta.data[i])return;
     const bar=meta.data[i];
-    ctx.fillStyle='#ABA69C';ctx.font='bold 9px Inter,sans-serif';ctx.textAlign='left';
+    ctx.fillStyle='#ABA69C';ctx.font='bold 9px -apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';ctx.textAlign='left';
     ctx.fillText(fBRL(v),x.getPixelForValue(v)+4,bar.y+3.5);
   });
   ctx.restore();
