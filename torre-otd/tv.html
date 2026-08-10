@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Torre de Controle · Modo TV · OTD LOGISTICS</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  body{ cursor:none; }
+  .tv-slide .card{ animation:none; opacity:1; transform:none; }
+  .tv-goal .gauge-wrap{ max-width:230px; }
+  .tv-op-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; height:100%; }
+  .tv-op-grid .card{ display:flex; flex-direction:column; }
+  .tv-op-grid table.dtbl{ font-size:14.5px; }
+  .tv-op-grid table.dtbl thead th{ font-size:11.5px; padding:11px 12px; }
+  .tv-op-grid table.dtbl tbody td{ padding:11px 12px; }
+  .tv-hl-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .tv-mid-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; height:calc(100% - 0px); }
+  .tv-3col{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; height:100%; }
+</style>
+</head>
+<body>
+<div class="tv-page">
+
+  <div class="tv-header">
+    <div>
+      <h1>TORRE DE CONTROLE <span>LOGÍSTICA</span></h1>
+      <div class="slide-sub" id="slideSub">Visão Geral</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:26px;">
+      <div class="tv-clock">
+        <div class="time" id="tvTime">--:--:--</div>
+        <div class="date" id="tvDate">—</div>
+      </div>
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPgAAACMCAYAAABRYmTcAAAnLUlEQVR42u2deZwkR3Xnvy8y6+i7p6UZISGQEAjBDKwPwRofGGF7wV4OmQ/uWV8ry6wXw9prr8A2CGNVlWRYGXEs6z1sbHzJu2ZnvOv1ueBLYjEWYIy5ZgBJCJljRtKM+u6uIzPj+Y+M7Mmuqe6q7pnuqaqJ36f7U1VZlZERL94VLyJegIeHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHx/mB9EMltIIBDIdQjg4gFQ86OlZJRNAd0QCEIxiOIQNJh1lYr/thrLBDOihClQCA4zsroy/oAFZq2ItauyiIzrrOHJY2Hdl+e5yCG66+3UGbdkK7vqbBLIFeYCN6wR6uimTWbun28WcWJXhJrPbrrcqU1f5neHXEM5CIcMoE8tHVteiPD7x17WS+bb0wgRwlAVipTb5YDN9pLU9NlLL2i4vVAx0CoWECHtJE/3q8svx+QPNt65UfHrl17LKpsfBl1urzEssBC8Gg0CEQrBFdNGI+HcfJn0zWVo638/pFIeBZgx+t7B8fCxp3GZFXjRSliIIOnlOGSErJRksfj6y8bbKy+DatYKihW7mqeoRADpM88gsT3zxVkncVAvmmwDgaDBodJKWDtdBK7N8t1fV1l71l5W+yNm45NKkgUsMu1yZeFxi5daQolw46L6y1NEL5rXoS/syltbmlCyXkciGEmypCeWpqJbIfGB8xz11YVYBYsu8HL5KhAKEQjo8Ki6v6O1PVpZuZxXC083hUKxipYU+9eeLlEyNyNBQpLjc1QVAGkQYZHRQZL0kQq8aNhj28746VP8ja2ukOPYKRwyQL1fH3To0Fr1qpK7EldtIvAyjgmV4KpsdE1ur6iSSxL56orjxerSK1PR6X772Au86er0z+yfS4vGR+WVvGUBgAL6wX5aUI0fS4FOeXtDpz+1KtkwXTCoYqunTHxNMLIp9QGG0lxALhkMRW4oIhFKHZaCbXz/zi6vHMSnfyYBaqk7dOjctbF1e0ZZWCkcHnBQBrae0bl+LCmv3z6cryd1M9mwa7jT0d6+oRAqlhl2rjN06PyksWVjQyhuIwCLfT3oJSWFnVJAz4+YXK1DVymOSsgNPx1F2zsbxtpCijzWh4hNtZjbAVE48WpGSC4K5NPZjDJHM/P31VYLhtZU0THSLhBjCG4sKqRtMj5kUL1alXSg17T2Vv+3lPBfyom/pJVF5jLSpD1Jl5IY8UnShLQbE3tdNZKxg5SjJ/x9RTgoDvWaqrGjNc0WPH3OFiQzUwvGjx9olrpYZtU3QGwIT2h8ZLUo6GlB8Ak1hUsK8BuIEhteAKcvgoid512Rgq39CIVVSHj7GzeFOSMuy3Zd5aO80l0eeNl6RgFTssHkyHPk8mShKQ8M3t/HbUzXEr+u3WoqLDSQPANCIVRb5eKzOTUsPuZZxp7yx4JW3U3EJrBmEqGVq2TmXcWgRkP0CncZeqXu4irsowQ0DFXN5+efZoShMR9icWQYaUGwQSBREmFsrJDADVYRTwrL0hgg6xaG80YbJFx18cNEi1mWwtAhcFhHjv2zosUdts5lhJtaX2znvOeqTzlNKv7RN6WzCyN/KaBglVCS4EzVR3viR4Gzzh/gZ7lWE44IKdoGAMQTFACkYwbsFFr7AKiYXIKq0YRUgAI33SsW6FlEyUpO/6qh4pzXh79D4PHi8TZQmM7KoCIVGIEqWZqtW4n3hi6AVcSQMVkyUJAgOLTY1bsX6lCSdUWRDRZm8FiajoqMB+kCtLIQdGihI2IqURkeD0xYW03KFBEqvLiw39i74aeqQLOr6uGMpTW/HeRMAlVcjJUlM/IGhjF0cUJREuAZ5UMDxxrCRhvaU0YhIjgxUYHjgBVyUZKUggAo1Y/worvyeqH5pk+WGp0dpxuXfum1qL42eutfS71coPTo/ItctNJbboBZyb1VIgsmr5yr7q0iv7rS/mqpPvGC3J61qJJrvNSwoaCKJoI1pd/v79d7G868S/67KxtWb9mWsN+1KL3LxvVK5aWEsXqg3KlN5ACbhVkqmyBI1Y74+Un56+ben9Z42dDmOY3Uahx1BqqLxxfhH4CPCRr1Uuf5tprbw2NHJHaBhpJFhzgdwzTdsVZDut7j2G3HDoAkfeTxJyOfHC57SE7jmfiymWp/VIY439CKd2gRZHgSNYkUdXgY8DH597w753rUjyptGi/FwzUZskgyHkAyPgicVOjUhQj/RvF9b05Vfeufz4kVmC/QeRG8BSQ13gJdnJXur1NfJgpHZyDXjH6crEh0dD+aNywP5mgr1QYzARNLfcVbjAW1G0gshPk8xXL0w9bCiJHCbZ1Q0ccmYjTMoT84vAGxarE58thvLbKDbRCzuEGxoBV7BjRTH1yD44t2ZeetWdS/NaIZSa25RwnoTICY5VkGMVCpfWlj/yyC9M3DhVkntCIYwVFS6i6a2LHELq3eFiPlQpSHX57sdvm3jCzKh520JdE/p8TD4QUcE0SqtJK+Kmq+5cPO/C3aljn1Wj9dkKxSfcsXzfWlPvHC9LoHqRZ+i4mIVdUGpEWiG85PbluxYa9mNjJQm0j6YvB1XA46mSmLVIj1xyx/J9uy3ceRyqEmkFo6bwzsWGPlYKCVSHfOWZRxev3XmVom8NLvhgaQgEXME0YiUw/LKqy/m1l1obzKW1uSVN9P+MFgU3T+5xsaJGAsi+8ZU/X2rqiVJIAP3r2YV9Ltx2JMSstvShGVn+OydwWxJTjxCsJ//rhh6S492b1kOWA32/tbzGzQHvPS12EkU/hvay/1grGA5to1UnCfQIuvC5/o1HrCex3AbuPYbc4IR4s0w8Aur2sdcXqvq35YL5vlaitl+NZV8LuIAthWLqsX5cqsTd0v8AdPu+IzNsEY29gTQjy2ORHLeqiRECy54H2+xO2tUznbefhCABmKtKs495R9ktmh1zfa/yKRG+r59zxvW7BYd0bur+DYTdRGML6Hxl/HtLgXxHrFxmrZSy3m4TaAKjq6WAB5cb+j6Rlc9tKuRVlBqE4+Fj2kjmCwGXtuI961FpJQrokxeqk/83385uCmG8iFlpyuena4tv3KxtWVLExcrUqyZH9eXza1gj3S2RKkYEi+o/W2sBStAvHJ5lDFqoTD5nvMSbV1p0t66phGopYCmy3Pdlu/Qbh2pE7ePus4iMfhnt78nwQZkHP73Vl/e4wNv8bRO3TE+ad6Zd000KBAmgnNhbFn5+8huQpYc65g5zvbevPl9flIkVI3Kp2+K5F0szJbYQiIyPl+TGns2rQlASaNmrgTdWq5vMnbt87lbtcykHN44nSrgNR7MRka1F7x8ed0MNxV4ZjIQ3jokS9Fo7hXJZbrpyYfJ5wtLNWeLMDs9wtkeXrK4rXS/gO7fksmXU/N5sXG74wbiJXWlqJELQbWO9CtG+UTOxoPblAu9StgiYnES54sJkxUwUXayr3cZNybglEGGxp5+LrFLXZLWp8TZ5wvTrai6DtOK6JistTeg1sYhgg5YaFX5o5RdHb5U3r52sVDCbJUpUpO+nTQd+u6iSJrLTCuEizMRWDULBMV/32xUV5Mo+j0XIdhZUKOAUXNC7PBAgqDAkWXYMIo5m0jvtAqukFr9RPABrJ6tAbaDJMDww7CwFlDBECQ89zoNCFXa+a8kLuIeHhxdwDw8PL+AeHh6bw489L9hALw3wke5es21BgY3HculZY0Td5KsMictT1+tCD0ualijWjlV1z+o0KyFnXjqcpGkBi4hfv+8FvP/hUnXFTihN25fZhFGaWajLFJ21GhIioaFYMKyHyoUzk6rt7/PC1FECs7KV0JQEWrqvt3bJOCMSTljCwGyuWNYv6Zmv8p83vFclshQJAatb8pmeUXRpCbrhjK/czxCniHrtL/UCPlwSqM4apusP3AqlThzthMKyHSYQZkZGJByJ2oRqnanTB8cWUwyh3to8qi/Cso05mVitxxZFJRbRCDRWiAWJUmZOPwOJIDFKYkUToyQquFdJXGtjK4iIRuPWoMgXAapVtFbb1HITwF/aNZWVhgpgrBC45BbGoMam2VMDVAKEQCFENUiPW5JQUz4KRTRUKICEAqGC2FhH2Ho+3hRDJFHCMJD1zIbZKZ3tiqzRZDKOextaGlzuOHX93J0fZFNPxQv4ebOS+Y6wKBnz9oLiSIgxiAkNZzKsSmdT3IwJeo1C3PsF9Buu4Neba3a0nrAiyJqq1kVkVVXrgqxZtGGM1A22EWCaEupZjJ1tdT2hK+9tBpf9zhP00ehesDdsscHhnEcDm6yzz1btTdYWfx/4/fPaj+kxRYY1wqmT6VAhv803a2tLObzW1KkEW2zaoGywZWvNiBE7ompGBDuqyKgaHQ1UxhQNV5vFVah3G3SoBQ0gLBWEwLj57Q68kClm67J5IpA0e8hFZdIErE5Rip5xtOSiFnBJx3rButvlcpMLmECQIEhTBVuVIiOC1m25x4JP1mNtRrEuNJAVYFFEF62yiLIoYhZRXQyERau6LOhSFAerocZfA7KtgO11VYAXfpCYDy6/4XzR4Fk1WvBoaxMll4pk7gSMo8eRWaA939z6DqhOOLQh1VN3YWxXau71rN1rR9O0ZbMHc9er6TEPGb2c8rDdXOoDteX7z6fiytq7wvi9Jbt8MLHBaLOVjKuRCVWZBCZV7RQiU0aZUpEpYFpgEnQSmBCRCVswXYcCYrUQlCQoJQSokmh6PrpNT5nNvMNsaJFcFAIuWFMuyFipeMY5tvZMDmqFtShhJUaXrOp8qW4WjeFzABzv0KFZKTWi+l2jL3jwgUdbz3lPthp924pHzwoUuSdWq0j1JAGXb/z+gbn087UzZ9ftGHAKbCcB/PuTyPXXA3/vPue/vByluvH3swdzheaELxPkTYV3dovFP7Ow5Yg729zTvsnn4PqtkhNw/v7VyMdzP7s+357NlMcVCCd6s3jHgENXoNUTJNXq2efG5D2gJ6Z59T6/A88jPD1yychn1x6v572ctopoasDlRNywH24lTKHMgE6AjJULmGIggTE5ixYTria69ycJ7Znr7XY0nayMHShL8I7AMGeVR43IYyTJ6djweEF0zpjSwmjEMsyt5V26/MmU7dbsXseAN9RIjs5iZg+6EynmkIdnkKvdfQ8DV8+gDzzoBPIk6pjP7vW5zR67NsTLez8Gp0AemEOufRo8PHeGH/I8cWwOPeTiN+snoR5CNvVWch6Egjzy+stGx2dWxm3LTIUFZuKE/aJ6ADGXKXoFyv5mWPoPB958+uSuJou8UAI+MAwyS8BBghNcHhZHW0FhPg6NJGFDbBiMlEKDDY3aUBItxElYMEUNJbGFxGpBwiAUqwVBw8RoISQIrftshQKYUFULoGEaoNJQMaERAkFDC6EoASKB24IZiGpghUCUwCImvZaus9b0zC+DEBh3lBCIsWeCTOgmXppk8eqNGWpU0eTMKNaNnZHYTesloFaFBCURkcQqiTHEqpq438eSbg6KFY0NxIrECcRGbKRIbDQNIKqxkcYSGyORGokCm0QREgdGIrUSWeI4DEykIrFtmNhqMy4VTGSbJkk0jJuXFuPGyqPJ1RBT3d3jjAYVfSfgqgjvITxx4vLCSKNRCMtRoUlSDONiyZRs0SRBqYktF40tWUzZomWTmLI1tiyYsqJlQcuCuPfuVaWkaFmEEkhR0JJCSZEiaBEoClJQtCBKQUUKOCFMhZEAJHACYwwYY9gQ9TWSBhKy6a38NNd5p7Sen5/JXnOJ5l70TBpbXX+vG4JeSbpawCIkqCYi6YwCSKSQiGqEECkSC7RQjRBpobRAW4q0VGiKahORpqg2BRoq0hS0oUhDVZsiUleVpsE2LKah1jZNKA1rbdNgGoq0ApKGJWjFBK0SzVZM2GpRjBfnTkXXPp94N5NyDIyLvvDGqX1a1mogTFmro4iMgI6ClFEdUaQsoiVUSioUBS0q61M0IUoYGCQQJ2Vuv6IRCEyXFuWYK2OoLKKeWN1wPf+ambbArE+j5OeBO02/rH8tuSCTtsdgz8NKwm7NlR7mjTc7RPA8msPU9W1X5Kzv9FqPQK+PrN3hf/mwdPY+sRuVKB2UqhEhNDtQsq5voyRVNtnZdYmuLxyKBY1QYkQiBStoU1VaIjQUbQrSAG2oSh2ja6JSF9FlCtSm3rT8+F666HsXZHNJB7TE1GhBfqpYALXiCCpOa8vZGt0Ko0XBBG0cpxvfqsJCQ7PI7ZYCoTkmUoVSSDBakG7SI8sNJbEbz+ESNs6h5usUGhjf5NDAKIbVlu5apgAFCgbGeji0sBkp9ejsrAVyfhQ7o0WhuEktVtLjoTYQtF3e8iteRJGpsnQ9/iFKYLGhieQi7tqjwlRFxksSFIMNK4vSXYdCCFJOlzPBWlMxJlugJOsGR5w3B4IYsImwHOu7gcep7t3hFXseRVeMXWslq42Ykiqq6qxYm5A4QmspxCw37F+DfNJZPIsB64TUOIlOvWV9VWBkMrZb50zLGFnBjhQwzUj/YT7hnlxxG8xsVj7oj4aBTHUrX0ELBoksp+fr+jucbbmtQa8vF+QFjfj8n5iioMUAaSWcmK/r+7LDAjv81AA2UH1BuSDXn++6KNhyAbMW6d+sRnwsT9/sjcAPFwwHos1pusEAW4gX6va9KrJqOmhzI4hV1MBTSiGvaCVnyu1VYRkDK029W4VTBued2Q1aII1IiF4TGvneRpw1Rc8sM9b1ylv3+6hUkj134S/UQpdQILR0OZVSiEdKIpHq707dtvRb3QpdqEzcWDBMxrbnlEq2XBTTivmLmepS1znu+erEywqGqR7K11IgEsf61X23L72+0w/mquOvLRfNCxrxrmTktOVAgijRB/ZVOz9/Q7sqU28tF7l+F+qS0jeyR6dqy/+50w8WqxPPLwXmQGR1S5quHz6o2lyaXL7lya/feqXL0h3j314uBK9wGU+3lSfACNiG3DbzS4sPb0m32tgLR4vhKxYbSl4x5rVJero1oqCNeO9jXv2/VFVBrUxoJV0OSfuY8iTiprqKC0qgOygfdLRr+UsUFum9fPe70JXbTvN4ARnfTSfNFV3QCuExMIc6D11CIF5ER3ftEMF0CDZ+Fn0dXRehsE0yyPhSeb9WGifcFNjG22cImCNZimVaz4W7y8xoha928uqyZyzEMq3F/hafQVmLbqVGrJWNyx0d/4iAagWz08CFIt3LfzXC1DbLF/Ss8twz5qt7Mu+uUiOuVDDP6jDPn9VlobLrdTmLvhldF3ZwgGGCxFIj7hSs0iOo/DTJYu3cItqaSCK/SNwpEWf2jLmK9P0hGH4/uIfHEGN4BPzk+v7qHRhwv0DCI+duKKpBlHgB7wMIaKWCkfcQqeFUaCQRiLLp7a3+3XhQ1OqCZ+shQ7qyL0G680GOH6IwIFarK0EzTDcgVQdb+YfDoIhuAFMDKyq/EZbluRNpyuCumiEwBK0YBPkzgKPHt+jM60kDQx6DId+qhbAswagS9HrwgUIQjggL88nd++5cnNdZAulw2GS290GMBm7Jb98u+h4IAbcwvdX3L6wRp/nRl35lvjrRLIfmxVGsByydDz8wgorRZtHIw8uRvG9/beljLmCTdOp1BE4vXFIOiUatwoU6gNCjB8xmCxTlsbhpP1SPSdRuPU0maT54CgGrzWV7z7Qsv1vTPrabGJSMN2YkXT3Zt1Z+IATcCFf14qoD7Ksu/ybwm9sbhG+xdNCtOgqX4kulwL7Y4rfo9LPldkI5VVm+D/j2HRdU684zS8g13kU/t/G1xAlg9eudsCXdCH9PhfCGQ2i2Z7er638claNbTKkcStdJzxn7jKmiKay0NBma0z+GGApCZXuq+OhxZPYgQvfsOlZA55XnWtvfHl2/W3CzFqkGgTx7oTJ1DbL4pY4HBLa569vz/rvgmJuvDeS7giBdt+EN+ABYctCOBweeq+Jwy35PVsYOGOF5a5GC9G+wut+j6GKVZLwkxUTtjzitumd11ixDaoUyqrP1lg4CzTx2E1UCAS2J+YHJETMRW2Lp40Fb/zOrEqw2VUshP/nIrWOXUSXJZ3fZVfwqodSwj9uJ10yNmic1YhLxAn7xuv0p39nTlZnJUORn6y3VfpehvmdWESRKsCMFM1MuBb++niZndnfHwfqrFOTHiU5Xxg+OFuX2laZaES/cF7lwG6lhQ4l/eaIkT9yNnYAX2xg8E/JgqaHJ9Ii8dLk28StSWX6NI3rIcZQj2HPdQJ8LyhiX/ic6VRl/xkho/tSITDQStcbHzy8uoc7xhFtDbxdrE7dPlOSmhbomRvo/2DowBx+IECzUNZkeMT++evvE1Ql6i9y28rkzERWEWQwHtyeE9wI3ZEkXay7fRA1ZuX3iZiPy9sDIJatNtcYMpPWWbDdZtfOGklArsDhgw44Wmu7Sew+ilV2ag85mVxxPnLh1fP/UqHnbSEFuXmpoIjIYMykDdbKJCMF8XZOpsnnxWqSfWK5Nvk8M/2ssth+X2sppju58B5FWCJeL408L1HzXitUfGSuY56xFSiMaTOF2Wi6SrWcVYoDFiqwNkG+i0Dgt25st2bFbvlwcf4ZJzCuB14wW5IqFxmBNkw7c0UXGuevGUJ4syc2x5eZlK3OL1YmHrMrXBOZUtNnLxhMRAhHGVLlsCa7WSJ4yMSJBFAsLdbUiiBnMcbdppEnErpuvTPy39QwknWMwVkW/pd7q75iMpDMqKFIalcn/Pl/RVWPSnPrn+UEiKiWE/UvwVGKePlaWYK2lzA+IWz7QAp4JplV0oa4WQQpGZooFmQkNz5FtJedJ7YFVd/BCDAt1jUkzpg5sQE1AWgkUDE8YK5nXdvt9I1IaaU62vm6zC1mHk2W5adeS2WXPstCySjNyPKEEgybcAyvgGRPjCB4laGw1S/qjO+Cc/MGeQ3EgowCRRRfq2suwxQzKDIECiw2NdfcftJEnBjS8OhzMnHZEsGOlPqSxcckygQ4fQtkD4g0D9lxra+gTLDgLcfHQQES3EKSLgg6qwy7gbl1wHIfzwFLgztUZ1v40BkX0FGw8V+0MX8sjqsN1FvVmPrVgH2m/fHQ2pYkqpwOz42w8A9F+tx99SVfMHLCnSST2TMCzxIiX1U6tgH6yHEp6/vdw9qkGBhH4mw50dm2Wjyw3NXZR+qFkboFgpakJyn0b2w7ugEhE5UPGIDq8ltyWC6Ii+qmZX5pfPJfkoH3vot+bPU/NrxqT5bEfPuEOBVlpaqwqd7czttSwR2YJpmuLD1nl/VNlEWtJho6rLfFkWSS2+pdTteX7O+wCtCm95HeXm9oqCKLDacVteuSVvGeDDAyjgL8wTZ1rpmuLf7CwZj8wPSYFa2kN0ThLgWhiTIJWrHdO15Ye1CME7dtbZw+m55AHxv5cPdJGMSRUdn/hxp5xtJIUQoJGrK0wsD+rHUJWUsPqEYJ9tcWHWwlvGR+TACEaJiG30Joek8J83f71lC4d1QrmhbW97ec9D7JVs3EJ+sMrdf2HfRNSdAdKxqokg/gPxApxYJDpcSkuLNvfm5Hlis4ScPhsL0VqWCrI5G0rn1tr2h8KA+LxooRWSQaZDgqxVZLxogSFAK1H/OuJ21Y/c3R2kz38h7E6S3BJbemOhWW9e3pcioFBnLIbaDqoovvGpLjW0E8X1P7AhUreKBfI0okI+sU37Jt6wljyDoSbR4sSZItOBg3GHX3ZiHQhsrx98ralt7jEAGyVGUSPEMhhkrlfGH/+SNH8p2Io32hMushi0MgggJg0WtyM9JMrcXLL/trqvVkbt4zBVRCpYZdqk28sGP25ctHsG3ReqLc0Ubj79Kq87qo7F+crFUyttvdD0gsWwc2fSrF8+75nB5K8zFr5ukTttN14KmzfjrUBAiEJRE4Z4aOrcfSHl9bqX+1FuNfLmSWQoySzswR3P3vie6zIdyXKNdZq2fY5DTI6pOejSzM0PKSqf/Wxv1r+sxd+kDhrWy98qOlRJ3r6TSNPHBkt3Ggtz1PV/bESClsf9tgvvGBAA2MWjeinrZo/Hr9t4VMAF0q4+4EwsmfJG/aqTUe2v5xx2Giw0zbthHb9ToMLPQ0qfcQMht6TJfYNjh5HZmeBY0gV7E41tYJwBMMxhOMoBwfMSz+OcBDhEMphrOxwlFGpYKpg7gVOHUdnB40OhxDSvOlWLkar7eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4bETyIDWOau3cv72ZYRblJc9M9nB84JcXTfDdtqx0/Yb99/tHttjWb2g1/qZbT4/T1vp8pzt0jY4TzTy8ArUK3LfJk+kvJa3wJOAX3OfPwzUct/ttP0K/CjwImCmjS4KNIGPAu8GVnuwyPn6vgw4DFzqruXLTpzF+G3gf7j3SZfyngW80137I+C/dLkvs3BPBf49cK3zVqTNIhngM8Drc/d0spgJ8DOOVgmdT/nIrr/f1XWz+mVtugP4JtJ94D8GnNiiDvk2fR/wL4En5Kx5ex3+HHh7DzTK7n0t8J3AWAcZUff5J4AHzoHvPLZwdV+cc6H+a8693qnSAPiVXJlb/f9aW1261fVNPZb7b3poR/bdj+buu7XLfZlCeRJwsod6/O8eygP4WI/tur1LeZlg3e9+vwxMdjE+GW1/tsc6vKUH2gbb5IMnbnOocsEwSDmzsw6/NqeJ/+4cFUYCfAvw40AEFJxGbuboUwBarjO/NWcdtlIaCXCF8y5sbuzb2MQifHIbY7t8+z/RxZswziq+yVm5JlBy7ck/K3Ztva8L/a27f9q1JWtbIVePyF0PnNfDFnENdR7TtGvTp4GlLax3FgeZAN7Q5kE0NvEiPtoDjRLg+jY+AKjn+itr6/1OWQ7EWHwQk+I/I9epD/XoLm+lML7b3R8CR53VqeeUwE8AP+U+n25zLbcq95/nAncfdGWsdKirAl/tgWGy+65z9YqAh7u0P3b1eUFOmfykc1vzAcPsu1O5+zZ7fgz8CycEMfADwFvdd3cAv+HanThXezOFmAnxk4FLHE2/lKN7vIUwfp27R4FPuaHHiTb6ZW060UUpZ335ne6eAPgT4DZgsQONGt4t370xOI451Y2Fn3wOrlKmJN7nykuc8mjHN+Zcs/duw5W+1TGCujH4+fBgMmuvwNeA8S3c2ezapcDj7p77dqFf/mOOPi/egXF5Ze7+N3ehb3b9x3K0ffV5MnK/lqvHNw6L0AyKBc/cwxC42l17xP3v1IJnWvip7vVxV142bs2sxbNz93xhG+Vfl7NSD3Fmmko2CUrZLu1XYF9u/PcV5xFIFxf4Se6+fP3bPZBCzqL3Oq0VtNEnBr6ca6ft0dLllernt+HFZXT8kquL2cRK2x754Fr3upLzjDoZBMsApcwbJAFX4DLgcnftH3NjY7vD8iadAGQCs5BTJtnr0zsI+FYdnDHZ09zrkmN8y87n7fPu7Iy79mAP7qx1jJvdf737/Fjud41czGE7yjEbk16dG758ZQftvC5H0y92EUptu6fplGemnHbCB1lcIWvHCPBS0hmKfFtXvAXf/QDbVTm39IEexsPdBOaJbixHjrlM2/j0upzgfrGLgGfljuSGD1/Ljd0BXuIUi+bGfJ8GPruFNc7a+NTccKRXb+JJrswW6RTbp93YUnKBv/exMeLfK/0u2YZH0U0RzjtFuBV9E9f+a9znx3Jj7HOxqlPAfle+kE5bnsop+sR5F692PDCUh3b0gyL6kRwT3nIOSipzt16aK++OtvIypfIJ9/1jjhE2G/PmYwHXOMFR4E9z30+62EH7tMtrexx73pq7Z7bLPVkbv5Xepn6+te2+XuIh1+cs9v/cRn9k9BtzAUZ1ikd6uOeA87QU+FCX/ug1thPS29Tf3QNmGAcuiv6MbbrL3Zjl6ZuM/zIrNA1c6a59tc3ybVXuU5zb125prwNGc58jx2Cf7LEtz8j97sEu7mxm7T4M3EQ6BTSRq/8B0qmzrA5XbkNYMo/iabnff2Gb9FfSqcQD7tpDOY9ms0UxifPiJnscpvSKGPh+FzC8jjPTmiXHI5llv7zHcb0X8G2i3V2OObcpsk4K44FcefkA1WYufK+KIx/YmgPe6O7/Scesaz26ptt1Z8m5mHfnrE+GfcBfkEaMpcfyNhs/bydAlqfTNZyZc/5CFwWTXwchO3hmtyDbQ8C/anueAK8D7nLXHj6HYaEX8C7jNcmNvU5zdsS7U6d169QscrrgxpAmZxGy55keGXAzxn+QM1HnLwK/5K7/W/d6Anh0C+HKlM1o27h+rgeBzJg0ZGP01zglMee+X6b7nPq5ehSdhHUnCqLdi9uMB3ayEUdyyjR0huRLO1RiXsC36c7ta3OXF86hPAsUnQXFMfrJDhbzYI5ZeulcbbPgLeAYZ08ZXZl79j86RtrMKuQDgr26s+1MbjdRcFn7TnJmkctOAmSLO/QANvOgtqLtM3PXvkjv03HdFH57GdmhmM/NXbv/PHiNXsC3YPB97v01pNHo+9m4XTB7/49ubLlVeZe7/6zsm4CP5L5/GukqtvwSxW6dmy2PvDpH38PA/8tZmJB0VVuRMyux6CLg2bi+uA13NlOKl+Zokz2nQLqm/Qr3zK92UTKdyh7PKdyvka4j6JX52z2o1R48CJujQ/a7W4B3sXHpbdbWeefpdYvqB65Myd0rOQV4c+76g4Mm4IOALKr7PM5M92juffbfcK+PcWauWDZxxzIrm62djtvKa+YsX7aUdLSt8zcTxFHH7FGurvlyk7Z2fFNbOzdTwv/O1TN2wrmVgs6uv909Z22TOmSR/tdvQ+Hn6ddw9fnDLm3oRKfQeUWxU56FHodAx909+T5q5tq36j7/VJc2Ze14tvt9s62crH+SnAdX6MIDHju04OKs0ZfpPpXxQA/WTYCy08jdyktItyX2wsDZ9++lt6mpt7cx21bC+lu5+57fpT5ZeX/bQx3ucUrJ9Mi4WX1ekSvj3TtQEFfn7v9QD3TI2vrWHmn7PT0qzh/uoaxV4Du2ocS8i74N5F2uF7jg1HWcmYaSNvf4I22uZKfyjLM+N5LOQT+5rePUWYmHSed3P8bW0fO8GymuzM8761xuq4+SLgj5U+B3e3CLs+++7Fz9Zs5Ft13q8RlHN5sTHs25xf+fdA12i94XqOQ3nfyZe/+BHbiuJdceSPeNd7PeWZtuc236Ns7eA54fpn2mC42yujZdO5IOPJA4I/Be5zlIDzzgcQ6W/ELBDGGb+rEe/QzjhWZviGzont/Mnqfysoj7TpbCBj1YtGSbbc/vTdZt3rNZPXeSZy6712yzPpu53dvps15p22udpIvw7pQHPDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8hgr/BLvLp+c4UYDoAAAAAElFTkSuQmCC" class="tv-logo" alt="OTD Logistics" />
+    </div>
+  </div>
+
+  <div class="tv-slides" id="tvSlides">
+
+    <!-- SLIDE 0 — VISAO GERAL -->
+    <div class="tv-slide active" id="slide0">
+      <div class="grid g-kpi zoomfade" style="grid-template-columns:repeat(6,1fr);gap:16px;">
+        <div class="card kpi tv-kpi accent"><div class="icon">💰</div><div class="label">Faturamento do Mês</div><div class="value num" id="g0fat">R$ 0</div></div>
+        <div class="card kpi tv-kpi"><div class="icon">📦</div><div class="label">Viagens</div><div class="value num" id="g0via">0</div></div>
+        <div class="card kpi tv-kpi"><div class="icon">🎯</div><div class="label">Ticket Médio</div><div class="value num" id="g0tk">R$ 0</div></div>
+        <div class="card kpi tv-kpi"><div class="icon">🛣️</div><div class="label">KM Rodado</div><div class="value num" id="g0km">0 km</div></div>
+        <div class="card kpi tv-kpi danger"><div class="icon">🚧</div><div class="label">Em Trânsito</div><div class="value num" id="g0trans">0</div></div>
+        <div class="card kpi tv-kpi warn"><div class="icon">⏳</div><div class="label">Aguard. Início</div><div class="value num" id="g0nini">0</div></div>
+      </div>
+      <div class="tv-mid-grid" style="margin-top:20px;height:calc(100% - 156px);">
+        <div class="card panel"><div class="panel-head"><h3>Faturamento Diário — Mês Atual</h3></div><div class="chart-wrap"><canvas id="tvChartDiario"></canvas></div></div>
+        <div class="card panel"><div class="panel-head"><h3>Status da Frota</h3></div><div class="chart-wrap"><canvas id="tvChartStatus"></canvas></div><div class="legend-mini" id="tvLegendStatus" style="justify-content:center;font-size:13px;"></div></div>
+      </div>
+    </div>
+
+    <!-- SLIDE 1 — FATURAMENTO CLIENTE / ROTA -->
+    <div class="tv-slide" id="slide1">
+      <div class="tv-mid-grid" style="height:100%;">
+        <div class="card panel"><div class="panel-head"><h3>Faturamento por Cliente</h3></div><div class="chart-wrap"><canvas id="tvChartCliente"></canvas></div></div>
+        <div class="card panel"><div class="panel-head"><h3>Top 10 Rotas por Faturamento</h3></div><div class="chart-wrap"><canvas id="tvChartRota"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2 — MOTORISTAS / PLACAS -->
+    <div class="tv-slide" id="slide2">
+      <div class="tv-3col">
+        <div class="card panel"><div class="panel-head"><h3>Top 10 Motoristas</h3><span class="n">por faturamento</span></div><div class="chart-wrap"><canvas id="tvChartMotorista"></canvas></div></div>
+        <div class="card panel"><div class="panel-head"><h3>Top 10 Placas</h3><span class="n">por faturamento</span></div><div class="chart-wrap"><canvas id="tvChartPlaca"></canvas></div></div>
+        <div class="card panel">
+          <div class="panel-head"><h3>Motoristas — Uso</h3><span class="n">nº de viagens</span></div>
+          <div style="font-size:12px;color:var(--green);font-weight:800;text-transform:uppercase;margin:6px 0 8px;">▲ Mais usados</div>
+          <div class="ranklist" id="tvRankMais" style="font-size:14px;"></div>
+          <div style="font-size:12px;color:var(--red);font-weight:800;text-transform:uppercase;margin:16px 0 8px;">▼ Menos usados</div>
+          <div class="ranklist" id="tvRankMenos" style="font-size:14px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3 — PAINEL OPERACIONAL -->
+    <div class="tv-slide" id="slide3">
+      <div class="tv-op-grid">
+        <div class="card panel">
+          <div class="panel-head"><h3>🚧 Cargas em Trânsito</h3><span class="live-tag"><i></i>tempo real</span><span class="n" id="tvNTrans">0</span></div>
+          <div class="tbl-wrap" style="flex:1;max-height:none;">
+            <table class="dtbl"><thead><tr><th>Cliente</th><th>Rota</th><th>Placa</th><th>Motorista</th><th>Dias</th></tr></thead><tbody id="tvTblTrans"></tbody></table>
+          </div>
+        </div>
+        <div class="card panel">
+          <div class="panel-head"><h3>⏳ Aguardando Início</h3><span class="live-tag"><i></i>tempo real</span><span class="n" id="tvNNini">0</span></div>
+          <div class="tbl-wrap" style="flex:1;max-height:none;">
+            <table class="dtbl"><thead><tr><th>Cliente</th><th>Rota</th><th>Placa</th><th>Motorista</th><th>Dias</th></tr></thead><tbody id="tvTblNini"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4 — DESTAQUES & META -->
+    <div class="tv-slide" id="slide4">
+      <div class="tv-hl-grid" style="margin-bottom:20px;">
+        <div class="card hl tv-hl"><span class="medal">🏆</span><span class="tag">Cliente Destaque</span><div class="name" id="h4cli">—</div><div class="value num" id="h4cliv">R$ 0</div></div>
+        <div class="card hl tv-hl"><span class="medal">🛣️</span><span class="tag">Rota Destaque</span><div class="name" id="h4rota">—</div><div class="value num" id="h4rotav">R$ 0</div></div>
+        <div class="card hl tv-hl"><span class="medal">🥇</span><span class="tag">Motorista Destaque</span><div class="name" id="h4mot">—</div><div class="value num" id="h4motv">R$ 0</div></div>
+      </div>
+      <div class="grid g-goal" style="grid-template-columns:1fr 1fr;gap:20px;height:calc(100% - 190px);">
+        <div class="card goal-card tv-goal">
+          <div class="gtitle">Meta do Mês</div>
+          <div class="gauge-wrap"><canvas id="tvGoalGauge"></canvas><div class="gauge-center"><div class="pct num" id="tvGoalPct" style="font-size:36px;">0%</div><div class="lbl">atingido</div></div></div>
+          <div class="goal-row"><span class="l">Realizado</span><span class="v num" id="tvGoalReal">R$ 0</span></div>
+          <div class="goal-row"><span class="l">Meta</span><span class="v num" id="tvGoalMeta">R$ 0</span></div>
+        </div>
+        <div class="card goal-card tv-goal">
+          <div class="gtitle">Projeção de Fechamento</div>
+          <div class="gauge-wrap"><canvas id="tvProjGauge"></canvas><div class="gauge-center"><div class="pct num" id="tvProjPct" style="font-size:36px;">0%</div><div class="lbl">da meta</div></div></div>
+          <div class="goal-row"><span class="l">Projetado</span><span class="v num" id="tvProjVal">R$ 0</span></div>
+          <div class="goal-row"><span class="l">Média diária</span><span class="v num" id="tvProjMedia">R$ 0</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tv-dots" id="tvDots"></div>
+</div>
+
+<div class="tv-progress"><div class="tv-progress-bar" id="tvProgressBar"></div></div>
+
+<script>document.write('<script src="data.js?v=' + Date.now() + '"><\/script>');</script>
+<script src="common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<script>
+/* =========================================================
+   TV.HTML — modo kiosk / Raspberry Pi
+   Slides full-screen alternando automaticamente.
+   Sempre ancorado no MES ATUAL (tempo real). Sem interacao.
+   ========================================================= */
+
+Chart.defaults.color = "#ABA69C";
+Chart.defaults.font.family = "-apple-system,'Segoe UI',Roboto,Arial,sans-serif";
+Chart.defaults.font.size = 12.5;
+Chart.defaults.borderColor = "rgba(255,255,255,.06)";
+
+const SLIDE_SECONDS = 60;      // tempo de cada tela
+const RELOAD_MINUTES = 10;     // recarrega a pagina periodicamente p/ pegar a atualizacao diaria do data.js (sem precisar mexer no Raspberry Pi)
+
+const filters = { months: new Set([OTD.nowKey()]), dateFrom: null, dateTo: null, clientes: new Set(), motoristas: new Set(), placas: new Set(), rotas: new Set() };
+const charts = {};
+const SLIDE_TITLES = ["Visão Geral", "Faturamento por Cliente & Rota", "Motoristas & Placas", "Painel Operacional (Tempo Real)", "Destaques & Meta do Mês"];
+
+function upsertChart(id, config) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, config);
+}
+function gaugeConfig(pct, color) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  return { type: "doughnut", data: { datasets: [{ data: [clamped, 100 - clamped], backgroundColor: [color, "rgba(255,255,255,.07)"], borderWidth: 0 }] }, options: { cutout: "76%", rotation: -90, circumference: 360, plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { animateRotate: true, duration: 1200 } } };
+}
+function barChart(id, map, color, labelFmt) {
+  map.delete("—");
+  const top = OTD.topN(map, 10);
+  upsertChart(id, {
+    type: "bar",
+    data: { labels: top.map((t) => (labelFmt ? labelFmt(t[0]) : t[0])), datasets: [{ data: top.map((t) => t[1]), backgroundColor: color, borderRadius: 6, maxBarThickness: 20 }] },
+    options: { indexAxis: "y", plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => OTD.fmtBRL(c.parsed.x) } } }, scales: { x: { ticks: { color: "#8a857c", callback: (v) => OTD.fmtNum(v / 1000) + "k", font: { size: 12 } }, grid: { color: "rgba(255,255,255,.05)" } }, y: { ticks: { color: "#d8d4cc", font: { size: 12.5 } }, grid: { display: false } } }, animation: { duration: 900 } },
+  });
+}
+
+/* ---------------- clock ---------------- */
+function tick() {
+  const d = new Date();
+  document.getElementById("tvTime").textContent = d.toLocaleTimeString("pt-BR");
+  document.getElementById("tvDate").textContent = OTD.DIAS_PT_FULL[d.getDay()] + ", " + d.toLocaleDateString("pt-BR");
+}
+setInterval(tick, 1000);
+tick();
+
+/* ---------------- build content (once) ---------------- */
+function buildAll() {
+  const rows = OTD.filterAll(filters);
+  const op = OTD.operational(filters);
+  const now = new Date();
+  const single = OTD.nowKey();
+
+  // ---- slide 0: visao geral ----
+  const fat = OTD.totalFaturamento(rows);
+  const n = rows.length;
+  document.getElementById("g0fat").textContent = OTD.fmtBRL(fat);
+  document.getElementById("g0via").textContent = OTD.fmtNum(n);
+  document.getElementById("g0tk").textContent = OTD.fmtBRL(n ? fat / n : 0);
+  document.getElementById("g0km").textContent = OTD.fmtKm(OTD.totalKm(rows));
+  document.getElementById("g0trans").textContent = OTD.fmtNum(op.emTransito.length);
+  document.getElementById("g0nini").textContent = OTD.fmtNum(op.naoIniciado.length);
+
+  // faturamento diario + projecao
+  const proj = OTD.projectMonth(rows, single);
+  const map = new Map();
+  rows.forEach((r) => { if (!r.dtCargaI) return; const key = r.dtCargaI.slice(0, 10); map.set(key, (map.get(key) || 0) + (r.frete || 0)); });
+  const keys = Array.from(map.keys()).sort();
+  const labels = keys.map((k) => { const [, m, d] = k.split("-"); return d + "/" + m; });
+  const values = keys.map((k) => map.get(k));
+  const datasets = [{ label: "Faturamento", data: values, borderColor: "#F0800E", backgroundColor: "rgba(240,128,14,.15)", fill: true, tension: 0.35, pointRadius: 2 }];
+  if (proj.dailyAvg > 0) {
+    const projLine = values.map(() => null);
+    projLine[projLine.length - 1] = values[values.length - 1];
+    for (let i = 0; i < proj.totalDays - proj.elapsed; i++) projLine.push(proj.dailyAvg);
+    for (let i = 0; i < proj.totalDays - proj.elapsed; i++) labels.push("+" + (i + 1) + "d");
+    while (values.length < labels.length) values.push(null);
+    datasets.push({ label: "Projeção", data: projLine, borderColor: "#4FA3E3", borderDash: [6, 4], pointRadius: 0, fill: false });
+  }
+  upsertChart("tvChartDiario", { type: "line", data: { labels, datasets }, options: { plugins: { legend: { position: "top", align: "end", labels: { color: "#ABA69C" } } }, scales: { x: { ticks: { color: "#8a857c", maxTicksLimit: 10 }, grid: { display: false } }, y: { ticks: { color: "#8a857c", callback: (v) => OTD.fmtNum(v / 1000) + "k" }, grid: { color: "rgba(255,255,255,.05)" } } }, animation: { duration: 1000 } } });
+
+  // status donut
+  const allEntity = OTD.applyEntityFilters(OTD.DATA, filters);
+  const statusMap = { concluido: allEntity.filter((r) => r.status === "concluido").length, em_transito: op.emTransito.length, nao_iniciado: op.naoIniciado.length };
+  upsertChart("tvChartStatus", { type: "doughnut", data: { labels: ["Concluídas", "Em Trânsito", "Aguard. Início"], datasets: [{ data: [statusMap.concluido, statusMap.em_transito, statusMap.nao_iniciado], backgroundColor: ["#4ADE80", "#FFC145", "#F1553F"], borderColor: "#131110", borderWidth: 3 }] }, options: { cutout: "58%", plugins: { legend: { display: false } }, animation: { animateRotate: true, duration: 1000 } } });
+  const totalS = statusMap.concluido + statusMap.em_transito + statusMap.nao_iniciado || 1;
+  document.getElementById("tvLegendStatus").innerHTML = [["#4ADE80", "Concluídas", statusMap.concluido], ["#FFC145", "Em Trânsito", statusMap.em_transito], ["#F1553F", "Aguard. Início", statusMap.nao_iniciado]].map(([c, l, v]) => `<span><i style="background:${c}"></i>${l}: ${v} (${OTD.fmtPct((v / totalS) * 100)})</span>`).join("");
+
+  // ---- slide 1: cliente & rota ----
+  const mapC = OTD.sumBy(rows, (r) => (r.cliente ? OTD.clienteShort(r.cliente) : null));
+  mapC.delete("—");
+  const topC = OTD.topN(mapC, 7);
+  const otherC = OTD.topN(mapC, 999).slice(7).reduce((s, [, v]) => s + v, 0);
+  const labelsC = topC.map((t) => t[0]);
+  const valuesC = topC.map((t) => t[1]);
+  if (otherC > 0.01) { labelsC.push("Outros"); valuesC.push(otherC); }
+  upsertChart("tvChartCliente", { type: "doughnut", data: { labels: labelsC, datasets: [{ data: valuesC, backgroundColor: OTD.PALETTE, borderColor: "#131110", borderWidth: 2 }] }, options: { cutout: "55%", plugins: { legend: { position: "right", labels: { color: "#d8d4cc", boxWidth: 12, font: { size: 12.5 } } } }, animation: { animateRotate: true, duration: 1000 } } });
+  barChart("tvChartRota", OTD.sumBy(rows, (r) => r.rota), "#F0800E");
+
+  // ---- slide 2: motoristas & placas ----
+  barChart("tvChartMotorista", OTD.sumBy(rows, (r) => r.motorista), "#4FA3E3", (l) => OTD.shortName(l, 22));
+  barChart("tvChartPlaca", OTD.sumBy(rows, (r) => r.placa), "#2DD4BF");
+  const counts = OTD.countBy(rows, (r) => r.motorista);
+  counts.delete("—");
+  const mais = OTD.topN(counts, 5, true);
+  const menos = OTD.topN(counts, 5, false);
+  const maxV = mais.length ? mais[0][1] : 1;
+  function drawRank(id, arr) {
+    document.getElementById(id).innerHTML = arr.length ? arr.map(([name, val], i) => `<div class="rankrow"><div class="pos">${i + 1}º</div><div class="rname">${OTD.escapeHtml(OTD.shortName(name, 22))}</div><div class="rbarwrap"><div class="rbar" style="width:${Math.max(6, (val / maxV) * 100)}%"></div></div><div class="rval">${val}</div></div>`).join("") : '<div class="empty-state">Sem dados</div>';
+  }
+  drawRank("tvRankMais", mais);
+  drawRank("tvRankMenos", menos);
+
+  // ---- slide 3: painel operacional ----
+  document.getElementById("tvNTrans").textContent = op.emTransito.length + " registros";
+  document.getElementById("tvNNini").textContent = op.naoIniciado.length + " registros";
+  const rowsT = [...op.emTransito].sort((a, b) => new Date(a.dtCargaI) - new Date(b.dtCargaI)).slice(0, 9);
+  document.getElementById("tvTblTrans").innerHTML = rowsT.length ? rowsT.map((r) => { const dias = OTD.daysBetween(new Date(r.dtCargaI), now); const badge = dias > 3 ? "b-red" : dias >= 1 ? "b-amber" : "b-green"; return `<tr><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 20))}</td><td><span class="badge ${badge}">${dias}d</span></td></tr>`; }).join("") : '<tr><td colspan="5"><div class="empty-state">Nenhuma carga em trânsito 🎉</div></td></tr>';
+  const rowsN = [...op.naoIniciado].sort((a, b) => { const da = a.dtSol ? new Date(a.dtSol) : new Date(0); const db = b.dtSol ? new Date(b.dtSol) : new Date(0); return da - db; }).slice(0, 9);
+  document.getElementById("tvTblNini").innerHTML = rowsN.length ? rowsN.map((r) => { let diasTxt = "—", badge = "b-grey"; if (r.dtSol) { const dias = OTD.daysBetween(new Date(r.dtSol), now); diasTxt = dias + "d"; badge = dias > 5 ? "b-red" : dias >= 2 ? "b-amber" : "b-green"; } return `<tr><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 20))}</td><td><span class="badge ${badge}">${diasTxt}</span></td></tr>`; }).join("") : '<tr><td colspan="5"><div class="empty-state">Nenhuma carga aguardando início 🎉</div></td></tr>';
+
+  // ---- slide 4: destaques & meta ----
+  const byCliente = OTD.topN(OTD.sumBy(rows, (r) => r.cliente), 1)[0];
+  const byRota = OTD.topN(OTD.sumBy(rows, (r) => r.rota), 1)[0];
+  const byMotorista = OTD.topN(OTD.sumBy(rows, (r) => r.motorista), 1)[0];
+  document.getElementById("h4cli").textContent = byCliente ? OTD.clienteShort(byCliente[0]) : "—";
+  document.getElementById("h4cliv").textContent = OTD.fmtBRL(byCliente ? byCliente[1] : 0);
+  document.getElementById("h4rota").textContent = byRota ? byRota[0] : "—";
+  document.getElementById("h4rotav").textContent = OTD.fmtBRL(byRota ? byRota[1] : 0);
+  document.getElementById("h4mot").textContent = byMotorista ? byMotorista[0] : "—";
+  document.getElementById("h4motv").textContent = OTD.fmtBRL(byMotorista ? byMotorista[1] : 0);
+
+  const suggested = OTD.suggestGoal(single);
+  const meta = OTD.getGoal(single, suggested);
+  const pct = meta ? (fat / meta) * 100 : 0;
+  document.getElementById("tvGoalPct").textContent = OTD.fmtPct(Math.min(pct, 999), 0);
+  document.getElementById("tvGoalReal").textContent = OTD.fmtBRL(fat);
+  document.getElementById("tvGoalMeta").textContent = OTD.fmtBRL(meta);
+  upsertChart("tvGoalGauge", gaugeConfig(pct, pct >= 100 ? "#4ADE80" : "#F0800E"));
+
+  const projPct = meta ? (proj.projected / meta) * 100 : 0;
+  document.getElementById("tvProjPct").textContent = OTD.fmtPct(Math.min(projPct, 999), 0);
+  document.getElementById("tvProjVal").textContent = OTD.fmtBRL(proj.projected);
+  document.getElementById("tvProjMedia").textContent = OTD.fmtBRL(proj.dailyAvg) + "/dia";
+  upsertChart("tvProjGauge", gaugeConfig(projPct, projPct >= 100 ? "#4ADE80" : "#4FA3E3"));
+
+  document.getElementById("slideSub").textContent = SLIDE_TITLES[0] + " · " + OTD.monthLabelFull(single);
+}
+
+/* ---------------- slide rotation ---------------- */
+const slides = Array.from(document.querySelectorAll(".tv-slide"));
+const dotsWrap = document.getElementById("tvDots");
+slides.forEach((_, i) => { const d = document.createElement("div"); d.className = "tv-dot" + (i === 0 ? " active" : ""); dotsWrap.appendChild(d); });
+const dots = Array.from(dotsWrap.children);
+let current = 0;
+
+function showSlide(i) {
+  slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+  dots.forEach((d, idx) => d.classList.toggle("active", idx === i));
+  document.getElementById("slideSub").textContent = SLIDE_TITLES[i] + " · " + OTD.monthLabelFull(OTD.nowKey());
+  restartProgress();
+}
+function nextSlide() {
+  current = (current + 1) % slides.length;
+  showSlide(current);
+}
+function restartProgress() {
+  const bar = document.getElementById("tvProgressBar");
+  bar.style.transition = "none";
+  bar.style.width = "0%";
+  void bar.offsetWidth;
+  bar.style.transition = "width " + SLIDE_SECONDS + "s linear";
+  bar.style.width = "100%";
+}
+
+buildAll();
+showSlide(0);
+setInterval(nextSlide, SLIDE_SECONDS * 1000);
+
+// recarrega periodicamente para captar a atualizacao diaria do data.js.
+// usa uma URL com parametro de cache-bust (em vez de location.reload()) para forcar o
+// navegador a buscar o HTML e o data.js de novo, ignorando qualquer cache antigo.
+setInterval(() => {
+  location.href = location.pathname + "?_=" + Date.now();
+}, RELOAD_MINUTES * 60 * 1000);
+</script>
+</body>
+</html>
