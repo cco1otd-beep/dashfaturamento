@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Torre de Controle Logística · OTD LOGISTICS</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ===================== HEADER ===================== -->
+  <div class="header">
+    <div class="header-left">
+      <span class="brand-dot"></span>
+      <div>
+        <h1>TORRE DE CONTROLE <span>LOGÍSTICA</span></h1>
+        <p class="subtitle">OTD LOGISTICS · Operação Autopropulsionada (placas fictícias OTD) · Veículos 0km em rota para concessionárias</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-meta" id="headerMeta">—</div>
+      <div class="header-clock">
+        <div class="time" id="clockTime">--:--:--</div>
+        <div class="date" id="clockDate">—</div>
+      </div>
+      <img src="data:image/png;base64,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" class="header-logo" alt="OTD Logistics" />
+    </div>
+  </div>
+
+  <!-- ===================== FILTROS ===================== -->
+  <div class="filterbar">
+    <div class="filter-group">
+      <span class="filter-label">Período</span>
+      <div class="chip-row" id="presetChips">
+        <div class="chip" data-preset="atual">Mês Atual</div>
+        <div class="chip" data-preset="anterior">Mês Anterior</div>
+        <div class="chip" data-preset="3m">Últimos 3 Meses</div>
+        <div class="chip" data-preset="ano">Ano</div>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Meses</span>
+      <div class="chip-row" id="monthChips"></div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Personalizado</span>
+      <input type="date" class="date-input" id="dateFrom" />
+      <span style="color:var(--text-faint);font-size:11px;">até</span>
+      <input type="date" class="date-input" id="dateTo" />
+    </div>
+    <div class="filter-group" id="mselCliente"></div>
+    <div class="filter-group" id="mselMotorista"></div>
+    <div class="filter-group" id="mselPlaca"></div>
+    <div class="filter-group" id="mselRota"></div>
+    <button class="btn-clear" id="btnClear">✕ Limpar filtros</button>
+  </div>
+
+  <!-- ===================== PAINEL OPERACIONAL (TEMPO REAL) ===================== -->
+  <div class="section-title">
+    <div class="bar"></div>
+    <h2>Painel Operacional</h2>
+    <span class="live-tag"><i></i>Tempo real · não considera filtro de período</span>
+  </div>
+
+  <div class="grid g-kpi" id="opKpis" style="margin-bottom:14px;">
+    <div class="card kpi danger">
+      <div class="icon">🚧</div>
+      <div class="label">Em Trânsito</div>
+      <div class="value num" id="cntEmTransito">0</div>
+      <div class="sub">sem Dt. Descarga (I)</div>
+    </div>
+    <div class="card kpi warn">
+      <div class="icon">⏳</div>
+      <div class="label">Aguardando Início</div>
+      <div class="value num" id="cntNaoIniciado">0</div>
+      <div class="sub">sem Dt. Carga (I)</div>
+    </div>
+    <div class="card kpi ok">
+      <div class="icon">✅</div>
+      <div class="label">Concluídas (base)</div>
+      <div class="value num" id="cntConcluido">0</div>
+      <div class="sub">com carga e descarga</div>
+    </div>
+    <div class="card kpi info">
+      <div class="icon">🚛</div>
+      <div class="label">Frota 0km Ativa</div>
+      <div class="value num" id="cntFrotaAtiva">0</div>
+      <div class="sub">placas OTD distintas</div>
+    </div>
+    <div class="card kpi">
+      <div class="icon">👤</div>
+      <div class="label">Motoristas na Base</div>
+      <div class="value num" id="cntMotoristas">0</div>
+      <div class="sub">total no filtro atual</div>
+    </div>
+    <div class="card kpi">
+      <div class="icon">📍</div>
+      <div class="label">Trânsito &gt; 3 dias</div>
+      <div class="value num" id="cntTransitoLongo">0</div>
+      <div class="sub">requer atenção</div>
+    </div>
+  </div>
+
+  <div class="grid g-alert">
+    <div class="card panel">
+      <div class="panel-head"><h3>🚧 Cargas em Trânsito</h3><span class="n" id="nEmTransito">0 registros</span></div>
+      <div class="tbl-wrap">
+        <table class="dtbl">
+          <thead><tr><th>Romaneio</th><th>Cliente</th><th>Rota</th><th>Placa</th><th>Motorista</th><th>Dt. Carga</th><th>Em trânsito</th></tr></thead>
+          <tbody id="tblEmTransito"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><h3>⏳ Cargas Aguardando Início</h3><span class="n" id="nNaoIniciado">0 registros</span></div>
+      <div class="tbl-wrap">
+        <table class="dtbl">
+          <thead><tr><th>Romaneio</th><th>Cliente</th><th>Rota</th><th>Placa</th><th>Motorista</th><th>Solicitação</th><th>Aguardando</th></tr></thead>
+          <tbody id="tblNaoIniciado"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><h3>Status da Frota</h3><span class="n">todas as viagens</span></div>
+      <div class="chart-wrap" style="min-height:200px;"><canvas id="chartStatus"></canvas></div>
+      <div class="legend-mini" id="legendStatus"></div>
+    </div>
+  </div>
+
+  <!-- ===================== KPIs FINANCEIROS ===================== -->
+  <div class="section-title">
+    <div class="bar"></div>
+    <h2>Desempenho Financeiro</h2>
+    <span class="hint" id="periodoAtivoLabel">—</span>
+  </div>
+
+  <div class="grid g-kpi">
+    <div class="card kpi accent">
+      <div class="icon">💰</div>
+      <div class="label">Faturamento Total</div>
+      <div class="value num" id="kpiFaturamento">R$ 0</div>
+      <div class="delta num" id="kpiFaturamentoDelta"></div>
+    </div>
+    <div class="card kpi">
+      <div class="icon">📦</div>
+      <div class="label">Viagens no Período</div>
+      <div class="value num" id="kpiViagens">0</div>
+      <div class="sub" id="kpiViagensSub">—</div>
+    </div>
+    <div class="card kpi">
+      <div class="icon">🎯</div>
+      <div class="label">Ticket Médio / Viagem</div>
+      <div class="value num" id="kpiTicket">R$ 0</div>
+      <div class="sub">faturamento total ÷ viagens</div>
+    </div>
+    <div class="card kpi">
+      <div class="icon">⚖️</div>
+      <div class="label">Frete Peso Total</div>
+      <div class="value num" id="kpiFretePeso">R$ 0</div>
+      <div class="sub">coluna Frete Peso</div>
+    </div>
+    <div class="card kpi">
+      <div class="icon">🛣️</div>
+      <div class="label">KM Rodado Total</div>
+      <div class="value num" id="kpiKm">0 km</div>
+      <div class="sub" id="kpiKmSub">vazio + carregado</div>
+    </div>
+    <div class="card kpi">
+      <div class="icon">📊</div>
+      <div class="label">R$ / KM Carregado</div>
+      <div class="value num" id="kpiRkm">R$ 0,00</div>
+      <div class="sub">eficiência de frete</div>
+    </div>
+  </div>
+
+  <!-- ===================== META & PROJEÇÃO ===================== -->
+  <div class="section-title"><div class="bar"></div><h2>Meta &amp; Projeção do Mês</h2></div>
+  <div class="grid g-goal" id="goalSection">
+    <div class="card goal-card">
+      <div class="gtitle">Meta do Mês</div>
+      <div class="gauge-wrap"><canvas id="goalGauge"></canvas>
+        <div class="gauge-center"><div class="pct num" id="goalPct">0%</div><div class="lbl">atingido</div></div>
+      </div>
+      <div class="goal-row"><span class="l">Realizado</span><span class="v num" id="goalRealizado">R$ 0</span></div>
+      <div class="goal-row"><span class="l">Meta</span><span class="v num" id="goalMetaVal">R$ 0</span></div>
+      <div class="goal-edit">
+        <input type="number" id="goalInput" placeholder="Nova meta (R$)" />
+        <button id="btnSaveGoal">Salvar</button>
+      </div>
+    </div>
+    <div class="card goal-card">
+      <div class="gtitle">Projeção de Fechamento</div>
+      <div class="gauge-wrap"><canvas id="projGauge"></canvas>
+        <div class="gauge-center"><div class="pct num" id="projPct">0%</div><div class="lbl">da meta</div></div>
+      </div>
+      <div class="goal-row"><span class="l">Projetado p/ o mês</span><span class="v num" id="projValor">R$ 0</span></div>
+      <div class="goal-row"><span class="l">Média diária</span><span class="v num" id="projMedia">R$ 0</span></div>
+      <div class="goal-row"><span class="l">Dias decorridos</span><span class="v num" id="projDias">0 / 0</span></div>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><h3>Faturamento Diário</h3><span class="n">com projeção</span></div>
+      <div class="chart-wrap"><canvas id="chartDiario"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===================== DESTAQUES DO MÊS ===================== -->
+  <div class="section-title"><div class="bar"></div><h2>Destaques do Período</h2></div>
+  <div class="grid g-highlight">
+    <div class="card hl"><span class="medal">🏆</span><span class="tag">Cliente Destaque</span><div class="name" id="hlClienteName">—</div><div class="value num" id="hlClienteVal">R$ 0</div><div class="foot" id="hlClienteFoot">—</div></div>
+    <div class="card hl"><span class="medal">🛣️</span><span class="tag">Rota Destaque</span><div class="name" id="hlRotaName">—</div><div class="value num" id="hlRotaVal">R$ 0</div><div class="foot" id="hlRotaFoot">—</div></div>
+    <div class="card hl"><span class="medal">🥇</span><span class="tag">Motorista Destaque</span><div class="name" id="hlMotoristaName">—</div><div class="value num" id="hlMotoristaVal">R$ 0</div><div class="foot" id="hlMotoristaFoot">—</div></div>
+    <div class="card hl"><span class="medal">🚛</span><span class="tag">Placa Destaque</span><div class="name" id="hlPlacaName">—</div><div class="value num" id="hlPlacaVal">R$ 0</div><div class="foot" id="hlPlacaFoot">—</div></div>
+    <div class="card hl"><span class="medal">💎</span><span class="tag">Maior Frete Individual</span><div class="name" id="hlMaiorName">—</div><div class="value num" id="hlMaiorVal">R$ 0</div><div class="foot" id="hlMaiorFoot">—</div></div>
+    <div class="card hl"><span class="medal">🔥</span><span class="tag">Motorista + Viagens</span><div class="name" id="hlMaisViagensName">—</div><div class="value num" id="hlMaisViagensVal">0 viagens</div><div class="foot" id="hlMaisViagensFoot">—</div></div>
+  </div>
+
+  <!-- ===================== GRÁFICOS ===================== -->
+  <div class="section-title"><div class="bar"></div><h2>Faturamento por Dimensão</h2></div>
+  <div class="grid g-charts-3">
+    <div class="card panel">
+      <div class="panel-head"><h3>Por Cliente</h3><span class="n" id="nClientes">—</span></div>
+      <div class="chart-wrap"><canvas id="chartClientes"></canvas></div>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><h3>Top 10 Rotas</h3><span class="n">R$</span></div>
+      <div class="chart-wrap"><canvas id="chartRotas"></canvas></div>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><h3>Top 10 Placas</h3><span class="n">R$</span></div>
+      <div class="chart-wrap"><canvas id="chartPlacas"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid g-charts-2" style="margin-top:14px;">
+    <div class="card panel">
+      <div class="panel-head"><h3>Top 10 Motoristas por Faturamento</h3></div>
+      <div class="chart-wrap"><canvas id="chartMotoristas"></canvas></div>
+    </div>
+    <div class="card panel">
+      <div class="panel-head"><h3>Motoristas Mais e Menos Utilizados</h3><span class="n">por nº de viagens</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+        <div>
+          <div style="font-size:11px;color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">▲ Top 5 mais usados</div>
+          <div class="ranklist" id="rankMais"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--red);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">▼ Top 5 menos usados</div>
+          <div class="ranklist" id="rankMenos"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TABELA DETALHADA ===================== -->
+  <div class="section-title"><div class="bar"></div><h2>Viagens no Período</h2><span class="hint" id="tblCount">—</span></div>
+  <div class="card panel">
+    <div class="panel-head">
+      <input type="text" id="tblSearch" placeholder="Buscar por romaneio, cliente, motorista, placa ou rota..." class="date-input" style="width:340px;" />
+    </div>
+    <div class="tbl-wrap" style="max-height:460px;">
+      <table class="dtbl">
+        <thead><tr><th>Romaneio</th><th>Cliente</th><th>Rota</th><th>Placa</th><th>Motorista</th><th>Status</th><th>Frete</th><th>Dt. Carga</th><th>Dt. Descarga</th></tr></thead>
+        <tbody id="tblDetalhe"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Torre de Controle Logística · OTD LOGISTICS — segmento autopropulsionado (Grupo = RODANDO)</span>
+    <span id="footerMeta">—</span>
+  </div>
+</div>
+
+<script>document.write('<script src="data.js?v=' + Date.now() + '"><\/script>');</script>
+<script src="common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<script>
+/* =========================================================
+   INDEX.HTML — lógica do dashboard interativo
+   ========================================================= */
+
+Chart.defaults.color = "#ABA69C";
+Chart.defaults.font.family = "-apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+Chart.defaults.font.size = 11.5;
+Chart.defaults.borderColor = "rgba(255,255,255,.06)";
+
+const FIELD_MAP = { clientes: "cliente", motoristas: "motorista", placas: "placa", rotas: "rota" };
+const charts = {};
+
+let filters = {
+  months: new Set([OTD.nowKey()]),
+  dateFrom: null,
+  dateTo: null,
+  clientes: new Set(),
+  motoristas: new Set(),
+  placas: new Set(),
+  rotas: new Set(),
+};
+let activePreset = "atual";
+let tblRows = [];
+let tblPageTick = 0;
+const TBL_PAGE_SIZE = 12;
+const TBL_PAGE_MS = 5000;
+
+/* ---------------- clock & header meta ---------------- */
+function tickClock() {
+  const d = new Date();
+  document.getElementById("clockTime").textContent = d.toLocaleTimeString("pt-BR");
+  document.getElementById("clockDate").textContent = OTD.DIAS_PT_FULL[d.getDay()] + ", " + d.toLocaleDateString("pt-BR");
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+(function initHeaderMeta() {
+  const meta = OTD.META || {};
+  const el = document.getElementById("headerMeta");
+  const foot = document.getElementById("footerMeta");
+  const txt = meta.geradoEm ? "Base atualizada em " + new Date(meta.geradoEm).toLocaleString("pt-BR") : "";
+  el.textContent = txt;
+  foot.textContent = txt + (meta.totalRegistros ? " · " + meta.totalRegistros + " viagens (segmento " + meta.segmento + ")" : "");
+})();
+
+/* ---------------- month chips & presets ---------------- */
+function renderMonthChips() {
+  const months = OTD.availableMonths();
+  const wrap = document.getElementById("monthChips");
+  wrap.innerHTML = months
+    .map((m) => `<div class="chip ${filters.months.has(m) && !filters.dateFrom ? "active" : ""}" data-month="${m}">${OTD.monthLabel(m)}</div>`)
+    .join("");
+  wrap.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const m = chip.dataset.month;
+      filters.dateFrom = null;
+      filters.dateTo = null;
+      document.getElementById("dateFrom").value = "";
+      document.getElementById("dateTo").value = "";
+      if (filters.months.has(m)) filters.months.delete(m);
+      else filters.months.add(m);
+      activePreset = null;
+      renderAll();
+    });
+  });
+}
+
+document.querySelectorAll("#presetChips .chip").forEach((chip) => {
+  chip.addEventListener("click", () => {
+    const preset = chip.dataset.preset;
+    const months = OTD.availableMonths();
+    const now = OTD.nowKey();
+    filters.dateFrom = null;
+    filters.dateTo = null;
+    document.getElementById("dateFrom").value = "";
+    document.getElementById("dateTo").value = "";
+
+    if (preset === "atual") {
+      filters.months = new Set([now]);
+    } else if (preset === "anterior") {
+      const idx = months.indexOf(now);
+      const prev = idx > 0 ? months[idx - 1] : months[months.length - 2];
+      filters.months = new Set(prev ? [prev] : []);
+    } else if (preset === "3m") {
+      const idx = months.indexOf(now) >= 0 ? months.indexOf(now) : months.length - 1;
+      filters.months = new Set(months.slice(Math.max(0, idx - 2), idx + 1));
+    } else if (preset === "ano") {
+      const year = String(new Date().getFullYear());
+      filters.months = new Set(months.filter((m) => m.startsWith(year)));
+    }
+    activePreset = preset;
+    renderAll();
+  });
+});
+
+["dateFrom", "dateTo"].forEach((id) => {
+  document.getElementById(id).addEventListener("change", (e) => {
+    filters[id] = e.target.value || null;
+    if (filters.dateFrom || filters.dateTo) activePreset = null;
+    renderAll();
+  });
+});
+
+function updatePresetChipsUI() {
+  document.querySelectorAll("#presetChips .chip").forEach((c) => c.classList.toggle("active", c.dataset.preset === activePreset));
+}
+
+/* ---------------- multiselect filters ---------------- */
+const MSEL_DEFS = [
+  { id: "mselCliente", key: "clientes", label: "Cliente" },
+  { id: "mselMotorista", key: "motoristas", label: "Motorista" },
+  { id: "mselPlaca", key: "placas", label: "Placa" },
+  { id: "mselRota", key: "rotas", label: "Rota" },
+];
+
+function buildMultiselect(def) {
+  const field = FIELD_MAP[def.key];
+  const counts = OTD.countBy(OTD.DATA, (r) => r[field] || "—");
+  const options = Array.from(counts.keys()).sort((a, b) => counts.get(b) - counts.get(a));
+  const root = document.getElementById(def.id);
+  root.classList.add("msel");
+  root.innerHTML = `
+    <button class="msel-btn" type="button">
+      <span>${def.label}</span><span class="count"></span><span style="margin-left:auto;opacity:.6">▾</span>
+    </button>
+    <div class="msel-panel">
+      <input class="msel-search" placeholder="Buscar ${def.label.toLowerCase()}..." />
+      <div class="msel-actions">
+        <button type="button" data-act="all">Selecionar todos</button>
+        <button type="button" data-act="none">Limpar</button>
+      </div>
+      <div class="msel-list"></div>
+    </div>`;
+  const listEl = root.querySelector(".msel-list");
+
+  function renderList(filterText) {
+    const ft = (filterText || "").toLowerCase();
+    listEl.innerHTML = options
+      .filter((o) => !ft || o.toLowerCase().includes(ft))
+      .map((o) => {
+        const checked = filters[def.key].has(o) ? "checked" : "";
+        return `<label class="msel-opt"><input type="checkbox" value="${OTD.escapeHtml(o)}" ${checked}/> <span>${OTD.escapeHtml(o)}</span><span class="n">${counts.get(o)}</span></label>`;
+      })
+      .join("");
+  }
+  renderList("");
+
+  root.querySelector(".msel-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.querySelectorAll(".msel.open").forEach((m) => m !== root && m.classList.remove("open"));
+    root.classList.toggle("open");
+  });
+  root.querySelector(".msel-search").addEventListener("input", (e) => renderList(e.target.value));
+  root.querySelector('[data-act="all"]').addEventListener("click", () => {
+    options.forEach((o) => filters[def.key].add(o));
+    renderList(root.querySelector(".msel-search").value);
+    updateMselButton(def);
+    renderAll();
+  });
+  root.querySelector('[data-act="none"]').addEventListener("click", () => {
+    filters[def.key].clear();
+    renderList(root.querySelector(".msel-search").value);
+    updateMselButton(def);
+    renderAll();
+  });
+  listEl.addEventListener("change", (e) => {
+    if (e.target.type === "checkbox") {
+      const v = e.target.value;
+      if (e.target.checked) filters[def.key].add(v);
+      else filters[def.key].delete(v);
+      updateMselButton(def);
+      renderAll();
+    }
+  });
+  updateMselButton(def);
+}
+function updateMselButton(def) {
+  const root = document.getElementById(def.id);
+  const c = filters[def.key].size;
+  const countEl = root.querySelector(".count");
+  countEl.textContent = c;
+  countEl.classList.toggle("show", c > 0);
+}
+document.addEventListener("click", () => document.querySelectorAll(".msel.open").forEach((m) => m.classList.remove("open")));
+
+document.getElementById("btnClear").addEventListener("click", () => {
+  filters = { months: new Set([OTD.nowKey()]), dateFrom: null, dateTo: null, clientes: new Set(), motoristas: new Set(), placas: new Set(), rotas: new Set() };
+  activePreset = "atual";
+  document.getElementById("dateFrom").value = "";
+  document.getElementById("dateTo").value = "";
+  MSEL_DEFS.forEach(updateMselButton);
+  document.querySelectorAll(".msel-list").forEach((l) => {});
+  MSEL_DEFS.forEach(buildMultiselect);
+  renderAll();
+});
+
+/* ---------------- number animation ---------------- */
+function animateValue(el, toText, isNumberExtractable) {
+  el.textContent = toText;
+}
+
+/* ---------------- paginação automática dos painéis operacionais ---------------- */
+const OP_PAGE_SIZE = 8; // linhas visíveis por página
+const OP_PAGE_MS = 5000; // troca de página a cada 5s
+let opPageTick = 0;
+let opTransRows = [],
+  opNiniRows = [];
+let opTransRowFn = () => "",
+  opNiniRowFn = () => "";
+let opTransEmpty = "",
+  opNiniEmpty = "";
+
+function paintOpTable(tbodyId, nEl, rows, rowFn, emptyMsg) {
+  const totalPages = Math.max(1, Math.ceil(rows.length / OP_PAGE_SIZE));
+  const page = opPageTick % totalPages;
+  const slice = rows.slice(page * OP_PAGE_SIZE, page * OP_PAGE_SIZE + OP_PAGE_SIZE);
+  const tbody = document.getElementById(tbodyId);
+  tbody.classList.remove("page-fade");
+  tbody.innerHTML = slice.length ? slice.map(rowFn).join("") : emptyMsg;
+  void tbody.offsetWidth;
+  tbody.classList.add("page-fade");
+  const nEl2 = document.getElementById(nEl);
+  nEl2.textContent = rows.length + " registros" + (totalPages > 1 ? " · página " + (page + 1) + "/" + totalPages : "");
+}
+function renderOpPage() {
+  paintOpTable("tblEmTransito", "nEmTransito", opTransRows, opTransRowFn, opTransEmpty);
+  paintOpTable("tblNaoIniciado", "nNaoIniciado", opNiniRows, opNiniRowFn, opNiniEmpty);
+}
+setInterval(() => {
+  opPageTick++;
+  renderOpPage();
+}, OP_PAGE_MS);
+
+/* ---------------- render: painel operacional ---------------- */
+function renderOperacional() {
+  const op = OTD.operational(filters);
+  const now = new Date();
+
+  document.getElementById("cntEmTransito").textContent = OTD.fmtNum(op.emTransito.length);
+  document.getElementById("cntNaoIniciado").textContent = OTD.fmtNum(op.naoIniciado.length);
+
+  const allEntity = OTD.applyEntityFilters(OTD.DATA, filters);
+  const concluido = allEntity.filter((r) => r.status === "concluido");
+  document.getElementById("cntConcluido").textContent = OTD.fmtNum(concluido.length);
+  document.getElementById("cntFrotaAtiva").textContent = OTD.fmtNum(OTD.distinctPlacas(allEntity).size);
+  document.getElementById("cntMotoristas").textContent = OTD.fmtNum(OTD.distinctMotoristas(allEntity).size);
+
+  const transitoLongo = op.emTransito.filter((r) => OTD.daysBetween(new Date(r.dtCargaI), now) > 3);
+  document.getElementById("cntTransitoLongo").textContent = OTD.fmtNum(transitoLongo.length);
+
+  // tabela em transito (com paginacao automatica)
+  const rowsT = [...op.emTransito].sort((a, b) => new Date(a.dtCargaI) - new Date(b.dtCargaI));
+  opTransRows = rowsT;
+  opTransRowFn = (r) => {
+    const dias = OTD.daysBetween(new Date(r.dtCargaI), now);
+    const badge = dias > 3 ? "b-red" : dias >= 1 ? "b-amber" : "b-green";
+    return `<tr><td>${r.id}</td><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 24))}</td><td>${new Date(r.dtCargaI).toLocaleDateString("pt-BR")}</td><td><span class="badge ${badge}">${dias}d</span></td></tr>`;
+  };
+  opTransEmpty = `<tr><td colspan="7"><div class="empty-state">Nenhuma carga em trânsito no filtro atual 🎉</div></td></tr>`;
+
+  // tabela nao iniciado (com paginacao automatica)
+  const rowsN = [...op.naoIniciado].sort((a, b) => {
+    const da = a.dtSol ? new Date(a.dtSol) : new Date(0);
+    const db = b.dtSol ? new Date(b.dtSol) : new Date(0);
+    return da - db;
+  });
+  opNiniRows = rowsN;
+  opNiniRowFn = (r) => {
+    let diasTxt = "—",
+      badge = "b-grey";
+    if (r.dtSol) {
+      const dias = OTD.daysBetween(new Date(r.dtSol), now);
+      diasTxt = dias + "d";
+      badge = dias > 5 ? "b-red" : dias >= 2 ? "b-amber" : "b-green";
+    }
+    return `<tr><td>${r.id}</td><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 24))}</td><td>${r.dtSol ? new Date(r.dtSol).toLocaleDateString("pt-BR") : "sem data"}</td><td><span class="badge ${badge}">${diasTxt}</span></td></tr>`;
+  };
+  opNiniEmpty = `<tr><td colspan="7"><div class="empty-state">Nenhuma carga aguardando início 🎉</div></td></tr>`;
+
+  opPageTick = 0;
+  renderOpPage();
+
+  // donut status
+  const statusMap = { concluido: allEntity.filter((r) => r.status === "concluido").length, em_transito: op.emTransito.length, nao_iniciado: op.naoIniciado.length };
+  upsertChart("chartStatus", {
+    type: "doughnut",
+    data: {
+      labels: ["Concluídas", "Em Trânsito", "Aguard. Início"],
+      datasets: [{ data: [statusMap.concluido, statusMap.em_transito, statusMap.nao_iniciado], backgroundColor: ["#4ADE80", "#FFC145", "#F1553F"], borderColor: "#131110", borderWidth: 3 }],
+    },
+    options: { cutout: "60%", plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.label + ": " + c.parsed } } }, animation: { animateRotate: true, duration: 900 } },
+  });
+  const total = statusMap.concluido + statusMap.em_transito + statusMap.nao_iniciado || 1;
+  document.getElementById("legendStatus").innerHTML = [
+    ["#4ADE80", "Concluídas", statusMap.concluido],
+    ["#FFC145", "Em Trânsito", statusMap.em_transito],
+    ["#F1553F", "Aguard. Início", statusMap.nao_iniciado],
+  ]
+    .map(([c, l, v]) => `<span><i style="background:${c}"></i>${l}: ${v} (${OTD.fmtPct((v / total) * 100)})</span>`)
+    .join("");
+}
+
+/* ---------------- render: kpis financeiros ---------------- */
+function activeSingleMonth() {
+  if (!filters.dateFrom && !filters.dateTo && filters.months.size === 1) return Array.from(filters.months)[0];
+  return null;
+}
+
+function renderKPIs(rows) {
+  const fat = OTD.totalFaturamento(rows);
+  const n = rows.length;
+  const ticket = n ? fat / n : 0;
+  const fretePeso = OTD.totalFretePeso(rows);
+  const km = OTD.totalKm(rows);
+  const kmCarreg = rows.reduce((s, r) => s + (r.kmCarreg || 0), 0);
+  const rkm = kmCarreg ? fat / kmCarreg : 0;
+  const concluidas = rows.filter((r) => r.status === "concluido").length;
+
+  document.getElementById("kpiFaturamento").textContent = OTD.fmtBRL(fat);
+  document.getElementById("kpiViagens").textContent = OTD.fmtNum(n);
+  document.getElementById("kpiViagensSub").textContent = concluidas + " concluídas no período";
+  document.getElementById("kpiTicket").textContent = OTD.fmtBRL(ticket);
+  document.getElementById("kpiFretePeso").textContent = OTD.fmtBRL(fretePeso);
+  document.getElementById("kpiKm").textContent = OTD.fmtKm(km);
+  document.getElementById("kpiKmSub").textContent = OTD.fmtKm(kmCarreg) + " carregado";
+  document.getElementById("kpiRkm").textContent = OTD.fmtBRLcents(rkm);
+
+  // delta vs mes anterior (somente quando 1 mes ativo)
+  const single = activeSingleMonth();
+  const deltaEl = document.getElementById("kpiFaturamentoDelta");
+  if (single) {
+    const months = OTD.availableMonths();
+    const idx = months.indexOf(single);
+    if (idx > 0) {
+      const prevMonth = months[idx - 1];
+      const prevRows = OTD.applyEntityFilters(OTD.DATA.filter((r) => r.mesRef === prevMonth), filters);
+      const prevFat = OTD.totalFaturamento(prevRows);
+      if (prevFat > 0) {
+        const pct = ((fat - prevFat) / prevFat) * 100;
+        const arrow = pct >= 0 ? "▲" : "▼";
+        deltaEl.className = "delta num " + (pct >= 0 ? "up" : "down");
+        deltaEl.textContent = arrow + " " + OTD.fmtPct(Math.abs(pct)) + " vs " + OTD.monthLabel(prevMonth);
+      } else {
+        deltaEl.textContent = "";
+      }
+    } else {
+      deltaEl.textContent = "";
+    }
+  } else {
+    deltaEl.textContent = "";
+  }
+
+  document.getElementById("periodoAtivoLabel").textContent = periodoLabel();
+}
+
+function periodoLabel() {
+  if (filters.dateFrom || filters.dateTo) {
+    const f = filters.dateFrom ? new Date(filters.dateFrom + "T00:00:00").toLocaleDateString("pt-BR") : "início";
+    const t = filters.dateTo ? new Date(filters.dateTo + "T00:00:00").toLocaleDateString("pt-BR") : "hoje";
+    return "Período: " + f + " até " + t;
+  }
+  if (!filters.months.size) return "Nenhum período selecionado";
+  const arr = Array.from(filters.months).sort();
+  if (arr.length === 1) return OTD.monthLabelFull(arr[0]);
+  return arr.map(OTD.monthLabel).join(", ");
+}
+
+/* ---------------- render: meta & projeção ---------------- */
+function renderGoal(rows) {
+  const single = activeSingleMonth();
+  const section = document.getElementById("goalSection");
+  if (!single) {
+    document.getElementById("goalPct").textContent = "—";
+    document.getElementById("projPct").textContent = "—";
+    document.getElementById("goalRealizado").textContent = OTD.fmtBRL(OTD.totalFaturamento(rows));
+    document.getElementById("goalMetaVal").textContent = "selecione 1 mês";
+    document.getElementById("projValor").textContent = "—";
+    document.getElementById("projMedia").textContent = "—";
+    document.getElementById("projDias").textContent = "selecione um único mês para ver meta/projeção";
+    upsertChart("goalGauge", gaugeConfig(0, "#F0800E"));
+    upsertChart("projGauge", gaugeConfig(0, "#4FA3E3"));
+    renderDailyChart(rows, null);
+    return;
+  }
+
+  const fat = OTD.totalFaturamento(rows);
+  const suggested = OTD.suggestGoal(single);
+  const meta = OTD.getGoal(single, suggested);
+  const pct = meta ? (fat / meta) * 100 : 0;
+
+  document.getElementById("goalPct").textContent = OTD.fmtPct(Math.min(pct, 999), 0);
+  document.getElementById("goalRealizado").textContent = OTD.fmtBRL(fat);
+  document.getElementById("goalMetaVal").textContent = OTD.fmtBRL(meta);
+  document.getElementById("goalInput").placeholder = "Meta atual: " + OTD.fmtBRL(meta);
+  upsertChart("goalGauge", gaugeConfig(pct, pct >= 100 ? "#4ADE80" : "#F0800E"));
+
+  const proj = OTD.projectMonth(rows, single);
+  const projPct = meta ? (proj.projected / meta) * 100 : 0;
+  document.getElementById("projPct").textContent = OTD.fmtPct(Math.min(projPct, 999), 0);
+  document.getElementById("projValor").textContent = OTD.fmtBRL(proj.projected);
+  document.getElementById("projMedia").textContent = OTD.fmtBRL(proj.dailyAvg) + "/dia";
+  document.getElementById("projDias").textContent = proj.elapsed + " / " + proj.totalDays + " dias";
+  upsertChart("projGauge", gaugeConfig(projPct, projPct >= 100 ? "#4ADE80" : "#4FA3E3"));
+
+  document.getElementById("btnSaveGoal").onclick = () => {
+    const v = parseFloat(document.getElementById("goalInput").value);
+    if (v > 0) {
+      OTD.setGoal(single, v);
+      document.getElementById("goalInput").value = "";
+      renderAll();
+    }
+  };
+
+  renderDailyChart(rows, proj);
+}
+
+function gaugeConfig(pct, color) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  return {
+    type: "doughnut",
+    data: { datasets: [{ data: [clamped, 100 - clamped], backgroundColor: [color, "rgba(255,255,255,.07)"], borderWidth: 0 }] },
+    options: { cutout: "76%", rotation: -90, circumference: 360, plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { animateRotate: true, duration: 1000 } },
+  };
+}
+
+function renderDailyChart(rows, proj) {
+  const map = new Map();
+  rows.forEach((r) => {
+    if (!r.dtCargaI) return;
+    const key = r.dtCargaI.slice(0, 10);
+    map.set(key, (map.get(key) || 0) + (r.frete || 0));
+  });
+  const keys = Array.from(map.keys()).sort();
+  const labels = keys.map((k) => {
+    const [, m, d] = k.split("-");
+    return d + "/" + m;
+  });
+  const values = keys.map((k) => map.get(k));
+
+  const datasets = [
+    { label: "Faturamento", data: values, borderColor: "#F0800E", backgroundColor: "rgba(240,128,14,.15)", fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: "#F0800E" },
+  ];
+
+  if (proj && proj.isCurrent && proj.dailyAvg > 0) {
+    const projLine = values.map(() => null);
+    projLine[projLine.length - 1] = values[values.length - 1];
+    for (let i = 0; i < proj.totalDays - proj.elapsed; i++) projLine.push(proj.dailyAvg);
+    for (let i = 0; i < proj.totalDays - proj.elapsed; i++) labels.push("+" + (i + 1) + "d");
+    while (values.length < labels.length) values.push(null);
+    datasets.push({ label: "Projeção", data: projLine, borderColor: "#4FA3E3", borderDash: [6, 4], pointRadius: 0, fill: false, tension: 0 });
+  }
+
+  upsertChart("chartDiario", {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      plugins: { legend: { position: "top", align: "end", labels: { boxWidth: 10, color: "#ABA69C" } }, tooltip: { callbacks: { label: (c) => c.dataset.label + ": " + OTD.fmtBRL(c.parsed.y) } } },
+      scales: {
+        x: { ticks: { color: "#6E6A62", maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } },
+        y: { ticks: { color: "#6E6A62", callback: (v) => OTD.fmtNum(v / 1000) + "k" }, grid: { color: "rgba(255,255,255,.05)" } },
+      },
+      animation: { duration: 800 },
+    },
+  });
+}
+
+/* ---------------- render: destaques ---------------- */
+function renderHighlights(rows) {
+  function setHl(prefix, name, val, foot) {
+    document.getElementById(prefix + "Name").textContent = name || "—";
+    document.getElementById(prefix + "Val").textContent = val;
+    document.getElementById(prefix + "Foot").textContent = foot || "";
+  }
+  if (!rows.length) {
+    ["hlCliente", "hlRota", "hlMotorista", "hlPlaca", "hlMaior", "hlMaisViagens"].forEach((p) => setHl(p, "Sem dados", "—", ""));
+    return;
+  }
+
+  const byCliente = OTD.topN(OTD.sumBy(rows, (r) => r.cliente), 1)[0];
+  const byRota = OTD.topN(OTD.sumBy(rows, (r) => r.rota), 1)[0];
+  const byMotorista = OTD.topN(OTD.sumBy(rows, (r) => r.motorista), 1)[0];
+  const byPlaca = OTD.topN(OTD.sumBy(rows, (r) => r.placa), 1)[0];
+  const maiorFrete = [...rows].sort((a, b) => (b.frete || 0) - (a.frete || 0))[0];
+  const viagensByMotorista = OTD.topN(OTD.countBy(rows, (r) => r.motorista), 1)[0];
+
+  setHl("hlCliente", byCliente ? OTD.clienteShort(byCliente[0]) : "—", OTD.fmtBRL(byCliente ? byCliente[1] : 0), "maior faturamento do período");
+  setHl("hlRota", byRota ? byRota[0] : "—", OTD.fmtBRL(byRota ? byRota[1] : 0), "rota mais rentável");
+  setHl("hlMotorista", byMotorista ? byMotorista[0] : "—", OTD.fmtBRL(byMotorista ? byMotorista[1] : 0), "maior faturamento gerado");
+  setHl("hlPlaca", byPlaca ? byPlaca[0] : "—", OTD.fmtBRL(byPlaca ? byPlaca[1] : 0), "placa mais rentável");
+  setHl("hlMaior", maiorFrete ? OTD.clienteShort(maiorFrete.cliente) : "—", OTD.fmtBRL(maiorFrete ? maiorFrete.frete : 0), maiorFrete ? "romaneio " + maiorFrete.id + " · " + maiorFrete.rota : "");
+  setHl("hlMaisViagens", viagensByMotorista ? viagensByMotorista[0] : "—", (viagensByMotorista ? viagensByMotorista[1] : 0) + " viagens", "motorista com mais cargas no período");
+}
+
+/* ---------------- render: gráficos por dimensão ---------------- */
+function upsertChart(id, config) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, config);
+}
+
+function renderDimensionCharts(rows) {
+  // clientes (donut)
+  const mapC = OTD.sumBy(rows, (r) => (r.cliente ? OTD.clienteShort(r.cliente) : null));
+  mapC.delete("—");
+  const topC = OTD.topN(mapC, 7);
+  const otherC = OTD.topN(mapC, 999).slice(7).reduce((s, [, v]) => s + v, 0);
+  const labelsC = topC.map((t) => t[0]);
+  const valuesC = topC.map((t) => t[1]);
+  if (otherC > 0.01) {
+    labelsC.push("Outros");
+    valuesC.push(otherC);
+  }
+  document.getElementById("nClientes").textContent = mapC.size + " clientes";
+  upsertChart("chartClientes", {
+    type: "doughnut",
+    data: { labels: labelsC, datasets: [{ data: valuesC, backgroundColor: OTD.PALETTE, borderColor: "#131110", borderWidth: 2 }] },
+    options: {
+      cutout: "58%",
+      plugins: { legend: { position: "right", labels: { boxWidth: 10, padding: 9, color: "#ABA69C", font: { size: 10.5 } } }, tooltip: { callbacks: { label: (c) => c.label + ": " + OTD.fmtBRL(c.parsed) } } },
+      animation: { animateRotate: true, duration: 900 },
+    },
+  });
+
+  barChart("chartRotas", OTD.sumBy(rows, (r) => r.rota), "#F0800E");
+  barChart("chartPlacas", OTD.sumBy(rows, (r) => r.placa), "#2DD4BF");
+  barChart("chartMotoristas", OTD.sumBy(rows, (r) => r.motorista), "#4FA3E3", (l) => OTD.shortName(l, 26));
+}
+
+function barChart(id, map, color, labelFmt) {
+  map.delete("—");
+  const top = OTD.topN(map, 10);
+  upsertChart(id, {
+    type: "bar",
+    data: { labels: top.map((t) => (labelFmt ? labelFmt(t[0]) : t[0])), datasets: [{ data: top.map((t) => t[1]), backgroundColor: color, borderRadius: 6, maxBarThickness: 16 }] },
+    options: {
+      indexAxis: "y",
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => OTD.fmtBRL(c.parsed.x) } } },
+      scales: {
+        x: { ticks: { color: "#6E6A62", callback: (v) => OTD.fmtNum(v / 1000) + "k" }, grid: { color: "rgba(255,255,255,.05)" } },
+        y: { ticks: { color: "#ABA69C", font: { size: 10.5 } }, grid: { display: false } },
+      },
+      animation: { duration: 800 },
+    },
+  });
+}
+
+/* ---------------- render: ranking motoristas ---------------- */
+function renderRanking(rows) {
+  const counts = OTD.countBy(rows, (r) => r.motorista);
+  counts.delete("—");
+  const mais = OTD.topN(counts, 5, true);
+  const menos = OTD.topN(counts, 5, false);
+  const maxVal = mais.length ? mais[0][1] : 1;
+
+  function draw(elId, arr, colorClass) {
+    const el = document.getElementById(elId);
+    if (!arr.length) {
+      el.innerHTML = '<div class="empty-state">Sem dados</div>';
+      return;
+    }
+    el.innerHTML = arr
+      .map(([name, val], i) => {
+        const pct = Math.max(6, (val / maxVal) * 100);
+        return `<div class="rankrow"><div class="pos">${i + 1}º</div><div class="rname" title="${OTD.escapeHtml(name)}">${OTD.escapeHtml(OTD.shortName(name, 28))}</div><div class="rbarwrap"><div class="rbar" style="width:${pct}%"></div></div><div class="rval">${val}</div></div>`;
+      })
+      .join("");
+  }
+  draw("rankMais", mais);
+  draw("rankMenos", menos);
+}
+
+/* ---------------- render: tabela detalhada (paginação automática, igual ao painel operacional) ---------------- */
+let tblRowFn = () => "";
+let tblEmpty = "";
+function paintDetailPage() {
+  const totalPages = Math.max(1, Math.ceil(tblRows.length / TBL_PAGE_SIZE));
+  const page = tblPageTick % totalPages;
+  const slice = tblRows.slice(page * TBL_PAGE_SIZE, page * TBL_PAGE_SIZE + TBL_PAGE_SIZE);
+  const tbody = document.getElementById("tblDetalhe");
+  tbody.classList.remove("page-fade");
+  tbody.innerHTML = slice.length ? slice.map(tblRowFn).join("") : tblEmpty;
+  void tbody.offsetWidth;
+  tbody.classList.add("page-fade");
+  document.getElementById("tblCount").textContent = tblRows.length + " viagens no período" + (totalPages > 1 ? " · página " + (page + 1) + "/" + totalPages : "");
+}
+setInterval(() => {
+  tblPageTick++;
+  paintDetailPage();
+}, TBL_PAGE_MS);
+
+function renderTable(rows) {
+  const search = (document.getElementById("tblSearch").value || "").toLowerCase();
+  let filtered = rows;
+  if (search) {
+    filtered = rows.filter((r) => [r.id, r.cliente, r.motorista, r.placa, r.rota].some((v) => v && String(v).toLowerCase().includes(search)));
+  }
+  tblRows = [...filtered].sort((a, b) => new Date(b.dtCargaI || b.dtSol || 0) - new Date(a.dtCargaI || a.dtSol || 0));
+  tblRowFn = (r) => {
+    const statusBadge = r.status === "concluido" ? '<span class="badge b-green">Concluída</span>' : r.status === "em_transito" ? '<span class="badge b-amber">Em trânsito</span>' : '<span class="badge b-red">Aguardando</span>';
+    return `<tr><td>${r.id}</td><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 22))}</td><td>${statusBadge}</td><td>${OTD.fmtBRL(r.frete)}</td><td>${r.dtCargaI ? new Date(r.dtCargaI).toLocaleDateString("pt-BR") : "—"}</td><td>${r.dtDescI ? new Date(r.dtDescI).toLocaleDateString("pt-BR") : "—"}</td></tr>`;
+  };
+  tblEmpty = `<tr><td colspan="9"><div class="empty-state">Nenhuma viagem encontrada para os filtros atuais</div></td></tr>`;
+  tblPageTick = 0;
+  paintDetailPage();
+}
+document.getElementById("tblSearch").addEventListener("input", () => {
+  renderTable(OTD.filterAll(filters));
+});
+
+/* ---------------- master render ---------------- */
+function renderAll() {
+  renderMonthChips();
+  updatePresetChipsUI();
+  const rows = OTD.filterAll(filters);
+  renderOperacional();
+  renderKPIs(rows);
+  renderGoal(rows);
+  renderHighlights(rows);
+  renderDimensionCharts(rows);
+  renderRanking(rows);
+  renderTable(rows);
+}
+
+MSEL_DEFS.forEach(buildMultiselect);
+renderAll();
+</script>
+</body>
+</html>
