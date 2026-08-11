@@ -757,10 +757,16 @@ function renderHighlights(rows) {
 
   const byCliente = OTD.topN(OTD.sumBy(rows, (r) => r.cliente), 1)[0];
   const byRota = OTD.topN(OTD.sumBy(rows, (r) => r.rota), 1)[0];
-  const byMotorista = OTD.topN(OTD.sumBy(rows, (r) => r.motorista), 1)[0];
-  const byPlaca = OTD.topN(OTD.sumBy(rows, (r) => r.placa), 1)[0];
+  const mapMotoristaFrete = OTD.sumBy(rows, (r) => r.motorista);
+  mapMotoristaFrete.delete("—");
+  const byMotorista = OTD.topN(mapMotoristaFrete, 1)[0];
+  const mapPlacaFrete = OTD.sumBy(rows, (r) => r.placa);
+  mapPlacaFrete.delete("—");
+  const byPlaca = OTD.topN(mapPlacaFrete, 1)[0];
   const maiorFrete = [...rows].sort((a, b) => (b.frete || 0) - (a.frete || 0))[0];
-  const viagensByMotorista = OTD.topN(OTD.countBy(rows, (r) => r.motorista), 1)[0];
+  const mapMotoristaViagens = OTD.countBy(rows, (r) => r.motorista);
+  mapMotoristaViagens.delete("—");
+  const viagensByMotorista = OTD.topN(mapMotoristaViagens, 1)[0];
 
   setHl("hlCliente", byCliente ? OTD.clienteShort(byCliente[0]) : "—", OTD.fmtBRL(byCliente ? byCliente[1] : 0), "maior faturamento do período");
   setHl("hlRota", byRota ? byRota[0] : "—", OTD.fmtBRL(byRota ? byRota[1] : 0), "rota mais rentável");
