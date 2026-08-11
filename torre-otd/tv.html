@@ -255,7 +255,9 @@ function buildAll() {
   // ---- slide 4: destaques & meta ----
   const byCliente = OTD.topN(OTD.sumBy(rows, (r) => r.cliente), 1)[0];
   const byRota = OTD.topN(OTD.sumBy(rows, (r) => r.rota), 1)[0];
-  const byMotorista = OTD.topN(OTD.sumBy(rows, (r) => r.motorista), 1)[0];
+  const mapMotoristaFrete = OTD.sumBy(rows, (r) => r.motorista);
+  mapMotoristaFrete.delete("—");
+  const byMotorista = OTD.topN(mapMotoristaFrete, 1)[0];
   document.getElementById("h4cli").textContent = byCliente ? OTD.clienteShort(byCliente[0]) : "—";
   document.getElementById("h4cliv").textContent = OTD.fmtBRL(byCliente ? byCliente[1] : 0);
   document.getElementById("h4rota").textContent = byRota ? byRota[0] : "—";
