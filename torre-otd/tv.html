@@ -6,6 +6,11 @@
 <title>Torre de Controle · Modo TV · OTD LOGISTICS</title>
 <link rel="stylesheet" href="style.css" />
 <style>
+  /* salvaguarda: garante texto claro por padrao mesmo se style.css externo demorar/falhar
+     ao carregar ou se variaveis CSS (var(--...)) nao forem suportadas no navegador do
+     Raspberry Pi — cor fixa (nao var()) so no html/body; elementos com cor propria
+     (badges, tags, destaques laranja) continuam intactos pois definem sua propria cor */
+  html, body{ background:#0b0a09; color:#F6F4F0; }
   body{ cursor:none; }
   .tv-slide .card{ animation:none; opacity:1; transform:none; }
   .tv-goal .gauge-wrap{ max-width:230px; }
@@ -23,16 +28,16 @@
   .tv-kpi-solo{ height:100%; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:1fr 1fr; gap:20px; }
   .tv-kpi-solo .tv-kpi{ min-height:0; height:100%; justify-content:center; }
   .tv-kpi-solo .tv-kpi .icon{ width:46px; height:46px; font-size:22px; border-radius:12px; }
-  .tv-kpi-solo .tv-kpi .label{ font-size:14px; }
-  .tv-kpi-solo .tv-kpi .value{ font-size:46px; }
-  .tv-diario-hoje{ margin-left:auto; font-size:15px; color:var(--orange-light); font-weight:800; }
+  .tv-kpi-solo .tv-kpi .label{ font-size:14px; color:#ABA69C; }
+  .tv-kpi-solo .tv-kpi .value{ font-size:46px; color:#F6F4F0; }
+  .tv-diario-hoje{ margin-left:auto; font-size:15px; color:#FFA94D; font-weight:800; }
   .tv-status-grid{ display:grid; grid-template-columns:1.1fr 1fr; gap:36px; height:calc(100% - 30px); align-items:center; }
   .tv-status-legend-big{ display:flex; flex-direction:column; gap:26px; }
   .tv-status-legend-big .row{ display:flex; align-items:center; gap:16px; }
   .tv-status-legend-big .dot{ width:22px; height:22px; border-radius:7px; flex-shrink:0; }
-  .tv-status-legend-big .txt .lbl{ font-size:15px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; font-weight:700; margin-bottom:4px; }
-  .tv-status-legend-big .txt .val{ font-size:32px; font-weight:900; }
-  .tv-status-legend-big .txt .pct{ font-size:16px; color:var(--text-faint); margin-left:10px; font-weight:700; }
+  .tv-status-legend-big .txt .lbl{ font-size:15px; color:#ABA69C; text-transform:uppercase; letter-spacing:.5px; font-weight:700; margin-bottom:4px; }
+  .tv-status-legend-big .txt .val{ font-size:32px; font-weight:900; color:#F6F4F0; }
+  .tv-status-legend-big .txt .pct{ font-size:16px; color:#6E6A62; margin-left:10px; font-weight:700; }
   .tv-uso-grid{ display:grid; grid-template-columns:1fr 1fr; gap:36px; height:calc(100% - 30px); }
 </style>
 </head>
