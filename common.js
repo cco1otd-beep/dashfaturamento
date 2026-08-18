@@ -202,8 +202,12 @@ const OTD = (function () {
     localStorage.setItem(goalStorageKey(monthKeyStr), String(value));
   }
 
+  // meta fixa temporaria (solicitado pelo usuario em 18/08/2026) — ajustar quando definirem meta oficial
+  const META_FIXA_TEMPORARIA = 3000000;
+
   // sugestao de meta: media dos ultimos meses fechados * 1.05, ou total do mes anterior
   function suggestGoal(monthKeyStr) {
+    if (META_FIXA_TEMPORARIA) return META_FIXA_TEMPORARIA;
     const months = availableMonths().filter((m) => m < monthKeyStr);
     if (!months.length) return totalFaturamento(DATA.filter((r) => r.mesRef === monthKeyStr)) || 50000;
     const last = months[months.length - 1];
