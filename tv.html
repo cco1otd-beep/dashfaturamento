@@ -17,6 +17,23 @@
   .tv-hl-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
   .tv-mid-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; height:calc(100% - 0px); }
   .tv-3col{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; height:100%; }
+
+  /* --- novos layouts (telas mais simples, uma ideia por tela) --- */
+  .tv-single{ height:100%; }
+  .tv-kpi-solo{ height:100%; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:1fr 1fr; gap:20px; }
+  .tv-kpi-solo .tv-kpi{ min-height:0; height:100%; justify-content:center; }
+  .tv-kpi-solo .tv-kpi .icon{ width:46px; height:46px; font-size:22px; border-radius:12px; }
+  .tv-kpi-solo .tv-kpi .label{ font-size:14px; }
+  .tv-kpi-solo .tv-kpi .value{ font-size:46px; }
+  .tv-diario-hoje{ margin-left:auto; font-size:15px; color:var(--orange-light); font-weight:800; }
+  .tv-status-grid{ display:grid; grid-template-columns:1.1fr 1fr; gap:36px; height:calc(100% - 30px); align-items:center; }
+  .tv-status-legend-big{ display:flex; flex-direction:column; gap:26px; }
+  .tv-status-legend-big .row{ display:flex; align-items:center; gap:16px; }
+  .tv-status-legend-big .dot{ width:22px; height:22px; border-radius:7px; flex-shrink:0; }
+  .tv-status-legend-big .txt .lbl{ font-size:15px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; font-weight:700; margin-bottom:4px; }
+  .tv-status-legend-big .txt .val{ font-size:32px; font-weight:900; }
+  .tv-status-legend-big .txt .pct{ font-size:16px; color:var(--text-faint); margin-left:10px; font-weight:700; }
+  .tv-uso-grid{ display:grid; grid-template-columns:1fr 1fr; gap:36px; height:calc(100% - 30px); }
 </style>
 </head>
 <body>
@@ -38,9 +55,9 @@
 
   <div class="tv-slides" id="tvSlides">
 
-    <!-- SLIDE 0 — VISAO GERAL -->
+    <!-- SLIDE 0 — VISAO GERAL (somente KPIs) -->
     <div class="tv-slide active" id="slide0">
-      <div class="grid g-kpi zoomfade" style="grid-template-columns:repeat(6,1fr);gap:16px;">
+      <div class="tv-kpi-solo zoomfade">
         <div class="card kpi tv-kpi accent"><div class="icon">💰</div><div class="label">Faturamento do Mês</div><div class="value num" id="g0fat">R$ 0</div></div>
         <div class="card kpi tv-kpi"><div class="icon">📦</div><div class="label">Viagens</div><div class="value num" id="g0via">0</div></div>
         <div class="card kpi tv-kpi"><div class="icon">🎯</div><div class="label">Ticket Médio</div><div class="value num" id="g0tk">R$ 0</div></div>
@@ -48,37 +65,62 @@
         <div class="card kpi tv-kpi danger"><div class="icon">🚧</div><div class="label">Em Trânsito</div><div class="value num" id="g0trans">0</div></div>
         <div class="card kpi tv-kpi warn"><div class="icon">⏳</div><div class="label">Aguard. Início</div><div class="value num" id="g0nini">0</div></div>
       </div>
-      <div class="tv-mid-grid" style="margin-top:20px;height:calc(100% - 156px);">
-        <div class="card panel"><div class="panel-head"><h3>Faturamento Diário — Mês Atual</h3></div><div class="chart-wrap"><canvas id="tvChartDiario"></canvas></div></div>
-        <div class="card panel"><div class="panel-head"><h3>Status da Frota</h3></div><div class="chart-wrap"><canvas id="tvChartStatus"></canvas></div><div class="legend-mini" id="tvLegendStatus" style="justify-content:center;font-size:13px;"></div></div>
+    </div>
+
+    <!-- SLIDE 1 — FATURAMENTO DIARIO (tela propria, valores sinalizados por dia) -->
+    <div class="tv-slide" id="slide1">
+      <div class="card panel tv-single">
+        <div class="panel-head"><h3>Faturamento Diário — Mês Atual</h3><span class="n tv-diario-hoje" id="tvHojeFat">Hoje: R$ 0</span></div>
+        <div class="chart-wrap"><canvas id="tvChartDiario"></canvas></div>
       </div>
     </div>
 
-    <!-- SLIDE 1 — FATURAMENTO CLIENTE / ROTA -->
-    <div class="tv-slide" id="slide1">
+    <!-- SLIDE 2 — STATUS DA FROTA (card maior, legenda visivel) -->
+    <div class="tv-slide" id="slide2">
+      <div class="card panel tv-single">
+        <div class="panel-head"><h3>Status da Frota</h3><span class="n" id="tvStatusTotal">0 viagens</span></div>
+        <div class="tv-status-grid">
+          <div class="chart-wrap" style="min-height:360px;"><canvas id="tvChartStatus"></canvas></div>
+          <div class="tv-status-legend-big" id="tvLegendStatus"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3 — FATURAMENTO CLIENTE / ROTA -->
+    <div class="tv-slide" id="slide3">
       <div class="tv-mid-grid" style="height:100%;">
         <div class="card panel"><div class="panel-head"><h3>Faturamento por Cliente</h3></div><div class="chart-wrap"><canvas id="tvChartCliente"></canvas></div></div>
         <div class="card panel"><div class="panel-head"><h3>Top 10 Rotas por Faturamento</h3></div><div class="chart-wrap"><canvas id="tvChartRota"></canvas></div></div>
       </div>
     </div>
 
-    <!-- SLIDE 2 — MOTORISTAS / PLACAS -->
-    <div class="tv-slide" id="slide2">
-      <div class="tv-3col">
+    <!-- SLIDE 4 — MOTORISTAS & PLACAS (top 10 completo, mais espaço) -->
+    <div class="tv-slide" id="slide4">
+      <div class="tv-mid-grid" style="height:100%;">
         <div class="card panel"><div class="panel-head"><h3>Top 10 Motoristas</h3><span class="n">por faturamento</span></div><div class="chart-wrap"><canvas id="tvChartMotorista"></canvas></div></div>
         <div class="card panel"><div class="panel-head"><h3>Top 10 Placas</h3><span class="n">por faturamento</span></div><div class="chart-wrap"><canvas id="tvChartPlaca"></canvas></div></div>
-        <div class="card panel">
-          <div class="panel-head"><h3>Motoristas — Uso</h3><span class="n">nº de viagens</span></div>
-          <div style="font-size:12px;color:var(--green);font-weight:800;text-transform:uppercase;margin:6px 0 8px;">▲ Mais usados</div>
-          <div class="ranklist" id="tvRankMais" style="font-size:14px;"></div>
-          <div style="font-size:12px;color:var(--red);font-weight:800;text-transform:uppercase;margin:16px 0 8px;">▼ Menos usados</div>
-          <div class="ranklist" id="tvRankMenos" style="font-size:14px;"></div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5 — MOTORISTAS: USO -->
+    <div class="tv-slide" id="slide5">
+      <div class="card panel tv-single">
+        <div class="panel-head"><h3>Motoristas — Uso</h3><span class="n">nº de viagens no período</span></div>
+        <div class="tv-uso-grid">
+          <div>
+            <div style="font-size:14px;color:var(--green);font-weight:800;text-transform:uppercase;margin:6px 0 12px;">▲ Mais usados</div>
+            <div class="ranklist" id="tvRankMais" style="font-size:16px;"></div>
+          </div>
+          <div>
+            <div style="font-size:14px;color:var(--red);font-weight:800;text-transform:uppercase;margin:6px 0 12px;">▼ Menos usados</div>
+            <div class="ranklist" id="tvRankMenos" style="font-size:16px;"></div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 3 — PAINEL OPERACIONAL -->
-    <div class="tv-slide" id="slide3">
+    <!-- SLIDE 6 — PAINEL OPERACIONAL (paginacao automatica a cada 5s) -->
+    <div class="tv-slide" id="slide6">
       <div class="tv-op-grid">
         <div class="card panel">
           <div class="panel-head"><h3>🚧 Cargas em Trânsito</h3><span class="live-tag"><i></i>tempo real</span><span class="n" id="tvNTrans">0</span></div>
@@ -95,8 +137,8 @@
       </div>
     </div>
 
-    <!-- SLIDE 4 — DESTAQUES & META -->
-    <div class="tv-slide" id="slide4">
+    <!-- SLIDE 7 — DESTAQUES & META -->
+    <div class="tv-slide" id="slide7">
       <div class="tv-hl-grid" style="margin-bottom:20px;">
         <div class="card hl tv-hl"><span class="medal">🏆</span><span class="tag">Cliente Destaque</span><div class="name" id="h4cli">—</div><div class="value num" id="h4cliv">R$ 0</div></div>
         <div class="card hl tv-hl"><span class="medal">🛣️</span><span class="tag">Rota Destaque</span><div class="name" id="h4rota">—</div><div class="value num" id="h4rotav">R$ 0</div></div>
@@ -139,13 +181,16 @@ Chart.defaults.color = "#ABA69C";
 Chart.defaults.font.family = "-apple-system,'Segoe UI',Roboto,Arial,sans-serif";
 Chart.defaults.font.size = 12.5;
 Chart.defaults.borderColor = "rgba(255,255,255,.06)";
+Chart.defaults.maintainAspectRatio = false; // deixa os graficos ocuparem toda a altura do card (corrige barras "sumindo" em telas cheias)
 
-const SLIDE_SECONDS = 60;      // tempo de cada tela
+const SLIDE_SECONDS = 45;      // tempo de cada tela
 const RELOAD_MINUTES = 10;     // recarrega a pagina periodicamente p/ pegar a atualizacao diaria do data.js (sem precisar mexer no Raspberry Pi)
+const OP_PAGE_SECONDS = 5;     // paginacao das tabelas de tempo real (transito / aguardando inicio)
+const OP_PAGE_SIZE = 8;
 
 const filters = { months: new Set([OTD.nowKey()]), dateFrom: null, dateTo: null, clientes: new Set(), motoristas: new Set(), placas: new Set(), rotas: new Set() };
 const charts = {};
-const SLIDE_TITLES = ["Visão Geral", "Faturamento por Cliente & Rota", "Motoristas & Placas", "Painel Operacional (Tempo Real)", "Destaques & Meta do Mês"];
+const SLIDE_TITLES = ["Visão Geral", "Faturamento Diário", "Status da Frota", "Faturamento por Cliente & Rota", "Top 10 Motoristas & Placas", "Motoristas — Uso", "Painel Operacional (Tempo Real)", "Destaques & Meta do Mês"];
 
 function upsertChart(id, config) {
   const canvas = document.getElementById(id);
@@ -163,10 +208,44 @@ function barChart(id, map, color, labelFmt) {
   const top = OTD.topN(map, 10);
   upsertChart(id, {
     type: "bar",
-    data: { labels: top.map((t) => (labelFmt ? labelFmt(t[0]) : t[0])), datasets: [{ data: top.map((t) => t[1]), backgroundColor: color, borderRadius: 6, maxBarThickness: 20 }] },
-    options: { indexAxis: "y", plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => OTD.fmtBRL(c.parsed.x) } } }, scales: { x: { ticks: { color: "#8a857c", callback: (v) => OTD.fmtNum(v / 1000) + "k", font: { size: 12 } }, grid: { color: "rgba(255,255,255,.05)" } }, y: { ticks: { color: "#d8d4cc", font: { size: 12.5 } }, grid: { display: false } } }, animation: { duration: 900 } },
+    data: { labels: top.map((t) => (labelFmt ? labelFmt(t[0]) : t[0])), datasets: [{ data: top.map((t) => t[1]), backgroundColor: color, borderRadius: 6, maxBarThickness: 28 }] },
+    options: { indexAxis: "y", plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => OTD.fmtBRL(c.parsed.x) } } }, scales: { x: { ticks: { color: "#8a857c", callback: (v) => OTD.fmtNum(v / 1000) + "k", font: { size: 12 } }, grid: { color: "rgba(255,255,255,.05)" } }, y: { ticks: { color: "#d8d4cc", font: { size: 13 }, autoSkip: false }, grid: { display: false } } }, animation: { duration: 900 } },
   });
 }
+
+/* plugin: escreve o valor de cada dia acima do ponto no grafico de faturamento diario,
+   e sinaliza (destaca) o dia de hoje com um marcador maior e cor de atencao */
+const dailyValueLabelsPlugin = {
+  id: "dailyValueLabels",
+  afterDatasetsDraw(chart, args, opts) {
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || meta.hidden) return;
+    const ds = chart.data.datasets[0];
+    const todayIdx = opts ? opts.todayIndex : -1;
+    const ctx = chart.ctx;
+    ctx.save();
+    meta.data.forEach((point, i) => {
+      const val = ds.data[i];
+      if (val == null) return;
+      const isToday = i === todayIdx;
+      if (isToday) {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 6.5, 0, Math.PI * 2);
+        ctx.fillStyle = "#FFC145";
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#131110";
+        ctx.stroke();
+      }
+      ctx.font = isToday ? "800 14px -apple-system,'Segoe UI',Roboto,Arial,sans-serif" : "600 10.5px -apple-system,'Segoe UI',Roboto,Arial,sans-serif";
+      ctx.fillStyle = isToday ? "#FFC145" : "#8a857c";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(OTD.fmtNum(val / 1000, 0) + "k", point.x, point.y - (isToday ? 18 : 9));
+    });
+    ctx.restore();
+  },
+};
 
 /* ---------------- clock ---------------- */
 function tick() {
@@ -177,6 +256,34 @@ function tick() {
 setInterval(tick, 1000);
 tick();
 
+/* ---------------- paginacao do painel operacional (tempo real) ---------------- */
+let opTransRows = [], opNiniRows = [];
+let opPage = 0;
+
+function transRowHtml(r, now) {
+  const dias = OTD.daysBetween(new Date(r.dtCargaI), now);
+  const badge = dias > 3 ? "b-red" : dias >= 1 ? "b-amber" : "b-green";
+  return `<tr><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 20))}</td><td><span class="badge ${badge}">${dias}d</span></td></tr>`;
+}
+function niniRowHtml(r, now) {
+  let diasTxt = "—", badge = "b-grey";
+  if (r.dtSol) { const dias = OTD.daysBetween(new Date(r.dtSol), now); diasTxt = dias + "d"; badge = dias > 5 ? "b-red" : dias >= 2 ? "b-amber" : "b-green"; }
+  return `<tr><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 20))}</td><td><span class="badge ${badge}">${diasTxt}</span></td></tr>`;
+}
+function renderOpPage() {
+  const now = new Date();
+  const tPages = Math.max(1, Math.ceil(opTransRows.length / OP_PAGE_SIZE));
+  const nPages = Math.max(1, Math.ceil(opNiniRows.length / OP_PAGE_SIZE));
+  const tIdx = opPage % tPages;
+  const nIdx = opPage % nPages;
+  const tSlice = opTransRows.slice(tIdx * OP_PAGE_SIZE, tIdx * OP_PAGE_SIZE + OP_PAGE_SIZE);
+  const nSlice = opNiniRows.slice(nIdx * OP_PAGE_SIZE, nIdx * OP_PAGE_SIZE + OP_PAGE_SIZE);
+  document.getElementById("tvTblTrans").innerHTML = tSlice.length ? tSlice.map((r) => transRowHtml(r, now)).join("") : '<tr><td colspan="5"><div class="empty-state">Nenhuma carga em trânsito 🎉</div></td></tr>';
+  document.getElementById("tvTblNini").innerHTML = nSlice.length ? nSlice.map((r) => niniRowHtml(r, now)).join("") : '<tr><td colspan="5"><div class="empty-state">Nenhuma carga aguardando início 🎉</div></td></tr>';
+  document.getElementById("tvNTrans").textContent = opTransRows.length + " registros" + (tPages > 1 ? " · pág. " + (tIdx + 1) + "/" + tPages : "");
+  document.getElementById("tvNNini").textContent = opNiniRows.length + " registros" + (nPages > 1 ? " · pág. " + (nIdx + 1) + "/" + nPages : "");
+}
+
 /* ---------------- build content (once) ---------------- */
 function buildAll() {
   const rows = OTD.filterAll(filters);
@@ -184,7 +291,7 @@ function buildAll() {
   const now = new Date();
   const single = OTD.nowKey();
 
-  // ---- slide 0: visao geral ----
+  // ---- slide 0: visao geral (kpis) ----
   const fat = OTD.totalFaturamento(rows);
   const n = rows.length;
   document.getElementById("g0fat").textContent = OTD.fmtBRL(fat);
@@ -194,11 +301,15 @@ function buildAll() {
   document.getElementById("g0trans").textContent = OTD.fmtNum(op.emTransito.length);
   document.getElementById("g0nini").textContent = OTD.fmtNum(op.naoIniciado.length);
 
-  // faturamento diario + projecao
+  // ---- slide 1: faturamento diario + projecao (com valores sinalizados por dia) ----
   const proj = OTD.projectMonth(rows, single);
   const map = new Map();
   rows.forEach((r) => { if (!r.dtCargaI) return; const key = r.dtCargaI.slice(0, 10); map.set(key, (map.get(key) || 0) + (r.frete || 0)); });
   const keys = Array.from(map.keys()).sort();
+  const pad = (v) => String(v).padStart(2, "0");
+  const todayISO = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+  const todayIdx = keys.indexOf(todayISO);
+  document.getElementById("tvHojeFat").textContent = "Hoje: " + OTD.fmtBRL(map.get(todayISO) || 0);
   const labels = keys.map((k) => { const [, m, d] = k.split("-"); return d + "/" + m; });
   const values = keys.map((k) => map.get(k));
   const datasets = [{ label: "Faturamento", data: values, borderColor: "#F0800E", backgroundColor: "rgba(240,128,14,.15)", fill: true, tension: 0.35, pointRadius: 2 }];
@@ -210,16 +321,29 @@ function buildAll() {
     while (values.length < labels.length) values.push(null);
     datasets.push({ label: "Projeção", data: projLine, borderColor: "#4FA3E3", borderDash: [6, 4], pointRadius: 0, fill: false });
   }
-  upsertChart("tvChartDiario", { type: "line", data: { labels, datasets }, options: { plugins: { legend: { position: "top", align: "end", labels: { color: "#ABA69C" } } }, scales: { x: { ticks: { color: "#8a857c", maxTicksLimit: 10 }, grid: { display: false } }, y: { ticks: { color: "#8a857c", callback: (v) => OTD.fmtNum(v / 1000) + "k" }, grid: { color: "rgba(255,255,255,.05)" } } }, animation: { duration: 1000 } } });
+  upsertChart("tvChartDiario", {
+    type: "line",
+    data: { labels, datasets },
+    plugins: [dailyValueLabelsPlugin],
+    options: {
+      layout: { padding: { top: 30 } },
+      plugins: { legend: { position: "top", align: "end", labels: { color: "#ABA69C" } }, dailyValueLabels: { todayIndex: todayIdx } },
+      scales: { x: { ticks: { color: "#8a857c", maxTicksLimit: 16 }, grid: { display: false } }, y: { ticks: { color: "#8a857c", callback: (v) => OTD.fmtNum(v / 1000) + "k" }, grid: { color: "rgba(255,255,255,.05)" } } },
+      animation: { duration: 1000 },
+    },
+  });
 
-  // status donut
+  // ---- slide 2: status da frota (card maior + legenda grande) ----
   const allEntity = OTD.applyEntityFilters(OTD.DATA, filters);
   const statusMap = { concluido: allEntity.filter((r) => r.status === "concluido").length, em_transito: op.emTransito.length, nao_iniciado: op.naoIniciado.length };
-  upsertChart("tvChartStatus", { type: "doughnut", data: { labels: ["Concluídas", "Em Trânsito", "Aguard. Início"], datasets: [{ data: [statusMap.concluido, statusMap.em_transito, statusMap.nao_iniciado], backgroundColor: ["#4ADE80", "#FFC145", "#F1553F"], borderColor: "#131110", borderWidth: 3 }] }, options: { cutout: "58%", plugins: { legend: { display: false } }, animation: { animateRotate: true, duration: 1000 } } });
+  upsertChart("tvChartStatus", { type: "doughnut", data: { labels: ["Concluídas", "Em Trânsito", "Aguard. Início"], datasets: [{ data: [statusMap.concluido, statusMap.em_transito, statusMap.nao_iniciado], backgroundColor: ["#4ADE80", "#FFC145", "#F1553F"], borderColor: "#131110", borderWidth: 3 }] }, options: { cutout: "62%", plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => OTD.fmtNum(c.parsed) + " viagens" } } }, animation: { animateRotate: true, duration: 1000 } } });
   const totalS = statusMap.concluido + statusMap.em_transito + statusMap.nao_iniciado || 1;
-  document.getElementById("tvLegendStatus").innerHTML = [["#4ADE80", "Concluídas", statusMap.concluido], ["#FFC145", "Em Trânsito", statusMap.em_transito], ["#F1553F", "Aguard. Início", statusMap.nao_iniciado]].map(([c, l, v]) => `<span><i style="background:${c}"></i>${l}: ${v} (${OTD.fmtPct((v / totalS) * 100)})</span>`).join("");
+  document.getElementById("tvStatusTotal").textContent = OTD.fmtNum(totalS) + " viagens (base atual)";
+  document.getElementById("tvLegendStatus").innerHTML = [["#4ADE80", "Concluídas", statusMap.concluido], ["#FFC145", "Em Trânsito", statusMap.em_transito], ["#F1553F", "Aguard. Início", statusMap.nao_iniciado]]
+    .map(([c, l, v]) => `<div class="row"><span class="dot" style="background:${c}"></span><div class="txt"><div class="lbl">${l}</div><div><span class="val">${OTD.fmtNum(v)}</span><span class="pct">${OTD.fmtPct((v / totalS) * 100)}</span></div></div></div>`)
+    .join("");
 
-  // ---- slide 1: cliente & rota ----
+  // ---- slide 3: cliente & rota ----
   const mapC = OTD.sumBy(rows, (r) => (r.cliente ? OTD.clienteShort(r.cliente) : null));
   mapC.delete("—");
   const topC = OTD.topN(mapC, 7);
@@ -227,12 +351,34 @@ function buildAll() {
   const labelsC = topC.map((t) => t[0]);
   const valuesC = topC.map((t) => t[1]);
   if (otherC > 0.01) { labelsC.push("Outros"); valuesC.push(otherC); }
-  upsertChart("tvChartCliente", { type: "doughnut", data: { labels: labelsC, datasets: [{ data: valuesC, backgroundColor: OTD.PALETTE, borderColor: "#131110", borderWidth: 2 }] }, options: { cutout: "55%", plugins: { legend: { position: "right", labels: { color: "#d8d4cc", boxWidth: 12, font: { size: 12.5 } } } }, animation: { animateRotate: true, duration: 1000 } } });
+  upsertChart("tvChartCliente", {
+    type: "doughnut",
+    data: { labels: labelsC, datasets: [{ data: valuesC, backgroundColor: OTD.PALETTE, borderColor: "#131110", borderWidth: 2 }] },
+    options: {
+      cutout: "55%",
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            color: "#d8d4cc", boxWidth: 12, font: { size: 12.5 },
+            generateLabels: (chart) => {
+              const data = chart.data;
+              const bg = data.datasets[0].backgroundColor;
+              return data.labels.map((label, i) => ({ text: label + " — " + OTD.fmtBRL(data.datasets[0].data[i]), fillStyle: bg[i], strokeStyle: bg[i], index: i }));
+            },
+          },
+        },
+      },
+      animation: { animateRotate: true, duration: 1000 },
+    },
+  });
   barChart("tvChartRota", OTD.sumBy(rows, (r) => r.rota), "#F0800E");
 
-  // ---- slide 2: motoristas & placas ----
+  // ---- slide 4: motoristas & placas (top 10) ----
   barChart("tvChartMotorista", OTD.sumBy(rows, (r) => r.motorista), "#4FA3E3", (l) => OTD.shortName(l, 22));
   barChart("tvChartPlaca", OTD.sumBy(rows, (r) => r.placa), "#2DD4BF");
+
+  // ---- slide 5: motoristas - uso ----
   const counts = OTD.countBy(rows, (r) => r.motorista);
   counts.delete("—");
   const mais = OTD.topN(counts, 5, true);
@@ -244,15 +390,13 @@ function buildAll() {
   drawRank("tvRankMais", mais);
   drawRank("tvRankMenos", menos);
 
-  // ---- slide 3: painel operacional ----
-  document.getElementById("tvNTrans").textContent = op.emTransito.length + " registros";
-  document.getElementById("tvNNini").textContent = op.naoIniciado.length + " registros";
-  const rowsT = [...op.emTransito].sort((a, b) => new Date(a.dtCargaI) - new Date(b.dtCargaI)).slice(0, 9);
-  document.getElementById("tvTblTrans").innerHTML = rowsT.length ? rowsT.map((r) => { const dias = OTD.daysBetween(new Date(r.dtCargaI), now); const badge = dias > 3 ? "b-red" : dias >= 1 ? "b-amber" : "b-green"; return `<tr><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 20))}</td><td><span class="badge ${badge}">${dias}d</span></td></tr>`; }).join("") : '<tr><td colspan="5"><div class="empty-state">Nenhuma carga em trânsito 🎉</div></td></tr>';
-  const rowsN = [...op.naoIniciado].sort((a, b) => { const da = a.dtSol ? new Date(a.dtSol) : new Date(0); const db = b.dtSol ? new Date(b.dtSol) : new Date(0); return da - db; }).slice(0, 9);
-  document.getElementById("tvTblNini").innerHTML = rowsN.length ? rowsN.map((r) => { let diasTxt = "—", badge = "b-grey"; if (r.dtSol) { const dias = OTD.daysBetween(new Date(r.dtSol), now); diasTxt = dias + "d"; badge = dias > 5 ? "b-red" : dias >= 2 ? "b-amber" : "b-green"; } return `<tr><td>${OTD.escapeHtml(OTD.clienteShort(r.cliente))}</td><td>${OTD.escapeHtml(r.rota)}</td><td>${OTD.escapeHtml(r.placa)}</td><td>${OTD.escapeHtml(OTD.shortName(r.motorista, 20))}</td><td><span class="badge ${badge}">${diasTxt}</span></td></tr>`; }).join("") : '<tr><td colspan="5"><div class="empty-state">Nenhuma carga aguardando início 🎉</div></td></tr>';
+  // ---- slide 6: painel operacional (paginado a cada 5s) ----
+  opTransRows = [...op.emTransito].sort((a, b) => new Date(a.dtCargaI) - new Date(b.dtCargaI));
+  opNiniRows = [...op.naoIniciado].sort((a, b) => { const da = a.dtSol ? new Date(a.dtSol) : new Date(0); const db = b.dtSol ? new Date(b.dtSol) : new Date(0); return da - db; });
+  opPage = 0;
+  renderOpPage();
 
-  // ---- slide 4: destaques & meta ----
+  // ---- slide 7: destaques & meta ----
   const byCliente = OTD.topN(OTD.sumBy(rows, (r) => r.cliente), 1)[0];
   const byRota = OTD.topN(OTD.sumBy(rows, (r) => r.rota), 1)[0];
   const mapMotoristaFrete = OTD.sumBy(rows, (r) => r.motorista);
@@ -311,6 +455,7 @@ function restartProgress() {
 buildAll();
 showSlide(0);
 setInterval(nextSlide, SLIDE_SECONDS * 1000);
+setInterval(() => { opPage++; renderOpPage(); }, OP_PAGE_SECONDS * 1000);
 
 // recarrega periodicamente para captar a atualizacao diaria do data.js.
 // usa uma URL com parametro de cache-bust (em vez de location.reload()) para forcar o
