@@ -438,9 +438,15 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-header{
   display:flex; align-items:center; gap:20px; margin-bottom:22px;
 }
-.tv-header .logo{ height:52px; }
-.tv-header h1{ margin:0; font-size:27px; font-weight:800; color:#F6F4F0; display:flex; align-items:center; gap:12px; }
-.tv-header .sub{ font-size:15px; color:#ABA69C; margin-top:3px; }
+.tv-header .logo{ height:60px; }
+.tv-header h1{
+  margin:0; font-size:38px; font-weight:800; color:#F6F4F0;
+  display:flex; align-items:center; gap:14px; letter-spacing:.5px;
+  text-transform:uppercase; line-height:1.05;
+}
+.tv-header .sub{ font-size:17px; color:#ABA69C; margin-top:5px; }
+/* o selo do segmento fica NA MESMA LINHA do título, não embaixo */
+.tv-header .titulo-linha{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .tv-header .spacer{ flex:1; }
 .tv-header .clock{ text-align:right; color:#ABA69C; font-size:15px; }
 .tv-header .clock b{ display:block; font-size:31px; color:#F6F4F0; }
@@ -496,7 +502,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-slide .hl .valor{ font-size:31px; }
 .tv-slide .gauge-wrap{ height:250px; }
 .tv-slide .gauge-center .pct{ font-size:42px; }
-.tv-slide .miniline{ font-size:15px; }
+.tv-slide .miniline{ font-size:17px; }
 .tv-slide .status-col h4{ font-size:15px; }
 .tv-slide .kpi .val{ font-size:34px; }
 .tv-slide .kpi .lbl{ font-size:12.5px; }
@@ -528,6 +534,10 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   55%{ box-shadow:0 0 0 16px rgba(241,85,63,0); }
 }
 
+/* Os cards de alerta/insight esticam para ocupar a tela toda: com 3 (ou 4)
+   por pagina fixos, esticar e melhor do que sobrar faixa preta no telao. */
+#tvCriticos > *, #tvInsights > *{ flex:1 1 0; min-height:0; }
+
 .tv-ok{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:14px; height:100%; text-align:center;
@@ -549,7 +559,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 
 /* ---------------------- TV · insights --------------------------------- */
 .tv-insight{
-  display:flex; gap:16px; align-items:flex-start; padding:18px 20px;
+  display:flex; gap:20px; align-items:center; padding:18px 24px;
   border-radius:16px; border:1px solid #2b2620; background:#131110; position:relative;
   overflow:hidden;
 }
@@ -559,14 +569,62 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-insight.atencao:before{ background:#FFC145; }
 .tv-insight.info:before{ background:#4FA3E3; }
 .tv-insight.positivo:before{ background:#4ADE80; }
-.tv-insight .ic{ font-size:30px; }
-.tv-insight .tit{ font-size:13px; text-transform:uppercase; letter-spacing:1.4px;
-  font-weight:800; color:#6E6A62; }
-.tv-insight .vl{ font-size:25px; font-weight:800; color:#F6F4F0; margin:3px 0; }
+.tv-insight .ic{ font-size:40px; flex:0 0 auto; }
+.tv-insight .tit{ font-size:14px; text-transform:uppercase; letter-spacing:1.5px;
+  font-weight:800; color:#8E8880; }
+.tv-insight .vl{ font-size:29px; font-weight:800; color:#F6F4F0; margin:4px 0; }
 .tv-insight.critico .vl{ color:#F1553F; }
 .tv-insight.atencao .vl{ color:#FFC145; }
 .tv-insight.positivo .vl{ color:#4ADE80; }
 .tv-insight .ds{ font-size:16px; color:#ABA69C; line-height:1.4; }
+
+/* ---------------------- TV · cargas em atraso ------------------------- */
+.tv-atraso{
+  display:flex; align-items:center; gap:18px; padding:14px 18px;
+  border-radius:14px; border:1px solid #2b2620; background:#131110;
+  position:relative; overflow:hidden;
+}
+.tv-atraso:before{ content:""; position:absolute; left:0; top:0; bottom:0; width:7px; }
+.tv-atraso.critico:before{ background:#F1553F; }
+.tv-atraso.atencao:before{ background:#FFC145; }
+.tv-atraso.leve:before{ background:#9AA5B1; }
+.tv-atraso .tempo{
+  flex:0 0 152px; text-align:center; font-size:31px; font-weight:800;
+  letter-spacing:-.6px; line-height:1;
+}
+.tv-atraso.critico .tempo{ color:#F1553F; }
+.tv-atraso.atencao .tempo{ color:#FFC145; }
+.tv-atraso.leve .tempo{ color:#ABA69C; }
+.tv-atraso .tempo small{ display:block; font-size:12px; font-weight:700;
+  color:#6E6A62; text-transform:uppercase; letter-spacing:1.2px; margin-top:5px; }
+.tv-atraso .info{ flex:1; min-width:0; }
+.tv-atraso .rom{ font-size:22px; font-weight:800; color:#F6F4F0; }
+.tv-atraso .cli{ font-size:17px; color:#ABA69C; margin-top:2px; }
+.tv-atraso .rot{ font-size:15px; color:#6E6A62; margin-top:2px; }
+.tv-atraso .prazo{ flex:0 0 190px; text-align:right; font-size:15px; color:#6E6A62; }
+.tv-atraso .prazo b{ display:block; font-size:17px; color:#ABA69C; }
+.tv-col-titulo{
+  font-size:19px; font-weight:800; text-transform:uppercase; letter-spacing:1.6px;
+  color:#ABA69C; margin-bottom:12px; display:flex; align-items:center; gap:10px;
+}
+.tv-col-titulo .qtd{
+  background:rgba(241,85,63,.16); color:#F1553F; border:1px solid rgba(241,85,63,.3);
+  border-radius:20px; padding:2px 12px; font-size:16px;
+}
+.tv-col-titulo .qtd.zero{
+  background:rgba(74,222,128,.14); color:#4ADE80; border-color:rgba(74,222,128,.3);
+}
+.tv-atraso-lista{ display:flex; flex-direction:column; gap:12px; flex:1;
+  justify-content:center; }
+.tv-atraso-vazio{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; color:#6E6A62; text-align:center;
+}
+.tv-atraso-vazio .ic{ font-size:52px; }
+.tv-atraso-vazio .tt{ font-size:22px; font-weight:800; color:#4ADE80; }
+.tv-atraso-vazio .ds{ font-size:16px; max-width:420px; line-height:1.45; }
+@keyframes tvPisca{ 0%,100%{ opacity:1 } 50%{ opacity:.45 } }
+.tv-atraso.critico .tempo{ animation:tvPisca 2.4s ease-in-out infinite; }
 
 /* paginação interna dos cards do telão */
 .tv-pag{

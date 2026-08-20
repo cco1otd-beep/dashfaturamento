@@ -987,7 +987,76 @@
   function abaEntregas() {
     return secao("Controle de Entregas", '<span class="live-tag">tempo real</span>' +
       '<span class="hint" id="hintEntregas"></span>') +
-      '<div class="grid g-2" id="gridEntregas"></div>';
+      '<div class="grid g-2" id="gridEntregas"></div>' +
+      secao("Cargas em Atraso", '<span class="live-tag">tempo real</span>' +
+        '<span class="hint" id="hintAtrasos"></span>') +
+      '<div id="gridAtrasos" style="display:flex;flex-direction:column;gap:14px"></div>';
+  }
+
+  /* Complemento da OMS: a OMS mede o que JA foi atendido; aqui listamos o que
+     ainda NAO chegou e ja passou do prazo (romaneio em aberto, prazo vencido). */
+  function renderAtrasos() {
+    const box = document.getElementById("gridAtrasos");
+    if (!box) return;
+    const A = OTD.ATRASOS;
+    const hint = document.getElementById("hintAtrasos");
+    if (!A || !A.segmentos) {
+      box.innerHTML = '<div class="card"><div class="empty-state">Sem dados.</div></div>';
+      return;
+    }
+    if (hint) {
+      hint.textContent = " foto de " + OTD.fmtDataHora(A.geradoEm) + " · " +
+        A.semReferencia + " cargas em aberto sem prazo cadastrado ficam de fora";
+    }
+    const segs = Object.keys(A.segmentos).sort();
+    function junta(tipo) {
+      const out = [];
+      segs.forEach(function (s) {
+        (A.segmentos[s][tipo] || []).forEach(function (a) {
+          out.push(Object.assign({ seg: s }, a));
+        });
+      });
+      out.sort(function (a, b) { return b.atrasoH - a.atrasoH; });
+      return out;
+    }
+    function tempo(h) {
+      const horas = Math.max(0, Math.round(Number(h) || 0));
+      return horas < 48 ? horas + "h"
+        : Math.floor(horas / 24) + "d " + (horas % 24) + "h";
+    }
+    const COR = { critico: "b-red", atencao: "b-amber", leve: "b-blue" };
+    function tabela(titulo, tipo, dica) {
+      const lista = junta(tipo);
+      const criticos = lista.filter(function (a) { return a.sev === "critico"; }).length;
+      const linhas = lista.slice(0, 40).map(function (a) {
+        return "<tr><td><span class='badge " + (COR[a.sev] || "b-blue") + "'>" +
+          E(tempo(a.atrasoH)) + "</span></td>" +
+          "<td class='strong'>" + E(a.romaneio) + "</td>" +
+          "<td>" + E(OTD.shortName(a.cliente, 24)) + "</td>" +
+          "<td>" + E(a.placa) + "</td>" +
+          "<td>" + E(OTD.shortName(a.motorista, 20)) + "</td>" +
+          "<td>" + E(OTD.shortName(a.rota, 40)) + "</td>" +
+          "<td>" + E(OTD.fmtDataHora(a.prazo)) + "</td>" +
+          "<td>" + E(a.seg) + "</td></tr>";
+      }).join("");
+      return '<div class="card tablecard"><div class="tablehead">' +
+        '<span class="ptitle">' + E(titulo) + "</span><span class='spacer'></span>" +
+        '<span class="pcount">' + lista.length + " vencidas" +
+        (criticos ? " · " + criticos + " críticas" : "") + "</span></div>" +
+        (lista.length
+          ? '<div class="tablewrap"><table class="dtbl"><thead><tr>' +
+            ["Atraso", "Romaneio", "Cliente", "Placa", "Motorista", "Rota", "Prazo", "Segmento"]
+              .map(function (c) { return "<th>" + c + "</th>"; }).join("") +
+            "</tr></thead><tbody>" + linhas + "</tbody></table></div>" +
+            (lista.length > 40 ? '<div class="tablefoot"><span>mostrando as 40 mais atrasadas de ' +
+              lista.length + "</span></div>" : "")
+          : '<div class="empty-state">' + E(dica) + "</div>") + "</div>";
+    }
+    box.innerHTML =
+      tabela("Coletas em atraso", "coletas",
+             "Nenhum romaneio em aberto com a coleta vencida.") +
+      tabela("Entregas em atraso", "entregas",
+             "Nenhuma carga em trânsito passou do prazo de entrega.");
   }
   function renderEntregas() {
     const ent = OTD.ENTREGAS;
@@ -1014,6 +1083,7 @@
             "</div>";
         }).join("") + "</div>";
     }).join("");
+    renderAtrasos();
   }
 
   /* ======================================================================= */
@@ -1146,7 +1216,9 @@
     ["OMS3", "KM vazio ofensor: <b>Latas &gt; 50%</b>, <b>Bens de Consumo &gt; 20%</b>. Severidade ≥50% Crítico · 35–50% Atenção · &lt;35% Leve."],
     ["OMS4", "Rota do indicador de KM vazio = <b>\"Vazio de\" → \"Carregamento\"</b>."],
     ["OMS5", "Segunda-feira apura 3 dias consolidados (soma das contagens + média simples dos percentuais)."],
-    ["ENT1", "Controle de Entregas em 4 status exclusivos: Finalizadas → Em descarga → Em viagem → Destinado. Só Finalizadas filtra pelo dia avaliado."]
+    ["ENT1", "Controle de Entregas em 4 status exclusivos: Finalizadas → Em descarga → Em viagem → Destinado. Só Finalizadas filtra pelo dia avaliado."],
+    ["ENT2", "<b>Cargas em Atraso</b> é o complemento da OMS: a OMS mede o que <b>já foi atendido</b> (no prazo ou não); esta lista mostra o que <b>ainda não chegou</b> e já passou do prazo. Entra só romaneio <b>em aberto</b>: coleta sem <b>Dt. Carga (I)</b> (prazo = programação de carregamento do lcargas) e entrega já carregada mas sem <b>Dt. Descarga (I)</b> (prazo = previsão de entrega do lcargas), sempre comparados com o horário de geração da base. Romaneio sem prazo cadastrado fica de fora e é contado à parte."],
+    ["ENT3", "Severidade em Cargas em Atraso segue a mesma régua da OMS2: ≥ 8h <b>Crítico</b> · 2h–8h <b>Atenção</b> · &lt; 2h <b>Leve</b>. Nas rotas da regra OMS1b o prazo de coleta usado é o da LVIAGENS."]
   ];
 
   function abaRegras() {

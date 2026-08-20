@@ -38,6 +38,7 @@ const OTD = (function () {
   const DOCS = expandir(window.OTD_DOCS);
   const OMS = (window.OTD_OMS || null);
   const ENTREGAS = (window.OTD_ENTREGAS || null);
+  const ATRASOS = (window.OTD_ATRASOS || null);
   const META = (window.OTD_META || {});
 
   const GRUPO_SEG = {
@@ -758,7 +759,8 @@ const OTD = (function () {
   }
 
   return {
-    DATA: DATA, VIAGENS: VIAGENS, DOCS: DOCS, OMS: OMS, ENTREGAS: ENTREGAS, META: META,
+    DATA: DATA, VIAGENS: VIAGENS, DOCS: DOCS, OMS: OMS, ENTREGAS: ENTREGAS,
+    ATRASOS: ATRASOS, META: META,
     PALETTE: PALETTE, MESES_PT_FULL: MESES_PT_FULL, MESES_PT_CURTO: MESES_PT_CURTO,
     DIAS_PT_FULL: DIAS_PT_FULL, GRUPO_SEG: GRUPO_SEG,
     fmtBRL: fmtBRL, fmtBRLcents: fmtBRLcents, fmtNum: fmtNum, fmtKm: fmtKm,

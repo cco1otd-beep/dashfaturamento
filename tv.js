@@ -82,6 +82,90 @@
   const TITULO = P.get("titulo") || OP.nome;
 
   /* ======================================================================= */
+  /* CARDS DE PREENCHIMENTO                                                  */
+  /* Telao com 1 alerta so deixa dois buracos na tela. Em vez de esticar o   */
+  /* card, completamos a pagina com leituras REAIS do mes (nada inventado:   */
+  /* sao os mesmos numeros das outras telas, so que em formato de card).     */
+  /* ======================================================================= */
+  const COMPLEMENTOS = (function () {
+    const out = [];
+    function add(nivel, icone, titulo, valor, texto) {
+      if (valor === null || valor === undefined || valor === "") return;
+      out.push({ nivel: nivel, icone: icone, titulo: titulo, valor: valor,
+                 texto: texto, preenchimento: true });
+    }
+    const total = OTD.totalFaturamento(ROWS);
+    const viagens = OTD.contarViagens(ROWS);
+    const km = OTD.totalKm(ROWS);
+    const p = OTD.projectMonth(ROWS, MES);
+    const serie = OTD.dailySeries(ROWS, MES);
+
+    function top1(chave) {
+      const t = OTD.topN(OTD.sumBy(ROWS, chave), 1);
+      return t.length && t[0][0] !== "—" ? t[0] : null;
+    }
+    const cli = top1(function (r) { return r.cliente; });
+    const rot = top1(function (r) { return r.rota; });
+    const mot = top1(function (r) { return r.motorista; });
+    const pla = top1(function (r) { return r.placa; });
+
+    if (cli) add("info", "🏆", "Maior cliente do mês", OTD.fmtBRL(cli[1]),
+      OTD.shortName(cli[0], 34) + " — " + OTD.fmtPct(total ? 100 * cli[1] / total : 0, 1) +
+      " do faturamento de " + OTD.monthLabelFull(MES) + ".");
+    if (rot) add("info", "🛣️", "Rota mais faturada", OTD.fmtBRL(rot[1]),
+      OTD.shortName(rot[0], 40) + " — " + OTD.fmtPct(total ? 100 * rot[1] / total : 0, 1) +
+      " do total do mês.");
+    if (mot) add("info", "👤", "Motorista destaque", OTD.fmtBRL(mot[1]),
+      OTD.shortName(mot[0], 34) + " lidera o faturamento no período.");
+    if (pla) add("info", "🚚", "Placa destaque", OTD.fmtBRL(pla[1]),
+      "Placa " + pla[0] + " é a de maior receita no mês.");
+
+    add("info", "💰", "Ticket médio por viagem", OTD.fmtBRL(viagens ? total / viagens : 0),
+      OTD.fmtNum(viagens) + " viagens e " + OTD.fmtNum(ROWS.length) + " documentos em " +
+      OTD.monthLabelFull(MES) + ".");
+    add("info", "📈", "Projeção de fechamento", OTD.fmtBRL(p.projected),
+      "Ritmo de " + OTD.fmtBRL(p.dailyAvg) + "/dia · apuração no dia " + p.elapsed +
+      " de " + p.totalDays + ".");
+    if (km) add("info", "📏", "R$ por KM rodado", OTD.fmtBRLcents(total / km),
+      OTD.fmtKm(km) + " no mês, sendo " +
+      OTD.fmtPct(100 * OTD.totalKmVazio(ROWS) / km, 1) + " em vazio (regra R12).");
+
+    const melhorDia = serie.reduce(function (a, v, i) {
+      return v > a[1] ? [i + 1, v] : a;
+    }, [0, 0]);
+    if (melhorDia[0]) add("positivo", "⭐", "Melhor dia do mês", OTD.fmtBRL(melhorDia[1]),
+      "Dia " + melhorDia[0] + " foi o pico de faturamento até agora.");
+
+    const emAberto = (CONT.emTransito || 0) + (CONT.aguardando || 0) +
+                     (CONT.emViagem || 0) + (CONT.destinado || 0) + (CONT.emDescarga || 0);
+    add("info", "🚦", "Cargas em aberto agora", OTD.fmtNum(emAberto),
+      OTD.fmtNum(CONT.emTransito || 0) + " em trânsito · " +
+      OTD.fmtNum(CONT.emDescarga || 0) + " em descarga · " +
+      OTD.fmtNum(CONT.aguardando || 0) + " aguardando início.");
+    add("positivo", "✅", "Finalizadas no dia", OTD.fmtNum(CONT.finalizadasDia || 0),
+      "Descargas concluídas em " + OTD.fmtData(CONT.dia) + ".");
+
+    add("info", "👥", "Base ativa no mês", OTD.fmtNum(OTD.distinctClientes(ROWS)) + " clientes",
+      OTD.fmtNum(OTD.distinctPlacas(ROWS)) + " placas, " +
+      OTD.fmtNum(OTD.distinctMotoristas(ROWS)) + " motoristas e " +
+      OTD.fmtNum(OTD.distinctRotas(ROWS)) + " rotas movimentadas.");
+    return out;
+  })();
+
+  /* Completa a lista ate fechar paginas inteiras de `n`, puxando primeiro os
+     itens de reserva (alertas de menor severidade) e depois os complementos.
+     Nunca repete um item: se acabar o material, a ultima pagina fica menor. */
+  function completaPagina(base, reserva, n) {
+    const out = base.slice();
+    const fila = (reserva || []).concat(COMPLEMENTOS);
+    for (let i = 0; i < fila.length; i++) {
+      if (out.length >= n && out.length % n === 0) break;
+      if (out.indexOf(fila[i]) < 0) out.push(fila[i]);
+    }
+    return out;
+  }
+
+  /* ======================================================================= */
   /* PAGINACAO INTERNA DOS CARDS (troca a cada 5s)                           */
   /* ======================================================================= */
   let blocos = [];        /* {render(pagina), nPag} do slide ativo */
@@ -230,13 +314,20 @@
       const box = document.getElementById("tvCriticos");
       const pag = document.getElementById("tvCriticosPag");
       const porPagina = 3;
-      const nPag = Math.ceil(CRITICOS.length / porPagina);
+      /* sempre 3 por pagina: completa com os alertas de menor severidade e,
+         se ainda faltar, com leituras do mes — nunca deixa buraco na tela */
+      const reserva = INSIGHTS.filter(function (i) { return i.nivel !== "critico"; });
+      const LISTA = completaPagina(CRITICOS, reserva, porPagina);
+      const nPag = Math.max(1, Math.ceil(LISTA.length / porPagina));
       registraBloco(nPag, function (p) {
-        const fatia = CRITICOS.slice(p * porPagina, p * porPagina + porPagina);
-        box.innerHTML = fatia.map(function (i) { return cardAlerta(i, true); }).join("");
-        pag.textContent = nPag > 1
-          ? "página " + (p + 1) + " de " + nPag + " · " + CRITICOS.length + " pontos críticos"
-          : CRITICOS.length + (CRITICOS.length === 1 ? " ponto crítico" : " pontos críticos");
+        const fatia = LISTA.slice(p * porPagina, p * porPagina + porPagina);
+        box.innerHTML = fatia.map(function (i) {
+          return i.nivel === "critico" ? cardAlerta(i, true) : cardInsightTv(i);
+        }).join("");
+        pag.textContent = (nPag > 1 ? "página " + (p + 1) + " de " + nPag + " · " : "") +
+          CRITICOS.length + (CRITICOS.length === 1 ? " ponto crítico" : " pontos críticos") +
+          (LISTA.length > CRITICOS.length
+            ? " · demais cards: acompanhamento do mês" : "");
       });
     }
   });
@@ -262,23 +353,46 @@
       const hoje = new Date();
       /* data LOCAL, nunca toISOString (13.2) */
       const todayIndex = (OTD.monthKey(hoje) === MES) ? hoje.getDate() - 1 : -1;
+      const barras = serie.map(function (v, i) {
+        return (todayIndex >= 0 && i > todayIndex) ? null : v;
+      });
+      /* media dos dias JA APURADOS com movimento (dia zerado nao entra na
+         conta, senao fim de semana derruba a media e a linha perde sentido) */
+      const comMovimento = barras.filter(function (v) { return v !== null && v > 0; });
+      const media = comMovimento.length
+        ? comMovimento.reduce(function (a, b) { return a + b; }, 0) / comMovimento.length
+        : 0;
       criar("tvDiario", {
         type: "bar",
         data: {
           labels: serie.map(function (_, i) { return String(i + 1); }),
           datasets: [{
-            data: serie.map(function (v, i) { return (todayIndex >= 0 && i > todayIndex) ? null : v; }),
+            data: barras,
             backgroundColor: serie.map(function (_, i) {
               return i === todayIndex ? "#FFC145" : "rgba(240,128,14,.85)";
             }),
-            borderRadius: 5, maxBarThickness: 34
+            borderRadius: 5, maxBarThickness: 34, order: 2
+          }, {
+            /* linha da media — referencia visual de ritmo do mes */
+            label: "Média dos dias com movimento: " + OTD.fmtBRL(media),
+            type: "line",
+            data: barras.map(function (v) { return v === null ? null : media; }),
+            borderColor: "#4FA3E3", borderWidth: 3, borderDash: [9, 6],
+            pointRadius: 0, tension: 0, fill: false, spanGaps: false, order: 1
           }]
         },
         options: {
           layout: { padding: { top: 34 } },
           plugins: {
-            legend: { display: false }, tooltip: { enabled: false },
-            valores: { formato: "compacto", fonte: 12 }
+            legend: {
+              display: true, position: "top", align: "end",
+              labels: { filter: function (l) { return l.datasetIndex === 1; },
+                        font: { size: 15 }, boxWidth: 26, color: "#ABA69C" }
+            },
+            tooltip: { enabled: false },
+            /* rotulos so nas barras: a linha e uma referencia, o valor dela
+               vai escrito na legenda/subtitulo e nao em cada ponto */
+            valores: { formato: "compacto", fonte: 12, somenteDataset: 0 }
           },
           scales: {
             y: { ticks: { font: { size: 15 }, callback: function (v) { return OTD.fmtCompacto(v); } } },
@@ -428,17 +542,20 @@
       return '<div class="' + (grupos.length > 1 ? "tv-2" : "tv-full") + '">' +
         grupos.map(function (g) {
           const b = ent.grupos[g] || {};
-          return '<div class="card"><h3 style="margin:0 0 18px;font-size:19px;color:#ABA69C;' +
+          /* fontes maiores: esta tela e lida de longe, no chao de operacao */
+          const umGrupo = grupos.length === 1;
+          return '<div class="card"><h3 style="margin:0 0 18px;font-size:24px;color:#ABA69C;' +
             'text-transform:uppercase;letter-spacing:1.6px">' + E(NOME_GRUPO[g] || g) + "</h3>" +
             '<div class="grid g-2" style="gap:18px;flex:1">' + ORDEM.map(function (s) {
               const lista = b[s[0]] || [];
               return '<div class="card" style="padding:18px;background:#151210;' +
                 'justify-content:center">' +
-                '<div style="font-size:15px;color:#6E6A62;text-transform:uppercase;' +
-                'letter-spacing:1.4px;font-weight:800;margin-bottom:8px">' + E(s[1]) + "</div>" +
-                '<div style="font-size:52px;font-weight:800;color:' + s[2] + '" class="num">' +
+                '<div style="font-size:22px;color:#8E8880;text-transform:uppercase;' +
+                'letter-spacing:1.4px;font-weight:800;margin-bottom:10px">' + E(s[1]) + "</div>" +
+                '<div style="font-size:' + (umGrupo ? 132 : 104) +
+                'px;font-weight:800;line-height:1;color:' + s[2] + '" class="num">' +
                 lista.length + "</div>" +
-                '<div style="font-size:14px;color:#6E6A62;margin-top:6px" class="lst-' +
+                '<div style="font-size:20px;color:#8E8880;margin-top:12px;line-height:1.45" class="lst-' +
                 g.replace(/\s/g, "") + "-" + s[0] + '">' +
                 (lista.length ? "" : "Nenhuma carga nesse status.") + "</div></div>";
             }).join("") + "</div></div>";
@@ -465,7 +582,110 @@
     }
   });
 
-  /* --- 9. Insights de I.A. ----------------------------------------------- */
+  /* --- 9. Cargas em Atraso (coleta e entrega) ---------------------------- */
+  /* Complemento da OMS: a OMS mostra o que JA foi atendido (no prazo ou nao);
+     esta tela mostra o que AINDA NAO chegou e ja passou do prazo. Base:
+     romaneios em aberto (sem chegada / sem descarga) com prazo vencido. */
+  function segsAtraso() {
+    if (!OTD.ATRASOS || !OTD.ATRASOS.segmentos) return [];
+    let ss = Object.keys(OTD.ATRASOS.segmentos);
+    if (F.segs && F.segs.size) {
+      ss = ss.filter(function (s) { return F.segs.has(s.toUpperCase()); });
+    }
+    return ss.sort();
+  }
+
+  function listaAtrasos(tipo) {
+    const out = [];
+    segsAtraso().forEach(function (s) {
+      (OTD.ATRASOS.segmentos[s][tipo] || []).forEach(function (a) {
+        out.push(Object.assign({ seg: s }, a));
+      });
+    });
+    /* mais atrasado primeiro */
+    out.sort(function (a, b) { return b.atrasoH - a.atrasoH; });
+    return out;
+  }
+
+  function fmtAtraso(h) {
+    const horas = Math.max(0, Math.round(Number(h) || 0));
+    if (horas < 48) return { n: horas + "h", u: "de atraso" };
+    const d = Math.floor(horas / 24);
+    const r = horas % 24;
+    return { n: d + "d" + (r ? " " + r + "h" : ""), u: "de atraso" };
+  }
+
+  function cardAtraso(a) {
+    const t = fmtAtraso(a.atrasoH);
+    const multi = segsAtraso().length > 1;
+    return '<div class="tv-atraso ' + E(a.sev || "leve") + '">' +
+      '<div class="tempo">' + E(t.n) + "<small>" + E(t.u) + "</small></div>" +
+      '<div class="info">' +
+      '<div class="rom">' + E("Rom. " + a.romaneio) +
+      (a.placa ? ' <span style="font-size:16px;color:#6E6A62;font-weight:700">· ' +
+        E(a.placa) + "</span>" : "") + "</div>" +
+      '<div class="cli">' + E(OTD.shortName(a.cliente || "—", 34)) +
+      (multi ? ' <span style="color:#6E6A62">· ' + E(a.seg) + "</span>" : "") + "</div>" +
+      '<div class="rot">' + E(OTD.shortName(a.rota || "—", 52)) +
+      (a.motorista && a.motorista !== "Sem Motorista"
+        ? " · " + E(OTD.shortName(a.motorista, 18)) : " · sem motorista") + "</div></div>" +
+      '<div class="prazo">prazo<b>' + E(OTD.fmtDataHora(a.prazo)) + "</b></div></div>";
+  }
+
+  telas.push({
+    titulo: "Cargas em Atraso",
+    aplicavel: function () { return !!(OTD.ATRASOS && segsAtraso().length); },
+    html: function () {
+      const col = [["coletas", "🟠 Coletas em atraso",
+                    "Nenhum romaneio em aberto com a coleta vencida — tudo dentro da " +
+                    "programação de carregamento."],
+                   ["entregas", "🔴 Entregas em atraso",
+                    "Nenhuma carga em trânsito passou do prazo de entrega."]];
+      return '<div style="display:flex;flex-direction:column;gap:14px;height:100%">' +
+        '<div class="tv-2" style="flex:1">' + col.map(function (c) {
+          const lista = listaAtrasos(c[0]);
+          const criticos = lista.filter(function (a) { return a.sev === "critico"; }).length;
+          return '<div class="card panel" style="gap:10px">' +
+            '<div class="tv-col-titulo">' + E(c[1]) +
+            '<span class="qtd' + (lista.length ? "" : " zero") + '">' + lista.length + "</span>" +
+            (criticos ? '<span class="qtd">' + criticos + " crítica" +
+              (criticos === 1 ? "" : "s") + "</span>" : "") + "</div>" +
+            (lista.length
+              ? '<div class="tv-atraso-lista" id="lst-' + c[0] + '"></div>' +
+                '<div class="tv-pag" id="pag-' + c[0] + '" style="text-align:center"></div>'
+              : '<div class="tv-atraso-vazio"><div class="ic">🟢</div>' +
+                '<div class="tt">Nada vencido</div><div class="ds">' + E(c[2]) + "</div></div>") +
+            "</div>";
+        }).join("") + "</div>" +
+        '<div class="tv-pag" style="text-align:center">Foto de ' +
+        E(OTD.fmtDataHora(OTD.ATRASOS.geradoEm)) + " · só romaneios em aberto (sem chegada " +
+        "ou sem descarga) · " + E(String(OTD.ATRASOS.semReferencia)) +
+        " cargas de toda a base ficam de fora por não terem prazo cadastrado" +
+        "</div></div>";
+    },
+    after: function () {
+      ["coletas", "entregas"].forEach(function (tipo) {
+        const lista = listaAtrasos(tipo);
+        const box = document.getElementById("lst-" + tipo);
+        const pag = document.getElementById("pag-" + tipo);
+        if (!box || !lista.length) return;
+        const porPagina = 6;
+        const nPag = Math.max(1, Math.ceil(Math.min(lista.length, 42) / porPagina));
+        registraBloco(nPag, function (p) {
+          box.innerHTML = lista.slice(p * porPagina, p * porPagina + porPagina)
+            .map(cardAtraso).join("");
+          if (pag) {
+            pag.textContent = nPag > 1
+              ? (p * porPagina + 1) + "–" + Math.min(lista.length, p * porPagina + porPagina) +
+                " de " + lista.length + " (mais atrasadas primeiro)"
+              : lista.length + (lista.length === 1 ? " carga vencida" : " cargas vencidas");
+          }
+        });
+      });
+    }
+  });
+
+  /* --- 10. Insights de I.A. ---------------------------------------------- */
   telas.push({
     titulo: "Insights & Sugestões",
     html: function () {
@@ -483,9 +703,11 @@
       const box = document.getElementById("tvInsights");
       const pag = document.getElementById("tvInsightsPag");
       const porPagina = 4;
-      const nPag = Math.ceil(INSIGHTS.length / porPagina);
+      /* sempre 4 por pagina — completa com leituras do mes se faltar material */
+      const LISTA = completaPagina(INSIGHTS, [], porPagina);
+      const nPag = Math.max(1, Math.ceil(LISTA.length / porPagina));
       registraBloco(nPag, function (p) {
-        box.innerHTML = INSIGHTS.slice(p * porPagina, p * porPagina + porPagina)
+        box.innerHTML = LISTA.slice(p * porPagina, p * porPagina + porPagina)
           .map(cardInsightTv).join("");
         pag.textContent = "análise automática · página " + (p + 1) + " de " + nPag +
           " · " + INSIGHTS.length + " apontamentos";
@@ -493,7 +715,7 @@
     }
   });
 
-  /* --- 10. Destaques & Meta ---------------------------------------------- */
+  /* --- 11. Destaques & Meta ---------------------------------------------- */
   telas.push({
     titulo: "Destaques & Meta do Mês",
     html: function () {
@@ -565,7 +787,7 @@
      de motorista/placa, que e leitura de dashboard e nao de chao de fabrica. */
   const ORDEM_MACRO = ["Visão Geral", "Contador de Cargas", "Pontos de Atenção",
                        "Faturamento Diário", "Clientes & Rotas", "OMS — Qualidade",
-                       "Controle de Entregas", "Insights & Sugestões"];
+                       "Controle de Entregas", "Cargas em Atraso", "Insights & Sugestões"];
   const SLIDES = MACRO
     ? ATIVAS.filter(function (t) { return ORDEM_MACRO.indexOf(t.titulo) >= 0; })
     : ATIVAS;
@@ -599,9 +821,11 @@
 
     if (t.after) { try { t.after(); } catch (e) { console.error(e); } }
 
-    document.getElementById("tvSub").innerHTML =
-      '<span class="tv-op-tag">' + E(OP.icone + " " + TITULO) + "</span> &nbsp; " +
-      E(t.titulo + " · " + OTD.monthLabelFull(MES));
+    /* o segmento fica AO LADO do titulo (no cabecalho), nao embaixo */
+    const elOp = document.getElementById("tvOp");
+    if (elOp) elOp.textContent = OP.icone + " " + TITULO;
+    document.getElementById("tvSub").textContent =
+      t.titulo + " · " + OTD.monthLabelFull(MES);
 
     /* selo de alerta permanente no cabecalho quando ha critico */
     const selo = document.getElementById("tvSelo");
