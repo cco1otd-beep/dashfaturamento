@@ -1805,9 +1805,12 @@
           "Repom — inclusive os que constam como “Pago”. O valor é sempre a coluna " +
           "<i>Vlr. saldo</i>.") +
         regra("A4", "Previsão de pagamento",
-          "Os cortes são sempre nos dias <b>10, 20 e no último dia do mês</b>. A previsão é " +
-          "<b>data de quitação + " + r.prazoDias + " dias</b>, arredondada para cima até o " +
-          "próximo corte. Só existe com saldo aberto <b>e</b> data de quitação preenchida.") +
+          "O saldo é pago nos dias <b>10, 20 e no último dia do mês</b>, sempre <b>20 dias " +
+          "depois do corte em que a quitação caiu</b> — ou seja, dois cortes adiante:" +
+          '<br><span style="color:var(--text)">quitou de <b>01 a 10</b> → recebe no <b>fim do mês</b>' +
+          "<br>quitou de <b>11 a 20</b> → recebe no <b>dia 10</b> do mês seguinte" +
+          "<br>quitou do <b>21 ao fim do mês</b> → recebe no <b>dia 20</b> do mês seguinte</span>" +
+          "<br>Só existe com saldo aberto <b>e</b> data de quitação preenchida.") +
         regra("A5", "Aguardando quitação",
           "Contrato aberto <b>sem</b> data de quitação (tipicamente Pendente ou Em Trânsito) " +
           "não tem previsão — aparece em lista separada, nunca misturado ao calendário.")
