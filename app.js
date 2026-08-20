@@ -1126,7 +1126,7 @@
     ["R5", "<b>Crown PG × Heineken PG</b> → KM Vazio = 8, KM Carregado = 8."],
     ["R6", "<b>Crown PG × SPM PG</b> → KM Vazio = 4, KM Carregado = 4."],
     ["R7", "<b>Heineken PG × Crown PG</b> → KM Vazio = 8, KM Carregado = 8."],
-    ["R8", "<b>LATAS PG × PG (não-NBH)</b> → R$ 630,53/carga (≤ abr/26) · R$ 662,06 (≥ mai/26). Só conta até hoje — carga com data programada futura não entra."],
+    ["R8", "<b>LATAS PG × PG (não-NBH)</b> → R$ 630,53/carga (≤ abr/26) · R$ 662,06 (≥ mai/26). A data da receita é a <b>Dt. Carga (I) real da lviagens</b> (cruzando pelo romaneio); só cai na data programada do lcargas quando o romaneio não existe lá. Só conta até hoje."],
     ["R9", "<b>Placa NBH9F10 + PG × PG</b> → R$ 1.600,00/dia ÷ nº de cargas do dia."],
     ["R10", "<b>CTe substituto</b> → data corrigida para a data original (\"emitido em: …\" na Observação)."],
     ["R11", "<b>SPAL (todas as filiais)</b> → consolidado como grupo único. HEINEKEN conta como CROWN (pagador)."],
