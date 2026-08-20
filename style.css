@@ -451,14 +451,14 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 
 /* =============================  TV  ===================================== */
 .tv-header{
-  display:flex; align-items:center; gap:26px; margin-bottom:12px; flex:0 0 auto;
+  display:flex; align-items:center; margin-bottom:12px; flex:0 0 auto;
 }
 .tv-header .logo{ height:44px; flex:0 0 auto; }
 /* clamp: 38px na TV Full HD, encolhe sozinho em janela estreita em vez de
    quebrar a linha e empurrar o selo do segmento para baixo */
 .tv-header h1{
   margin:0; font-size:clamp(21px, 2.05vw, 38px); font-weight:800; color:#F6F4F0;
-  display:flex; align-items:center; gap:12px; letter-spacing:.5px;
+  display:flex; align-items:center; letter-spacing:.5px;
   text-transform:uppercase; line-height:1.05; white-space:nowrap;
 }
 .tv-header h1 .brand-dot{ margin-right:4px; }
@@ -466,7 +466,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   overflow:hidden; text-overflow:ellipsis; }
 /* o selo do segmento fica NA MESMA LINHA do título — nunca quebra */
 .tv-header .titulo-linha{
-  display:flex; align-items:center; gap:22px; flex-wrap:nowrap; min-width:0;
+  display:flex; align-items:center; flex-wrap:nowrap; min-width:0;
 }
 .tv-header .spacer{ flex:1 1 auto; min-width:12px; }
 .tv-header #tvSelo{ flex:0 0 auto; }
@@ -485,10 +485,8 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 /* Abaixo de 1330px o respiro maior do cabeçalho não cabe mais: volta ao
    espaçamento compacto em vez de empurrar o relógio para fora da tela.
    Quem valida isso é o verifica_layout.py — ele falha se algo passar da borda. */
-@media (max-width:1330px){
-  .tv-header{ gap:16px; }
-  .tv-header .titulo-linha{ gap:12px; }
-}
+/* o compacto de tela estreita vive no bloco de compatibilidade, no fim do
+   arquivo - aqui usaria `gap` em flex, que a TV ignora */
 
 .tv-slides{ position:relative; width:100%; flex:1 1 auto; min-height:0; }
 /* top/right/bottom/left escritos um a um DE PROPOSITO: o atalho `inset` so
@@ -499,8 +497,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   position:absolute; top:0; right:0; bottom:0; left:0;
   width:100%; height:100%;
   opacity:0; transition:opacity .8s var(--ease);
-  pointer-events:none; display:flex; flex-direction:column; gap:16px;
-}
+  pointer-events:none; display:flex; flex-direction:column; }
 .tv-slide.on{ opacity:1; pointer-events:auto; }
 
 .tv-progress{
@@ -512,19 +509,19 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 }
 .tv-dots{
   position:fixed; bottom:16px; left:0; right:0; display:flex; justify-content:center;
-  gap:8px; pointer-events:none;
+  pointer-events:none;
 }
 .tv-dots i{ width:8px; height:8px; border-radius:50%; background:#2b2620; display:block; }
 .tv-dots i.on{ background:#F0800E; }
 
 .tv-kpi{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:1fr 1fr; gap:20px; height:100%; }
-.tv-kpi .card{ display:flex; flex-direction:column; justify-content:center; gap:10px; }
+.tv-kpi .card{ display:flex; flex-direction:column; justify-content:center; }
 .tv-kpi .lbl{ font-size:18px; text-transform:uppercase; letter-spacing:1.6px; color:#6E6A62; font-weight:800; }
 .tv-kpi .val{ font-size:66px; font-weight:800; letter-spacing:-1px; color:#F6F4F0; }
 .tv-kpi .sub{ font-size:17px; color:#ABA69C; }
 
-.tv-legend{ display:flex; flex-direction:column; gap:14px; justify-content:center; }
-.tv-legend .row{ display:flex; align-items:center; gap:13px; }
+.tv-legend{ display:flex; flex-direction:column; justify-content:center; }
+.tv-legend .row{ display:flex; align-items:center; }
 .tv-legend .dot{ width:17px; height:17px; border-radius:5px; flex:0 0 auto; }
 .tv-legend .nm{ font-size:17px; color:#ABA69C; flex:1; }
 .tv-legend .vl{ font-size:32px; font-weight:800; color:#F6F4F0; }
@@ -555,7 +552,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 
 /* ---------------------- TV · cards de alerta -------------------------- */
 .tv-alerta{
-  display:flex; gap:20px; align-items:center; padding:22px 26px;
+  display:flex; align-items:center; padding:22px 26px;
   border-radius:20px; border:2px solid #F1553F;
   background:linear-gradient(135deg, rgba(241,85,63,.18), rgba(241,85,63,.05));
   position:relative; overflow:hidden;
@@ -585,7 +582,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 
 .tv-ok{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:14px; height:100%; text-align:center;
+  height:100%; text-align:center;
 }
 .tv-ok .ic{ font-size:82px; }
 .tv-ok .tt{ font-size:34px; font-weight:800; color:#4ADE80; }
@@ -595,7 +592,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-contador{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:1fr 1fr;
   gap:20px; height:100%; }
 .tv-contador .card{ display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:8px; }
+  justify-content:center; }
 .tv-contador .ic{ font-size:46px; }
 .tv-contador .n{ font-size:86px; font-weight:800; letter-spacing:-2px; line-height:1; }
 .tv-contador .t{ font-size:19px; text-transform:uppercase; letter-spacing:1.6px;
@@ -604,7 +601,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 
 /* ---------------------- TV · insights --------------------------------- */
 .tv-insight{
-  display:flex; gap:20px; align-items:center; padding:18px 24px;
+  display:flex; align-items:center; padding:18px 24px;
   border-radius:16px; border:1px solid #2b2620; background:#131110; position:relative;
   overflow:hidden;
 }
@@ -625,7 +622,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 
 /* ---------------------- TV · cargas em atraso ------------------------- */
 .tv-atraso{
-  display:flex; align-items:center; gap:18px; padding:14px 18px;
+  display:flex; align-items:center; padding:14px 18px;
   border-radius:14px; border:1px solid #2b2620; background:#131110;
   position:relative; overflow:hidden;
 }
@@ -650,8 +647,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-atraso .prazo b{ display:block; font-size:17px; color:#ABA69C; }
 .tv-col-titulo{
   font-size:19px; font-weight:800; text-transform:uppercase; letter-spacing:1.6px;
-  color:#ABA69C; margin-bottom:12px; display:flex; align-items:center; gap:10px;
-}
+  color:#ABA69C; margin-bottom:12px; display:flex; align-items:center; }
 .tv-col-titulo .qtd{
   background:rgba(241,85,63,.16); color:#F1553F; border:1px solid rgba(241,85,63,.3);
   border-radius:20px; padding:2px 12px; font-size:16px;
@@ -659,11 +655,11 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-col-titulo .qtd.zero{
   background:rgba(74,222,128,.14); color:#4ADE80; border-color:rgba(74,222,128,.3);
 }
-.tv-atraso-lista{ display:flex; flex-direction:column; gap:12px; flex:1;
+.tv-atraso-lista{ display:flex; flex-direction:column; flex:1;
   justify-content:center; }
 .tv-atraso-vazio{
   flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:10px; color:#6E6A62; text-align:center;
+  color:#6E6A62; text-align:center;
 }
 .tv-atraso-vazio .ic{ font-size:52px; }
 .tv-atraso-vazio .tt{ font-size:22px; font-weight:800; color:#4ADE80; }
@@ -689,8 +685,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-repom-big{
   background:linear-gradient(180deg,#161311 0%,#100e0c 100%);
   border:2px solid #2b2620; border-radius:22px; padding:20px 24px;
-  display:flex; flex-direction:column; justify-content:center; gap:6px;
-}
+  display:flex; flex-direction:column; justify-content:center; }
 .tv-repom-big .rot{
   font-size:15px; text-transform:uppercase; letter-spacing:1.6px;
   color:#6E6A62; font-weight:800;
@@ -717,10 +712,10 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 /* Lista paginada de agregados / pendencias. */
 /* as linhas se esticam para preencher a altura do card: pagina cheia sempre
    ocupa a tela inteira, sem faixa preta embaixo */
-.tv-repom-lista{ display:flex; flex-direction:column; gap:10px; flex:1; min-height:0; }
+.tv-repom-lista{ display:flex; flex-direction:column; flex:1; min-height:0; }
 .tv-repom-lista > .tv-repom-linha{ flex:1 1 0; min-height:0; }
 .tv-repom-linha{
-  display:flex; align-items:center; gap:18px; padding:12px 16px;
+  display:flex; align-items:center; padding:12px 16px;
   border-radius:14px; background:#17130f; border:1px solid #241f1a;
 }
 .tv-repom-linha .dias{
@@ -750,11 +745,11 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 
 /* cards de insight: sempre 4 por pagina, cada um ocupa 1/4 da altura */
 .tv-repom-insights{
-  display:flex; flex-direction:column; gap:12px; flex:1; min-height:0;
+  display:flex; flex-direction:column; flex:1; min-height:0;
 }
 .tv-repom-ins{
   flex:1 1 0; min-height:0;
-  display:flex; align-items:center; gap:20px; padding:14px 20px;
+  display:flex; align-items:center; padding:14px 20px;
   border-radius:16px; background:#17130f; border:1px solid #241f1a;
   border-left-width:6px;
 }
@@ -778,3 +773,42 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-repom-ins.info .vl{ color:#4FA3E3; }
 .tv-repom-ins.positivo{ border-left-color:#4ADE80; }
 .tv-repom-ins.positivo .vl{ color:#4ADE80; }
+
+/* ---- Compatibilidade: navegador antigo do telao --------------------- */
+/* O `gap` em FLEXBOX so existe a partir do Chromium 84, e o navegador
+   embarcado da TV/Raspberry e mais velho: ele ignora a linha inteira e os
+   elementos ficam colados - logo grudada no titulo, tarja grudada no titulo,
+   cards sem respiro. Margem funciona em qualquer versao, entao o espacamento
+   do modo TV e feito SO por margem.
+   O `gap` de GRID pode ficar: existe desde o Chromium 57 (.tv-2, .tv-3,
+   .tv-kpi, .tv-repom-destaques sao grid e continuam usando gap).
+   NAO reintroduza `gap` em container flex do modo TV.
+   Sintoma de regressao: cabecalho espremido so na TV, certo no notebook.  */
+.tv-header > * + *{ margin-left:26px; }
+.tv-header h1 > * + *{ margin-left:12px; }
+.tv-header .titulo-linha > * + *{ margin-left:22px; }
+.tv-slide > * + *{ margin-top:16px; }
+.tv-dots > * + *{ margin-left:8px; }
+.tv-kpi .card > * + *{ margin-top:10px; }
+.tv-legend > * + *{ margin-top:14px; }
+.tv-legend .row > * + *{ margin-left:13px; }
+.tv-alerta > * + *{ margin-left:20px; }
+.tv-ok > * + *{ margin-top:14px; }
+.tv-contador .card > * + *{ margin-top:8px; }
+.tv-insight > * + *{ margin-left:20px; }
+.tv-atraso > * + *{ margin-left:18px; }
+.tv-col-titulo > * + *{ margin-left:10px; }
+.tv-atraso-lista > * + *{ margin-top:12px; }
+.tv-atraso-vazio > * + *{ margin-top:10px; }
+.tv-repom-big > * + *{ margin-top:6px; }
+.tv-repom-lista > * + *{ margin-top:10px; }
+.tv-repom-linha > * + *{ margin-left:18px; }
+.tv-repom-insights > * + *{ margin-top:12px; }
+.tv-repom-ins > * + *{ margin-left:20px; }
+/* o ponto laranja e irmao de um NO DE TEXTO, nao de um elemento:
+   "* + *" nao o alcanca, entao ele leva margem propria */
+.tv-header h1 .brand-dot{ margin-right:12px; }
+@media (max-width:1330px){
+  .tv-header > * + *{ margin-left:16px; }
+  .tv-header .titulo-linha > * + *{ margin-left:12px; }
+}
