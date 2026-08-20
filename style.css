@@ -399,6 +399,16 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .contador .d{ font-size:11px; color:var(--text-dim); }
 .contador .ic{ font-size:18px; }
 
+/* --- cartoes de destaque da aba Agregados REPOM --- */
+.destaque{ display:flex; flex-direction:column; gap:5px; }
+.destaque .lbl{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:1.4px;
+  color:var(--text-faint); font-weight:800;
+}
+.destaque .nome{ font-size:16px; font-weight:700; color:var(--text); line-height:1.25; }
+.destaque .vl{ font-size:26px; font-weight:800; color:var(--orange); letter-spacing:-.6px; }
+.destaque .sub{ font-size:12px; color:var(--text-dim); }
+
 /* ===========================  RANKING  ================================== */
 .ranklist{ display:flex; flex-direction:column; gap:8px; }
 .rankrow{ display:grid; grid-template-columns:24px 1fr 88px; align-items:center; gap:10px; }
@@ -655,4 +665,64 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   font-size:14px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase;
   color:#1a1105; background:#F0800E; padding:5px 14px; border-radius:20px;
   white-space:nowrap; flex:0 0 auto;
+}
+
+/* ==================  TV · AGREGADOS REPOM (telao dedicado)  ============== */
+/* Faixa de 3 numeros grandes no topo das telas de saldo e repasse. */
+.tv-repom-destaques{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:20px; flex:0 0 auto;
+}
+.tv-repom-big{
+  background:linear-gradient(180deg,#161311 0%,#100e0c 100%);
+  border:2px solid #2b2620; border-radius:22px; padding:20px 24px;
+  display:flex; flex-direction:column; justify-content:center; gap:6px;
+}
+.tv-repom-big .rot{
+  font-size:15px; text-transform:uppercase; letter-spacing:1.6px;
+  color:#6E6A62; font-weight:800;
+}
+.tv-repom-big .vl{
+  font-size:52px; font-weight:800; letter-spacing:-1.6px; line-height:1;
+  color:#F6F4F0;
+}
+.tv-repom-big .ds{ font-size:16px; color:#ABA69C; }
+.tv-repom-big.vermelho{ border-color:#F1553F; }
+.tv-repom-big.vermelho .vl{ color:#F1553F; }
+.tv-repom-big.laranja{ border-color:#F0800E; }
+.tv-repom-big.laranja .vl{ color:#F0800E; }
+.tv-repom-big.verde{ border-color:#4ADE80; }
+.tv-repom-big.verde .vl{ color:#4ADE80; }
+.tv-repom-big.azul{ border-color:#4FA3E3; }
+.tv-repom-big.azul .vl{ color:#4FA3E3; }
+.tv-repom-big.pulsa{ animation:pulseBorda 2s infinite; }
+@keyframes pulseBorda{
+  0%,100%{ box-shadow:0 0 0 0 rgba(241,85,63,.45); }
+  55%{ box-shadow:0 0 0 13px rgba(241,85,63,0); }
+}
+
+/* Lista paginada de agregados / pendencias. */
+/* as linhas se esticam para preencher a altura do card: pagina cheia sempre
+   ocupa a tela inteira, sem faixa preta embaixo */
+.tv-repom-lista{ display:flex; flex-direction:column; gap:10px; flex:1; min-height:0; }
+.tv-repom-lista > .tv-repom-linha{ flex:1 1 0; min-height:0; }
+.tv-repom-linha{
+  display:flex; align-items:center; gap:18px; padding:12px 16px;
+  border-radius:14px; background:#17130f; border:1px solid #241f1a;
+}
+.tv-repom-linha .dias{
+  font-size:31px; font-weight:800; line-height:1; min-width:96px;
+  letter-spacing:-1px;
+}
+.tv-repom-linha .dias .un{ font-size:17px; font-weight:700; margin-left:2px; }
+.tv-repom-linha .pos{
+  font-size:25px; font-weight:800; color:#6E6A62; min-width:56px; line-height:1;
+}
+.tv-repom-linha .meio{ flex:1; min-width:0; }
+.tv-repom-linha .nm{
+  font-size:21px; font-weight:700; color:#F6F4F0; line-height:1.2;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tv-repom-linha .ds{ font-size:15px; color:#ABA69C; margin-top:2px; }
+.tv-repom-linha .vl{
+  font-size:26px; font-weight:800; color:#F0800E; white-space:nowrap;
 }

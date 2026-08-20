@@ -1266,6 +1266,588 @@
   /* ======================================================================= */
   /* REGISTRO DAS ABAS                                                       */
   /* ======================================================================= */
+  /* ======================================================================= */
+  /* ABA AGREGADOS REPOM                                                     */
+  /*                                                                         */
+  /* Aba independente: tem o proprio filtro (o da Torre nao se aplica aqui,  */
+  /* porque o recorte e por contrato de agregado, nao por documento fiscal). */
+  /* Toda a regra de negocio vive no common.js (OTD.repom*), para a aba e o  */
+  /* telao dedicado lerem exatamente o mesmo numero.                         */
+  /* ======================================================================= */
+
+  const RF = {
+    props: new Set(), mots: new Set(), placas: new Set(),
+    sts: new Set(), unis: new Set(), sits: new Set(), de: null, ate: null
+  };
+  let repomSub = "geral";
+  const repomOrd = { geral: null, prop: { c: "pago", asc: false },
+                     mot: { c: "pago", asc: false }, placa: { c: "pago", asc: false } };
+
+  const REPOM_SUBS = [
+    { id: "geral", ico: "📊", nome: "Visão Geral" },
+    { id: "prop", ico: "🏢", nome: "Proprietários" },
+    { id: "mot", ico: "👤", nome: "Motoristas" },
+    { id: "placa", ico: "🚛", nome: "Placas" },
+    { id: "previsao", ico: "📅", nome: "Previsão de Pagamento" },
+    { id: "regras", ico: "⚙️", nome: "Regras" }
+  ];
+
+  function repomTemDados() {
+    return OTD.REPOM && OTD.REPOM.itens && OTD.REPOM.itens.length > 0;
+  }
+
+  function abaRepom() {
+    if (!repomTemDados()) {
+      return secao("Agregados REPOM") + card(
+        '<div class="empty-state">Nenhum contrato de agregado no data.js.<br>' +
+        "Guarde o export <b>lrepom</b> na pasta datada das bases e rode o pipeline de novo." +
+        "</div>");
+    }
+    const r = OTD.REPOM.resumo;
+    return secao("Agregados REPOM",
+        '<span class="hint">contratos de ' + E(OTD.fmtData(r.periodo[0])) + " a " +
+        E(OTD.fmtData(r.periodo[1])) + " · chave: nº carta frete</span>") +
+      '<div class="filterbar" style="margin-bottom:14px">' +
+        '<div class="filterrow">' +
+          '<span class="lbl">Quem</span>' +
+          '<div class="ms" id="rmProp"></div>' +
+          '<div class="ms" id="rmMot"></div>' +
+          '<div class="ms" id="rmPlaca"></div>' +
+        "</div>" +
+        '<div class="filterrow">' +
+          '<span class="lbl">Situação</span>' +
+          '<div class="ms" id="rmStatus"></div>' +
+          '<div class="ms" id="rmSit"></div>' +
+          '<div class="ms" id="rmUni"></div>' +
+        "</div>" +
+        '<div class="filterrow">' +
+          '<span class="lbl">Período</span>' +
+          '<input type="date" id="rmDe" value="' + (RF.de || "") + '">' +
+          '<span style="color:var(--text-faint);font-size:12px">até</span>' +
+          '<input type="date" id="rmAte" value="' + (RF.ate || "") + '">' +
+          '<button class="btn" id="rmLimpar">Limpar filtros</button>' +
+          '<span class="spacer" style="flex:1"></span>' +
+          '<span class="pill" id="rmCont">—</span>' +
+        "</div>" +
+      "</div>" +
+      '<div class="tabs" id="repomSubnav" style="margin-top:0">' +
+        REPOM_SUBS.map(function (t) {
+          return '<button class="tab' + (t.id === repomSub ? " on" : "") +
+                 '" data-sub="' + t.id + '">' + t.ico + " " + E(t.nome) + "</button>";
+        }).join("") +
+      "</div>" +
+      '<div id="repomPane"></div>';
+  }
+
+  /* ------------------------------------------------------------ render --- */
+  function renderRepom() {
+    if (!repomTemDados()) return;
+
+    montarMultiselect("rmProp", "Proprietário", OTD.repomOpcoes("prop"), RF.props, repintarRepom);
+    montarMultiselect("rmMot", "Motorista", OTD.repomOpcoes("motorista"), RF.mots, repintarRepom);
+    montarMultiselect("rmPlaca", "Placa", OTD.repomOpcoes("placa"), RF.placas, repintarRepom);
+    montarMultiselect("rmStatus", "Status Repom", OTD.repomOpcoes("st"), RF.sts, repintarRepom);
+    montarMultiselect("rmSit", "Situação saldo", OTD.repomOpcoes("sit"), RF.sits, repintarRepom);
+    montarMultiselect("rmUni", "Unidade", OTD.repomOpcoes("unidade"), RF.unis, repintarRepom);
+    ["rmProp", "rmMot", "rmPlaca", "rmStatus", "rmSit", "rmUni"].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el && el.__sync) el.__sync();
+    });
+
+    document.getElementById("rmDe").addEventListener("change", function (e) {
+      RF.de = e.target.value || null; repintarRepom();
+    });
+    document.getElementById("rmAte").addEventListener("change", function (e) {
+      RF.ate = e.target.value || null; repintarRepom();
+    });
+    document.getElementById("rmLimpar").addEventListener("click", function () {
+      RF.props.clear(); RF.mots.clear(); RF.placas.clear();
+      RF.sts.clear(); RF.unis.clear(); RF.sits.clear();
+      RF.de = null; RF.ate = null;
+      document.getElementById("rmDe").value = "";
+      document.getElementById("rmAte").value = "";
+      ["rmProp", "rmMot", "rmPlaca", "rmStatus", "rmSit", "rmUni"].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el && el.__sync) el.__sync();
+      });
+      repintarRepom();
+    });
+    document.querySelectorAll("#repomSubnav .tab").forEach(function (b) {
+      b.addEventListener("click", function () {
+        repomSub = b.dataset.sub;
+        document.querySelectorAll("#repomSubnav .tab").forEach(function (o) {
+          o.classList.toggle("on", o.dataset.sub === repomSub);
+        });
+        repintarRepom();
+      });
+    });
+    repintarRepom();
+  }
+
+  /* Repinta SO o painel interno - todas as sub-telas leem o mesmo recorte,
+     entao trocar de sub-aba nunca mostra numero velho. */
+  function repintarRepom() {
+    const rows = OTD.repomFiltrar(RF);
+    const cont = document.getElementById("rmCont");
+    if (cont) cont.textContent = OTD.fmtNum(rows.length) + " contratos filtrados";
+    const pane = document.getElementById("repomPane");
+    if (!pane) return;
+    const t = OTD.repomTotais(rows);
+    if (repomSub === "geral") pane.innerHTML = repomGeralHtml(rows, t);
+    else if (repomSub === "previsao") pane.innerHTML = repomPrevisaoHtml(rows, t);
+    else if (repomSub === "regras") pane.innerHTML = repomRegrasHtml();
+    else pane.innerHTML = repomRankHtml(repomSub);
+    if (repomSub === "geral") repomGeralGraficos(rows);
+    else if (repomSub === "previsao") repomPrevisaoGraficos(rows);
+    else if (repomSub !== "regras") repomRankRender(repomSub, rows);
+    ligarBuscas();
+  }
+
+  /* ------------------------------------------------------- visão geral --- */
+  function repomGeralHtml(rows, t) {
+    const dest = ["prop", "motorista", "placa"].map(function (campo) {
+      const top = OTD.repomAgrupar(rows, campo)[0];
+      const rot = campo === "prop" ? "Proprietário destaque"
+                : (campo === "motorista" ? "Motorista destaque" : "Placa destaque");
+      if (!top) return card('<div class="lbl">' + rot + '</div><div class="empty-state">—</div>', "destaque");
+      return '<div class="card destaque"><div class="lbl">' + E(rot) + "</div>" +
+        '<div class="nome">' + E(OTD.shortName(top.chave, 34)) + "</div>" +
+        '<div class="vl num">' + OTD.fmtBRL(top.pago) + "</div>" +
+        '<div class="sub">' + OTD.fmtNum(top.cargas) + " cargas · ticket " +
+        OTD.fmtBRL(top.ticket) + "</div></div>";
+    }).join("");
+
+    return secao("Números do período") +
+      '<div class="grid g-kpi">' +
+        kpi("💰", "c-orange", "Receita das cargas", OTD.fmtBRLcents(t.receita),
+            "faturamento da Torre nas cargas do agregado") +
+        kpi("🤝", "c-blue", "Pago ao agregado", OTD.fmtBRLcents(t.pago),
+            "repasse de " + OTD.fmtPct(t.repasse, 1) + " da receita") +
+        kpi("📈", "c-green", "Margem", OTD.fmtBRLcents(t.margem),
+            OTD.fmtPct(t.pctMargem, 1) + " da receita") +
+        kpi("📦", "c-purple", "Contratos", OTD.fmtNum(t.cargas),
+            "ticket médio " + OTD.fmtBRL(t.ticket)) +
+        kpi("⏸️", "c-red", "Saldo em aberto", OTD.fmtBRLcents(t.saldo),
+            OTD.fmtNum(t.abertos) + " contratos parados" +
+            (t.maisVelho !== null ? " · mais antigo há " + OTD.fmtNum(t.maisVelho) + " dias" : "")) +
+        kpi("✅", "c-teal", "Saldo já pago", OTD.fmtPct(t.pctPago, 1),
+            OTD.fmtNum(t.pagos) + " de " + OTD.fmtNum(t.cargas) + " contratos") +
+      "</div>" +
+      secao("Destaques do período") +
+      '<div class="grid g-3">' + dest + "</div>" +
+      secao("Movimento") +
+      '<div class="grid g-charts-2">' +
+        painel("rgDiario", "Pago ao agregado por dia", "coluna Vlr. unitário") +
+        painel("rgStatus", "Status Repom", "clique para filtrar") +
+      "</div>" +
+      '<div class="grid g-charts-2">' +
+        painel("rgProp", "Top 12 proprietários", "clique para filtrar") +
+        painel("rgSit", "Situação do saldo", "pago x aberto") +
+      "</div>";
+  }
+
+  function repomGeralGraficos(rows) {
+    /* Movimento no tempo: dia a dia enquanto cabe na tela; acima de 62 dias
+       o eixo vira mensal, senao viram 230 barras ilegiveis. */
+    const porDiaBruto = new Map();
+    rows.forEach(function (r) {
+      if (!r.dtEmi) return;
+      porDiaBruto.set(r.dtEmi, (porDiaBruto.get(r.dtEmi) || 0) + (r.pago || 0));
+    });
+    const mensal = porDiaBruto.size > 62;
+    const porDia = new Map();
+    porDiaBruto.forEach(function (v, k) {
+      const ch = mensal ? k.slice(0, 7) : k;
+      porDia.set(ch, (porDia.get(ch) || 0) + v);
+    });
+    const dias = Array.from(porDia.keys()).sort();
+    const tituloEixo = document.querySelector("#rgDiario");
+    if (tituloEixo) {
+      const head = tituloEixo.closest(".card").querySelector(".ptitle");
+      if (head) head.textContent = mensal ? "Pago ao agregado por mês"
+                                          : "Pago ao agregado por dia";
+    }
+    criarGrafico("rgDiario", {
+      type: "bar",
+      data: {
+        labels: dias.map(function (d) {
+          return mensal ? OTD.monthLabel(d) : OTD.fmtData(d).slice(0, 5); }),
+        datasets: [{ data: dias.map(function (d) { return porDia.get(d); }),
+                     backgroundColor: "rgba(240,128,14,.8)", borderRadius: 4,
+                     maxBarThickness: 64 }]
+      },
+      options: {
+        plugins: { legend: { display: false }, valores: { formato: "compacto" },
+          tooltip: { callbacks: { label: function (c) { return OTD.fmtBRL(c.parsed.y); } } } },
+        scales: { y: { ticks: { callback: function (v) { return OTD.fmtCompacto(v); } } } }
+      }
+    });
+
+    /* status (clicavel) */
+    const porSt = OTD.repomAgrupar(rows, "st").sort(function (a, b) { return b.cargas - a.cargas; });
+    criarGrafico("rgStatus", {
+      type: "doughnut",
+      data: {
+        labels: porSt.map(function (g) { return g.chave; }),
+        datasets: [{ data: porSt.map(function (g) { return g.cargas; }),
+                     backgroundColor: OTD.PALETTE, borderWidth: 0 }]
+      },
+      options: {
+        cutout: "56%",
+        plugins: { legend: { position: "right", labels: { color: "#ABA69C", boxWidth: 12 } },
+                   valores: { formato: "num" } },
+        onClick: function (ev, els) {
+          if (!els.length) return;
+          const v = porSt[els[0].index].chave;
+          RF.sts.has(v) ? RF.sts.delete(v) : RF.sts.add(v);
+          const el = document.getElementById("rmStatus");
+          if (el && el.__sync) el.__sync();
+          repintarRepom();
+        }
+      }
+    });
+
+    /* top proprietarios (clicavel) */
+    const props = OTD.repomAgrupar(rows, "prop").slice(0, 12);
+    criarGrafico("rgProp", {
+      type: "bar",
+      data: {
+        labels: props.map(function (g) { return OTD.shortName(g.chave, 28); }),
+        datasets: [{ data: props.map(function (g) { return g.pago; }),
+                     backgroundColor: "rgba(79,163,227,.8)", borderRadius: 5,
+                     maxBarThickness: 20 }]
+      },
+      options: {
+        indexAxis: "y",
+        plugins: { legend: { display: false }, valores: { formato: "brl" },
+          tooltip: { callbacks: { label: function (c) { return OTD.fmtBRL(c.parsed.x); } } } },
+        scales: { x: { ticks: { callback: function (v) { return OTD.fmtCompacto(v); } } },
+                  y: OTD.eixoCategoriasY() },
+        onClick: function (ev, els) {
+          if (!els.length) return;
+          const v = props[els[0].index].chave;
+          RF.props.has(v) ? RF.props.delete(v) : RF.props.add(v);
+          const el = document.getElementById("rmProp");
+          if (el && el.__sync) el.__sync();
+          repintarRepom();
+        }
+      }
+    });
+
+    /* situacao do saldo */
+    const porSit = OTD.repomAgrupar(rows, "sit");
+    criarGrafico("rgSit", {
+      type: "doughnut",
+      data: {
+        labels: porSit.map(function (g) { return g.chave; }),
+        datasets: [{ data: porSit.map(function (g) { return g.cargas; }),
+                     backgroundColor: porSit.map(function (g) {
+                       return /^aberto/i.test(g.chave) ? "#F1553F" : "#4ADE80"; }),
+                     borderWidth: 0 }]
+      },
+      options: {
+        cutout: "56%",
+        plugins: { legend: { position: "right", labels: { color: "#ABA69C", boxWidth: 12 } },
+                   valores: { formato: "num" } }
+      }
+    });
+  }
+
+  /* ------------------------------------------ proprietários / mot / placa */
+  const REPOM_CAMPO = { prop: "prop", mot: "motorista", placa: "placa" };
+  const REPOM_ROTULO = { prop: "Proprietário", mot: "Motorista", placa: "Placa" };
+  const REPOM_COLS = [
+    { c: "chave", t: "#", right: false },
+    { c: "pago", t: "Pago ao agregado", right: true },
+    { c: "pct", t: "% do total", right: true },
+    { c: "cargas", t: "Contratos", right: true },
+    { c: "ticket", t: "Ticket médio", right: true },
+    { c: "receita", t: "Receita da carga", right: true },
+    { c: "margem", t: "Margem", right: true },
+    { c: "pctMargem", t: "% margem", right: true },
+    { c: "saldo", t: "Saldo parado", right: true }
+  ];
+
+  function repomRankHtml(sub) {
+    const rot = REPOM_ROTULO[sub];
+    return secao(rot + " — pago ao agregado") +
+      painel("rgRank", "Top 15 " + rot.toLowerCase(), "clique para filtrar") +
+      tabelaCard("tblRepomRank", rot, "", true);
+  }
+
+  function repomRankRender(sub, rows) {
+    const campo = REPOM_CAMPO[sub];
+    const grupos = OTD.repomAgrupar(rows, campo);
+    const total = grupos.reduce(function (a, g) { return a + g.pago; }, 0);
+    const alvo = sub === "prop" ? RF.props : (sub === "mot" ? RF.mots : RF.placas);
+    const msId = sub === "prop" ? "rmProp" : (sub === "mot" ? "rmMot" : "rmPlaca");
+
+    const top = grupos.slice(0, 15);
+    criarGrafico("rgRank", {
+      type: "bar",
+      data: {
+        labels: top.map(function (g) { return OTD.shortName(g.chave, 30); }),
+        datasets: [{ data: top.map(function (g) { return g.pago; }),
+                     backgroundColor: "rgba(240,128,14,.78)", borderRadius: 5,
+                     maxBarThickness: 20 }]
+      },
+      options: {
+        indexAxis: "y",
+        plugins: { legend: { display: false }, valores: { formato: "brl" },
+          tooltip: { callbacks: { label: function (c) { return OTD.fmtBRL(c.parsed.x); } } } },
+        scales: { x: { ticks: { callback: function (v) { return OTD.fmtCompacto(v); } } },
+                  y: OTD.eixoCategoriasY() },
+        onClick: function (ev, els) {
+          if (!els.length) return;
+          const v = top[els[0].index].chave;
+          alvo.has(v) ? alvo.delete(v) : alvo.add(v);
+          const el = document.getElementById(msId);
+          if (el && el.__sync) el.__sync();
+          repintarRepom();
+        }
+      }
+    });
+
+    const ord = repomOrd[sub];
+    grupos.forEach(function (g) { g.pct = total ? 100 * g.pago / total : 0; });
+    grupos.sort(function (a, b) {
+      const va = a[ord.c], vb = b[ord.c];
+      if (typeof va === "string") return ord.asc ? va.localeCompare(vb, "pt-BR") : vb.localeCompare(va, "pt-BR");
+      return ord.asc ? va - vb : vb - va;
+    });
+
+    const linhas = grupos.map(function (g, i) {
+      return [
+        '<span style="color:var(--text-faint)">' + (i + 1) + "</span> " + E(g.chave),
+        '<span class="num">' + OTD.fmtBRLcents(g.pago) + "</span>",
+        pctCell(g.pct),
+        '<span class="num">' + OTD.fmtNum(g.cargas) + "</span>",
+        '<span class="num">' + OTD.fmtBRL(g.ticket) + "</span>",
+        '<span class="num">' + OTD.fmtBRLcents(g.receita) + "</span>",
+        '<span class="num">' + OTD.fmtBRLcents(g.margem) + "</span>",
+        '<span class="badge ' + (g.pctMargem >= 35 ? "b-green" : (g.pctMargem >= 15 ? "b-amber" : "b-red")) +
+          '">' + OTD.fmtPct(g.pctMargem, 1) + "</span>",
+        '<span class="num">' + (g.saldo ? OTD.fmtBRLcents(g.saldo) : "—") + "</span>"
+      ];
+    });
+    const cols = REPOM_COLS.map(function (c) {
+      const seta = ord.c === c.c ? (ord.asc ? " ▲" : " ▼") : "";
+      return { t: (c.c === "chave" ? REPOM_ROTULO[sub] : c.t) + seta, right: c.right };
+    });
+    pintarTabela("tblRepomRank", cols, linhas);
+
+    /* ordenar clicando no cabeçalho */
+    const tbl = document.getElementById("tblRepomRank");
+    if (tbl) {
+      tbl.querySelectorAll("th").forEach(function (th, i) {
+        th.style.cursor = "pointer";
+        th.addEventListener("click", function () {
+          const c = REPOM_COLS[i].c;
+          if (ord.c === c) ord.asc = !ord.asc; else { ord.c = c; ord.asc = false; }
+          repintarRepom();
+        });
+      });
+    }
+  }
+
+  /* -------------------------------------------- previsão de pagamento --- */
+  function repomPrevisaoHtml(rows, t) {
+    const abertos = rows.filter(function (r) { return r.aberto; });
+    const porStatus = OTD.repomAgrupar(abertos, "st")
+      .sort(function (a, b) { return b.saldo - a.saldo; });
+    const cards = porStatus.map(function (g) {
+      return '<div class="card contador"><div class="ic">⏸️</div>' +
+        '<div class="n num" style="font-size:30px;color:#F0800E">' + OTD.fmtBRL(g.saldo) + "</div>" +
+        '<div class="t">' + E(g.chave) + "</div>" +
+        '<div class="d">' + OTD.fmtNum(g.abertos) + " contratos</div></div>";
+    }).join("");
+
+    /* A previsao pode estar no passado: contrato que ja passou da data de corte
+       e continua com saldo aberto. Isso e um alerta, nao "o proximo corte". */
+    const hoje = OTD.dayKey(new Date());
+    const todas = OTD.repomPrevisao(rows);
+    const vencidos = todas.filter(function (p) { return p.data < hoje; });
+    const prox = todas.filter(function (p) { return p.data >= hoje; })[0];
+    const vencidoValor = vencidos.reduce(function (a, p) { return a + p.valor; }, 0);
+    const vencidoQtd = vencidos.reduce(function (a, p) { return a + p.qtd; }, 0);
+    const destaque = function (cor, rot, valor, linha1, linha2) {
+      return '<div class="card" style="border-color:' + cor + ';margin-top:14px">' +
+        '<div style="color:#6E6A62;font-size:11px;letter-spacing:1.4px;' +
+        'text-transform:uppercase;font-weight:800">' + E(rot) + "</div>" +
+        '<div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-top:6px">' +
+        '<div class="num" style="font-size:30px;font-weight:800;color:#F6F4F0">' +
+        E(linha1) + "</div>" +
+        '<div class="num" style="font-size:26px;font-weight:800;color:' + cor + '">' +
+        valor + "</div>" +
+        '<div style="color:#ABA69C;font-size:13px">' + E(linha2) + "</div></div></div>";
+    };
+    return secao("Saldo parado por status",
+        '<span class="hint">saldo em aberto: ' + OTD.fmtBRLcents(t.saldo) + " em " +
+        OTD.fmtNum(t.abertos) + " contratos</span>") +
+      '<div class="grid g-3">' + (cards || '<div class="empty-state">Nenhum saldo em aberto.</div>') + "</div>" +
+      (vencidoQtd ? destaque("#F1553F", "Passou da data e continua em aberto",
+          OTD.fmtBRLcents(vencidoValor),
+          OTD.fmtNum(vencidoQtd) + " contratos",
+          "corte mais antigo: " + OTD.fmtData(vencidos[0].data)) : "") +
+      (prox ? destaque("#F0800E", "Próximo corte", OTD.fmtBRLcents(prox.valor),
+          OTD.fmtData(prox.data), OTD.fmtNum(prox.qtd) + " contratos") : "") +
+      secao("Calendário de pagamento") +
+      '<div class="grid g-charts-2">' +
+        painel("rgParado", "Valor parado por status") +
+        painel("rgCortes", "Previsão por data de corte") +
+      "</div>" +
+      '<div class="grid g-charts-2">' +
+        tabelaCard("tblRepomPrev", "Detalhe da previsão", "", false) +
+        tabelaCard("tblRepomAguard", "Aguardando quitação (sem previsão possível)", "", false) +
+      "</div>" +
+      secao("Gargalo da quitação",
+        '<span class="hint">idade do contrato em aberto, contada da emissão</span>') +
+      painel("rgIdade", "Saldo parado por faixa de idade");
+  }
+
+  function repomPrevisaoGraficos(rows) {
+    const abertos = rows.filter(function (r) { return r.aberto; });
+    const porStatus = OTD.repomAgrupar(abertos, "st")
+      .sort(function (a, b) { return b.saldo - a.saldo; });
+    criarGrafico("rgParado", {
+      type: "bar",
+      data: {
+        labels: porStatus.map(function (g) { return g.chave; }),
+        datasets: [{ data: porStatus.map(function (g) { return g.saldo; }),
+                     backgroundColor: "rgba(241,85,63,.8)", borderRadius: 5,
+                     maxBarThickness: 46 }]
+      },
+      options: {
+        plugins: { legend: { display: false }, valores: { formato: "brl" },
+          tooltip: { callbacks: { label: function (c) { return OTD.fmtBRL(c.parsed.y); } } } },
+        scales: { y: { ticks: { callback: function (v) { return OTD.fmtCompacto(v); } } } }
+      }
+    });
+
+    const prev = OTD.repomPrevisao(rows);
+    const hojeK = OTD.dayKey(new Date());
+    criarGrafico("rgCortes", {
+      type: "bar",
+      data: {
+        labels: prev.map(function (p) { return OTD.fmtData(p.data).slice(0, 5); }),
+        datasets: [{ data: prev.map(function (p) { return p.valor; }),
+                     /* vermelho = corte que ja passou e o saldo continua aberto */
+                     backgroundColor: prev.map(function (p) {
+                       return p.data < hojeK ? "rgba(241,85,63,.85)" : "rgba(45,212,191,.8)"; }),
+                     borderRadius: 5, maxBarThickness: 40 }]
+      },
+      options: {
+        plugins: { legend: { display: false }, valores: { formato: "compacto" },
+          tooltip: { callbacks: {
+            title: function (c) { return OTD.fmtData(prev[c[0].dataIndex].data); },
+            label: function (c) { return OTD.fmtBRL(c.parsed.y) + " · " +
+              OTD.fmtNum(prev[c.dataIndex].qtd) + " contratos"; } } } },
+        scales: { y: { ticks: { callback: function (v) { return OTD.fmtCompacto(v); } } } }
+      }
+    });
+
+    const faixas = OTD.repomIdade(rows);
+    criarGrafico("rgIdade", {
+      type: "bar",
+      data: {
+        labels: faixas.map(function (f) { return f.rot; }),
+        datasets: [{ data: faixas.map(function (f) { return f.valor; }),
+                     backgroundColor: faixas.map(function (f) { return f.cor; }),
+                     borderRadius: 5, maxBarThickness: 54 }]
+      },
+      options: {
+        plugins: { legend: { display: false }, valores: { formato: "brl" },
+          tooltip: { callbacks: { label: function (c) {
+            return OTD.fmtBRL(c.parsed.y) + " · " + OTD.fmtNum(faixas[c.dataIndex].qtd) +
+                   " contratos"; } } } },
+        scales: { y: { ticks: { callback: function (v) { return OTD.fmtCompacto(v); } } } }
+      }
+    });
+
+    pintarTabela("tblRepomPrev",
+      [{ t: "Data prevista" }, { t: "Contratos", right: true }, { t: "Valor do saldo", right: true }],
+      prev.map(function (p) {
+        return [E(OTD.fmtData(p.data)),
+                '<span class="num">' + OTD.fmtNum(p.qtd) + "</span>",
+                '<span class="num">' + OTD.fmtBRLcents(p.valor) + "</span>"];
+      }));
+
+    pintarTabela("tblRepomAguard",
+      [{ t: "Status Repom" }, { t: "Contratos", right: true }, { t: "Valor do saldo", right: true }],
+      OTD.repomAguardando(rows).map(function (g) {
+        return [E(g.status),
+                '<span class="num">' + OTD.fmtNum(g.qtd) + "</span>",
+                '<span class="num">' + OTD.fmtBRLcents(g.valor) + "</span>"];
+      }));
+  }
+
+  /* ------------------------------------------------------------ regras --- */
+  function repomRegrasHtml() {
+    const a = OTD.REPOM.auditoria, r = OTD.REPOM.resumo;
+    const regra = function (cod, tit, txt) {
+      return '<div class="miniline"><b>' + E(cod) + " · " + E(tit) + "</b><br>" +
+             '<span style="color:var(--text-dim);font-size:12.5px">' + txt + "</span></div>";
+    };
+    return secao("Como cada número é calculado") +
+      '<div class="grid g-charts-2">' +
+      card(
+        '<div class="phead"><span class="ptitle">Regras do contrato</span></div>' +
+        regra("A1", "Chave única = Nº carta frete",
+          "O romaneio <b>não</b> serve de chave: quando uma carta frete é cancelada e " +
+          "reemitida, o mesmo romaneio aparece várias vezes. Nesta base são 11.682 cartas " +
+          "para 11.086 romaneios.") +
+        regra("A2", "Cancelado fica fora de tudo",
+          "Contrato com Status Repom = <b>Cancelado</b> não entra em valor, contagem nem " +
+          "gráfico (decisão do gestor em 20/08/2026). Depois desse corte sobra exatamente " +
+          "uma linha viva por romaneio.") +
+        regra("A3", "Saldo em aberto",
+          "É todo contrato com <b>Situação saldo = Aberto</b>, qualquer que seja o Status " +
+          "Repom — inclusive os que constam como “Pago”. O valor é sempre a coluna " +
+          "<i>Vlr. saldo</i>.") +
+        regra("A4", "Previsão de pagamento",
+          "Os cortes são sempre nos dias <b>10, 20 e no último dia do mês</b>. A previsão é " +
+          "<b>data de quitação + " + r.prazoDias + " dias</b>, arredondada para cima até o " +
+          "próximo corte. Só existe com saldo aberto <b>e</b> data de quitação preenchida.") +
+        regra("A5", "Aguardando quitação",
+          "Contrato aberto <b>sem</b> data de quitação (tipicamente Pendente ou Em Trânsito) " +
+          "não tem previsão — aparece em lista separada, nunca misturado ao calendário.")
+      ) +
+      card(
+        '<div class="phead"><span class="ptitle">De onde vem cada valor</span></div>' +
+        regra("A6", "Pago ao agregado",
+          "Coluna <i>Vlr. unitário</i> do lrepom — o valor cheio do contrato, confirmado " +
+          "com o gestor.") +
+        regra("A7", "Receita da carga",
+          "Vem da <b>Torre</b>, não do lrepom: CT-e/CRT real do romaneio e, nas cargas " +
+          "Ponta Grossa × Ponta Grossa, o faturamento simulado da regra R8. A coluna " +
+          "<i>Total CTe bruto</i> do lrepom fica zerada nessas cargas, por isso não serve " +
+          "sozinha (onde ela existe, bate com o frete da viagem).") +
+        regra("A8", "Margem",
+          "Receita da carga menos o pago ao agregado, contrato a contrato.") +
+        regra("A9", "Cruzamento com a Torre",
+          "Feito pelo <b>Nº romaneio</b> contra o lviagens — é o que traz cliente, rota, " +
+          "segmento e KM. Contrato sem carga correspondente fica de fora (é o caso de " +
+          "todo o histórico de dez/25, autorizado pelo gestor).")
+      ) +
+      "</div>" +
+      secao("Metadados da base") +
+      card('<div class="grid g-3" style="gap:10px">' +
+        [["Arquivo de origem", (r.arquivos || []).join(", ") || "—"],
+         ["Período coberto", OTD.fmtData(r.periodo[0]) + " a " + OTD.fmtData(r.periodo[1])],
+         ["Contratos aproveitados", OTD.fmtNum(a.aproveitados || 0)],
+         ["Cancelados descartados", OTD.fmtNum(a.cancelados || 0)],
+         ["Sem carga na Torre", OTD.fmtNum(a.semViagem || 0)],
+         ["Romaneios repetidos após o corte", OTD.fmtNum(a.romaneiosDuplicadosAposCorte || 0) +
+          (a.romaneiosDuplicadosAposCorte ? " ⚠️" : " ✓")],
+         ["Sem receita em nenhuma fonte", OTD.fmtNum(a.semReceita || 0)],
+         ["Abertos sem data de quitação", OTD.fmtNum(a.abertoSemQuitacao || 0)],
+         ["Linhas não-agregado descartadas", OTD.fmtNum((a.naoAgregado || 0) + (a.linhaSemModalidade || 0))]
+        ].map(function (p) {
+          return '<div class="miniline"><b>' + E(p[0]) + "</b><br>" +
+                 '<span class="num" style="color:var(--text-dim)">' + E(p[1]) + "</span></div>";
+        }).join("") + "</div>");
+  }
+
   const ABAS = [
     { id: "geral", ico: "📊", nome: "Visão Geral", html: abaGeral, render: renderGeral },
     { id: "clientes", ico: "👥", nome: "Clientes", html: abaClientes, render: renderClientes },
@@ -1276,6 +1858,7 @@
     { id: "projecao", ico: "🎯", nome: "Projeção", html: abaProjecao, render: renderProjecao },
     { id: "oms", ico: "🧭", nome: "OMS", html: abaOms, render: renderOms },
     { id: "entregas", ico: "📦", nome: "Entregas", html: abaEntregas, render: renderEntregas },
+    { id: "repom", ico: "🤝", nome: "Agregados", html: abaRepom, render: renderRepom },
     { id: "operacional", ico: "🛰️", nome: "Operacional", html: abaOperacional,
       render: function (rows) { renderOperacional(); prepararViagens(rows); } },
     { id: "regras", ico: "⚙️", nome: "Regras", html: abaRegras, render: function () { } }
@@ -1381,7 +1964,7 @@
     });
   }
 
-  function montarMultiselect(id, rotulo, valores, alvo) {
+  function montarMultiselect(id, rotulo, valores, alvo, aoMudar) {
     const el = document.getElementById(id);
     el.innerHTML =
       '<button class="btn ms-toggle"><span>' + E(rotulo) + '</span><span class="cnt" style="display:none">0</span></button>' +
@@ -1397,7 +1980,7 @@
     function sync() {
       cnt.textContent = alvo.size;
       cnt.style.display = alvo.size ? "inline-block" : "none";
-      render();
+      (aoMudar || render)();
     }
     lista.addEventListener("change", function (ev) {
       if (ev.target.checked) alvo.add(ev.target.value); else alvo.delete(ev.target.value);
@@ -1476,6 +2059,10 @@
     document.getElementById("contadorRegistros").textContent = OTD.fmtNum(rows.length) + " registros";
 
     const aba = ABAS.filter(function (a) { return a.id === abaAtiva; })[0] || ABAS[0];
+    /* a aba Agregados tem filtro proprio (por contrato, nao por documento):
+       esconder o filtro da Torre evita dois filtros concorrentes na tela */
+    const barra = document.querySelector(".page > .filterbar");
+    if (barra) barra.style.display = (aba.id === "repom") ? "none" : "";
     document.getElementById("conteudo").innerHTML = '<div class="tabpane">' + aba.html(rows) + "</div>";
     try { aba.render(rows); } catch (e) { console.error(e); }
     ligarBuscas();

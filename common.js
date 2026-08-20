@@ -41,6 +41,14 @@ const OTD = (function () {
   const ATRASOS = (window.OTD_ATRASOS || null);
   const META = (window.OTD_META || {});
 
+  /* ---- Agregados REPOM (aba propria + telao proprio) --------------------- */
+  const REPOM_RAW = (window.OTD_REPOM || null);
+  const REPOM = REPOM_RAW ? {
+    itens: expandir(REPOM_RAW.itens),
+    resumo: REPOM_RAW.resumo || {},
+    auditoria: REPOM_RAW.auditoria || {}
+  } : { itens: [], resumo: {}, auditoria: {} };
+
   const GRUPO_SEG = {
     "LATAS": "LATAS",
     "BENS DE CO": "BENS DE CONSUMO",
@@ -758,9 +766,173 @@ const OTD = (function () {
     return f;
   }
 
+
+  /* =======================================================================
+     AGREGADOS REPOM - logica compartilhada pela aba do dashboard e pelo
+     telao dedicado. Uma fonte de verdade so: se a regra muda, muda aqui.
+     ======================================================================= */
+  REPOM.itens.forEach(function (r) {
+    r.rota = (r.carreg || "—") + " → " + (r.destino || "—");
+    r.aberto = /^aberto/i.test(r.sit || "");
+    r.margem = (r.receita || 0) - (r.pago || 0);
+    r.mes = (r.dtEmi || "").slice(0, 7) || null;
+  });
+
+  /* Faixas de idade do contrato em aberto - cores do design system da Torre */
+  const REPOM_FAIXAS = [
+    { rot: "0 a 10 dias", min: 0, max: 10, cor: "#4ADE80" },
+    { rot: "11 a 20 dias", min: 11, max: 20, cor: "#2DD4BF" },
+    { rot: "21 a 30 dias", min: 21, max: 30, cor: "#FFC145" },
+    { rot: "31 a 60 dias", min: 31, max: 60, cor: "#F0800E" },
+    { rot: "mais de 60 dias", min: 61, max: 1e9, cor: "#F1553F" }
+  ];
+
+  /* dias corridos desde a emissao do contrato ate hoje */
+  function repomDiasEmAberto(r, hoje) {
+    const d = daysBetween(r.dtEmi, hoje || new Date());
+    return d === null ? null : Math.floor(d);
+  }
+
+  function repomFaixaIdade(dias) {
+    if (dias === null) return null;
+    for (let i = 0; i < REPOM_FAIXAS.length; i++) {
+      if (dias >= REPOM_FAIXAS[i].min && dias <= REPOM_FAIXAS[i].max) return REPOM_FAIXAS[i];
+    }
+    return REPOM_FAIXAS[REPOM_FAIXAS.length - 1];
+  }
+
+  /* Filtro unico da aba: multi-selecao em 5 campos + periodo por Data emissao */
+  function repomFiltrar(f) {
+    f = f || {};
+    const de = f.de || null, ate = f.ate || null;
+    return REPOM.itens.filter(function (r) {
+      if (f.props && f.props.size && !f.props.has(r.prop)) return false;
+      if (f.mots && f.mots.size && !f.mots.has(r.motorista)) return false;
+      if (f.placas && f.placas.size && !f.placas.has(r.placa)) return false;
+      if (f.sts && f.sts.size && !f.sts.has(r.st)) return false;
+      if (f.unis && f.unis.size && !f.unis.has(r.unidade)) return false;
+      if (f.sits && f.sits.size && !f.sits.has(r.sit)) return false;
+      if (de && (!r.dtEmi || r.dtEmi < de)) return false;
+      if (ate && (!r.dtEmi || r.dtEmi > ate)) return false;
+      return true;
+    });
+  }
+
+  /* Agrega por proprietario / motorista / placa / rota / cliente / mes. */
+  function repomAgrupar(rows, campo) {
+    const m = new Map();
+    rows.forEach(function (r) {
+      const k = r[campo] || "—";
+      let g = m.get(k);
+      if (!g) {
+        g = { chave: k, receita: 0, pago: 0, margem: 0, cargas: 0,
+              saldo: 0, abertos: 0, km: 0 };
+        m.set(k, g);
+      }
+      g.receita += r.receita || 0;
+      g.pago += r.pago || 0;
+      g.margem += r.margem || 0;
+      g.km += r.km || 0;
+      g.cargas += 1;
+      if (r.aberto) { g.saldo += r.saldo || 0; g.abertos += 1; }
+    });
+    const saida = Array.from(m.values());
+    saida.forEach(function (g) {
+      g.ticket = g.cargas ? g.pago / g.cargas : 0;
+      g.pctMargem = g.receita ? (g.margem / g.receita) * 100 : 0;
+      g.rkm = g.km ? g.pago / g.km : 0;
+    });
+    saida.sort(function (a, b) { return b.pago - a.pago; });
+    return saida;
+  }
+
+  /* Calendario de pagamento: soma do saldo por data de corte prevista. */
+  function repomPrevisao(rows) {
+    const m = new Map();
+    rows.forEach(function (r) {
+      if (!r.aberto || !r.dtPrev) return;
+      let g = m.get(r.dtPrev);
+      if (!g) { g = { data: r.dtPrev, qtd: 0, valor: 0, itens: [] }; m.set(r.dtPrev, g); }
+      g.qtd += 1; g.valor += r.saldo || 0; g.itens.push(r);
+    });
+    return Array.from(m.values()).sort(function (a, b) {
+      return a.data < b.data ? -1 : 1;
+    });
+  }
+
+  /* Saldo aberto SEM data de quitacao: nao da para prever, fica em lista propria. */
+  function repomAguardando(rows) {
+    const m = new Map();
+    rows.forEach(function (r) {
+      if (!r.aberto || r.dtPrev) return;
+      const k = r.st || "Sem status";
+      let g = m.get(k);
+      if (!g) { g = { status: k, qtd: 0, valor: 0, itens: [] }; m.set(k, g); }
+      g.qtd += 1; g.valor += r.saldo || 0; g.itens.push(r);
+    });
+    return Array.from(m.values()).sort(function (a, b) { return b.valor - a.valor; });
+  }
+
+  /* Distribuicao do saldo parado por idade do contrato (gargalo da quitacao). */
+  function repomIdade(rows, hoje) {
+    const faixas = REPOM_FAIXAS.map(function (f) {
+      return { rot: f.rot, cor: f.cor, qtd: 0, valor: 0 };
+    });
+    rows.forEach(function (r) {
+      if (!r.aberto) return;
+      const dias = repomDiasEmAberto(r, hoje);
+      if (dias === null) return;
+      for (let i = 0; i < REPOM_FAIXAS.length; i++) {
+        if (dias >= REPOM_FAIXAS[i].min && dias <= REPOM_FAIXAS[i].max) {
+          faixas[i].qtd += 1; faixas[i].valor += r.saldo || 0; break;
+        }
+      }
+    });
+    return faixas;
+  }
+
+  /* Totais de um recorte - usados nos cards da aba e do telao. */
+  function repomTotais(rows, hoje) {
+    const t = { cargas: rows.length, receita: 0, pago: 0, margem: 0,
+                saldo: 0, abertos: 0, pagos: 0, km: 0, comPrevisao: 0,
+                semPrevisao: 0, maisVelho: null };
+    rows.forEach(function (r) {
+      t.receita += r.receita || 0;
+      t.pago += r.pago || 0;
+      t.margem += r.margem || 0;
+      t.km += r.km || 0;
+      if (r.aberto) {
+        t.abertos += 1; t.saldo += r.saldo || 0;
+        if (r.dtPrev) t.comPrevisao += 1; else t.semPrevisao += 1;
+        const d = repomDiasEmAberto(r, hoje);
+        if (d !== null && (t.maisVelho === null || d > t.maisVelho)) t.maisVelho = d;
+      } else { t.pagos += 1; }
+    });
+    t.ticket = t.cargas ? t.pago / t.cargas : 0;
+    t.pctMargem = t.receita ? (t.margem / t.receita) * 100 : 0;
+    t.pctPago = t.cargas ? (t.pagos / t.cargas) * 100 : 0;
+    t.repasse = t.receita ? (t.pago / t.receita) * 100 : 0;
+    return t;
+  }
+
+  /* Valores distintos para montar os multi-select, ja ordenados. */
+  function repomOpcoes(campo) {
+    const s = new Set();
+    REPOM.itens.forEach(function (r) { if (r[campo]) s.add(r[campo]); });
+    return Array.from(s).sort(function (a, b) {
+      return String(a).localeCompare(String(b), "pt-BR");
+    });
+  }
+
   return {
     DATA: DATA, VIAGENS: VIAGENS, DOCS: DOCS, OMS: OMS, ENTREGAS: ENTREGAS,
-    ATRASOS: ATRASOS, META: META,
+    ATRASOS: ATRASOS, REPOM: REPOM, META: META,
+    REPOM_FAIXAS: REPOM_FAIXAS,
+    repomFiltrar: repomFiltrar, repomAgrupar: repomAgrupar,
+    repomPrevisao: repomPrevisao, repomAguardando: repomAguardando,
+    repomIdade: repomIdade, repomTotais: repomTotais,
+    repomOpcoes: repomOpcoes, repomDiasEmAberto: repomDiasEmAberto,
+    repomFaixaIdade: repomFaixaIdade,
     PALETTE: PALETTE, MESES_PT_FULL: MESES_PT_FULL, MESES_PT_CURTO: MESES_PT_CURTO,
     DIAS_PT_FULL: DIAS_PT_FULL, GRUPO_SEG: GRUPO_SEG,
     fmtBRL: fmtBRL, fmtBRLcents: fmtBRLcents, fmtNum: fmtNum, fmtKm: fmtKm,
