@@ -223,7 +223,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   overflow:hidden;
 }
 .card:after{
-  content:""; position:absolute; inset:0; border-radius:var(--radius-m); padding:1px;
+  content:""; position:absolute; top:0; right:0; bottom:0; left:0; border-radius:var(--radius-m); padding:1px;
   background:linear-gradient(140deg,rgba(240,128,14,.32),transparent 42%,transparent 68%,rgba(240,128,14,.12));
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none;
@@ -279,7 +279,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .goal-card{ display:flex; flex-direction:column; gap:10px; align-items:center; }
 .gauge-wrap{ position:relative; width:100%; height:186px; }
 .gauge-center{
-  position:absolute; inset:0; display:flex; flex-direction:column;
+  position:absolute; top:0; right:0; bottom:0; left:0; display:flex; flex-direction:column;
   align-items:center; justify-content:center; pointer-events:none;
 }
 .gauge-center .pct{ font-size:29px; font-weight:800; letter-spacing:-.5px; }
@@ -451,7 +451,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 
 /* =============================  TV  ===================================== */
 .tv-header{
-  display:flex; align-items:center; gap:18px; margin-bottom:12px; flex:0 0 auto;
+  display:flex; align-items:center; gap:26px; margin-bottom:12px; flex:0 0 auto;
 }
 .tv-header .logo{ height:44px; flex:0 0 auto; }
 /* clamp: 38px na TV Full HD, encolhe sozinho em janela estreita em vez de
@@ -461,11 +461,12 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   display:flex; align-items:center; gap:12px; letter-spacing:.5px;
   text-transform:uppercase; line-height:1.05; white-space:nowrap;
 }
+.tv-header h1 .brand-dot{ margin-right:4px; }
 .tv-header .sub{ font-size:15px; color:#ABA69C; margin-top:2px; white-space:nowrap;
   overflow:hidden; text-overflow:ellipsis; }
 /* o selo do segmento fica NA MESMA LINHA do título — nunca quebra */
 .tv-header .titulo-linha{
-  display:flex; align-items:center; gap:14px; flex-wrap:nowrap; min-width:0;
+  display:flex; align-items:center; gap:22px; flex-wrap:nowrap; min-width:0;
 }
 .tv-header .spacer{ flex:1 1 auto; min-width:12px; }
 .tv-header #tvSelo{ flex:0 0 auto; }
@@ -481,10 +482,23 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   .tv-header .clock .sep{ display:none; }
   .tv-header .clock #tvBase{ display:block; }
 }
+/* Abaixo de 1330px o respiro maior do cabeçalho não cabe mais: volta ao
+   espaçamento compacto em vez de empurrar o relógio para fora da tela.
+   Quem valida isso é o verifica_layout.py — ele falha se algo passar da borda. */
+@media (max-width:1330px){
+  .tv-header{ gap:16px; }
+  .tv-header .titulo-linha{ gap:12px; }
+}
 
 .tv-slides{ position:relative; width:100%; flex:1 1 auto; min-height:0; }
+/* top/right/bottom/left escritos um a um DE PROPOSITO: o atalho `inset` so
+   existe a partir do Chromium 87, e o navegador embarcado do Raspberry pode
+   ser mais velho. Sem os quatro lados o slide vira altura-de-conteudo e a
+   tela fica espremida no topo com faixa preta embaixo. */
 .tv-slide{
-  position:absolute; inset:0; opacity:0; transition:opacity .8s var(--ease);
+  position:absolute; top:0; right:0; bottom:0; left:0;
+  width:100%; height:100%;
+  opacity:0; transition:opacity .8s var(--ease);
   pointer-events:none; display:flex; flex-direction:column; gap:16px;
 }
 .tv-slide.on{ opacity:1; pointer-events:auto; }
@@ -726,3 +740,41 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-repom-linha .vl{
   font-size:26px; font-weight:800; color:#F0800E; white-space:nowrap;
 }
+
+/* ---- Telao REPOM: provisao de caixa e insights ------------------------- */
+/* linha de total da provisao: destaque discreto, so o fundo muda */
+.tv-repom-linha.total{
+  background:#1d1a14; border-color:#3a332b;
+}
+.tv-repom-linha.total .vl{ font-weight:800; }
+
+/* cards de insight: sempre 4 por pagina, cada um ocupa 1/4 da altura */
+.tv-repom-insights{
+  display:flex; flex-direction:column; gap:12px; flex:1; min-height:0;
+}
+.tv-repom-ins{
+  flex:1 1 0; min-height:0;
+  display:flex; align-items:center; gap:20px; padding:14px 20px;
+  border-radius:16px; background:#17130f; border:1px solid #241f1a;
+  border-left-width:6px;
+}
+.tv-repom-ins .ic{ font-size:32px; flex:0 0 auto; line-height:1; }
+.tv-repom-ins .txt{ flex:1; min-width:0; }
+.tv-repom-ins .tt{
+  font-size:23px; font-weight:800; color:#F6F4F0; line-height:1.15;
+}
+.tv-repom-ins .ds{
+  font-size:17px; color:#ABA69C; margin-top:4px; line-height:1.3;
+}
+.tv-repom-ins .vl{
+  font-size:30px; font-weight:800; flex:0 0 auto; text-align:right;
+  letter-spacing:-.8px;
+}
+.tv-repom-ins.critico{ border-left-color:#F1553F; }
+.tv-repom-ins.critico .vl{ color:#F1553F; }
+.tv-repom-ins.atencao{ border-left-color:#FFC145; }
+.tv-repom-ins.atencao .vl{ color:#FFC145; }
+.tv-repom-ins.info{ border-left-color:#4FA3E3; }
+.tv-repom-ins.info .vl{ color:#4FA3E3; }
+.tv-repom-ins.positivo{ border-left-color:#4ADE80; }
+.tv-repom-ins.positivo .vl{ color:#4ADE80; }

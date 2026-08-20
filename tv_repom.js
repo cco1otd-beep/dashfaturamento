@@ -63,6 +63,38 @@
   const PEND_MOT = pendencias("motorista");
   const PEND_PROP = pendencias("prop");
 
+  /* movimento (hoje/semana/mes) e insights: mesmas funcoes que a aba usa */
+  const MOV = OTD.repomMovimento(ROWS, HOJE);
+  const INSIGHTS = OTD.repomInsights(ROWS, HOJE);
+
+  /* linhas da provisao de caixa: os proximos cortes + o que ja venceu */
+  function provisaoHtml() {
+    const linhas = [];
+    if (VENC_QTD) {
+      linhas.push({ rot: "Vencido", ds: VENC_QTD + " contratos atrasados",
+                    valor: VENC_VALOR, cor: "#F1553F" });
+    }
+    FUTUROS.slice(0, 4).forEach(function (p, i) {
+      linhas.push({ rot: OTD.fmtData(p.data).slice(0, 5),
+                    ds: p.qtd + " contratos" + (i === 0 ? " · próximo corte" : ""),
+                    valor: p.valor, cor: i === 0 ? "#F0800E" : "#4FA3E3" });
+    });
+    if (!linhas.length) {
+      return '<div class="tv-atraso-vazio">✅ Nenhum saldo com previsão em aberto.</div>';
+    }
+    const total = linhas.reduce(function (a, l) { return a + l.valor; }, 0);
+    linhas.push({ rot: "Total", ds: "a desembolsar nos cortes listados",
+                  valor: total, cor: "#4ADE80", forte: true });
+    return linhas.map(function (l) {
+      return '<div class="tv-repom-linha' + (l.forte ? " total" : "") + '">' +
+        '<div class="dias num" style="color:' + l.cor + ';font-size:26px">' +
+        E(l.rot) + "</div>" +
+        '<div class="meio"><div class="ds">' + E(l.ds) + "</div></div>" +
+        '<div class="vl num" style="color:' + l.cor + '">' +
+        OTD.fmtBRL(l.valor) + "</div></div>";
+    }).join("");
+  }
+
   /* ======================================================================= */
   /* PAGINACAO INTERNA DOS CARDS (troca a cada 5s)                           */
   /* ======================================================================= */
@@ -195,7 +227,69 @@
     }
   });
 
-  /* --- 2. Saldo parado + calendario de cortes ---------------------------- */
+  /* --- 2. Movimento do dia/semana/mes + provisao dos cortes -------------- */
+  /* O que a operacao pergunta primeiro: quanto saiu de adiantamento hoje,   */
+  /* qual o ritmo do mes, e quanto precisa estar em caixa nos proximos       */
+  /* cortes (10 / 20 / ultimo dia). Tudo em fonte grande, sem tabela.        */
+  telas.push({
+    id: "movimento",
+    titulo: "Movimento & Provisão de Caixa",
+    html: function () {
+      function bloco(rot, m, cor, ds) {
+        return '<div class="tv-repom-big ' + cor + '">' +
+          '<div class="rot">' + E(rot) + "</div>" +
+          '<div class="vl num">' + OTD.fmtBRL(m.adiant) + "</div>" +
+          '<div class="ds">' + OTD.fmtNum(m.qtd) + " cartas frete · " +
+          OTD.fmtBRL(m.pago) + " pagos" + (ds ? " · " + E(ds) : "") + "</div></div>";
+      }
+      return '<div class="tv-repom-destaques">' +
+        bloco("Adiantamento de hoje", MOV.hoje, "laranja",
+              OTD.fmtData(MOV.ref).slice(0, 5)) +
+        bloco("Semana atual", MOV.semana, "azul",
+              "desde " + OTD.fmtData(MOV.iniSemana).slice(0, 5)) +
+        bloco("Mês atual", MOV.mes, "verde",
+              "média " + OTD.fmtBRL(MOV.mediaDia) + "/dia") +
+        "</div>" +
+        '<div class="tv-2">' +
+        painel("rvMovDia", "Adiantamento por dia (mês atual)",
+               OTD.fmtNum(MOV.diasComMovimento) + " dias com movimento") +
+        '<div class="card panel"><div class="phead">' +
+        '<span class="ptitle">Provisão de caixa nos próximos cortes</span>' +
+        '<span class="pcount">saldo a pagar</span></div>' +
+        '<div class="tv-repom-lista">' + provisaoHtml() + "</div></div>" +
+        "</div>";
+    },
+    after: function () {
+      const dias = MOV.dias;
+      criar("rvMovDia", {
+        type: "bar",
+        data: {
+          labels: dias.map(function (d) { return OTD.fmtData(d.data).slice(0, 5); }),
+          datasets: [
+            { data: dias.map(function (d) { return d.adiant; }),
+              backgroundColor: "#F0800E", borderRadius: 6, maxBarThickness: 46 },
+            { type: "line", label: "média",
+              data: dias.map(function () { return MOV.mediaDia; }),
+              borderColor: "#4FA3E3", borderWidth: 3, borderDash: [8, 6],
+              pointRadius: 0, fill: false }
+          ]
+        },
+        options: {
+          plugins: {
+            legend: { display: false }, tooltip: { enabled: false },
+            valores: { formato: "compacto", somenteDataset: 0, fonte: 15 }
+          },
+          scales: {
+            x: { ticks: { color: "#d8d4cc", font: { size: 14 } }, grid: { display: false } },
+            y: { ticks: { font: { size: 13 },
+                 callback: function (v) { return OTD.fmtCompacto(v); } } }
+          }
+        }
+      });
+    }
+  });
+
+  /* --- 3. Saldo parado + calendario de cortes ---------------------------- */
   telas.push({
     id: "saldo",
     titulo: "Saldo Parado & Calendário de Cortes",
@@ -424,6 +518,50 @@
                    OTD.fmtNum(POR_PROP.length) + " proprietários");
       paginarLista("rvMot", POR_MOT, 9, linhaAgregado,
                    OTD.fmtNum(POR_MOT.length) + " motoristas");
+    }
+  });
+
+  const ICONE_SEV = { critico: "🚨", atencao: "⚠️", info: "📊", positivo: "✅" };
+
+  /* --- 8. Alertas & Insights automaticos --------------------------------- */
+  /* Leituras deterministicas do OTD.repomInsights - cada card traz o numero */
+  /* que gerou a leitura. Sempre 4 por pagina, para nao abrir buraco na tela.*/
+  telas.push({
+    id: "insights",
+    titulo: "Alertas & Insights",
+    html: function () {
+      /* .tv-full da a altura: sem ele o card encolhe para o conteudo */
+      return '<div class="tv-full"><div class="card panel"><div class="phead">' +
+        '<span class="ptitle">Leitura automática dos contratos de agregado</span>' +
+        '<span class="pcount tv-pag" id="rvInsPag"></span></div>' +
+        '<div class="tv-repom-insights" id="rvIns"></div></div></div>';
+    },
+    after: function () {
+      const POR_PAG = 4;
+      /* completa a ultima pagina dando a volta na lista: pagina cheia sempre */
+      const lista = INSIGHTS.slice();
+      const nPag = Math.max(1, Math.ceil(lista.length / POR_PAG));
+      registraBloco(nPag, function (p) {
+        const el = document.getElementById("rvIns");
+        if (!el) return;
+        const fatia = [];
+        for (let k = 0; k < POR_PAG; k++) {
+          if (!lista.length) break;
+          fatia.push(lista[(p * POR_PAG + k) % lista.length]);
+        }
+        el.innerHTML = fatia.map(function (n) {
+          return '<div class="tv-repom-ins ' + n.sev + '">' +
+            '<div class="ic">' + ICONE_SEV[n.sev] + "</div>" +
+            '<div class="txt"><div class="tt">' + E(n.titulo) + "</div>" +
+            '<div class="ds">' + E(n.texto) + "</div></div>" +
+            '<div class="vl num">' + E(n.valor) + "</div></div>";
+        }).join("");
+        const pag = document.getElementById("rvInsPag");
+        if (pag) {
+          pag.textContent = OTD.fmtNum(INSIGHTS.length) + " leituras" +
+            (nPag > 1 ? " · " + (p + 1) + "/" + nPag : "");
+        }
+      });
     }
   });
 

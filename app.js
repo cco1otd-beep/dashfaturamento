@@ -1417,7 +1417,38 @@
         OTD.fmtBRL(top.ticket) + "</div></div>";
     }).join("");
 
-    return secao("Números do período") +
+    /* Movimento do dia / semana / mes + insights: MESMAS funcoes do telao
+       (OTD.repomMovimento / OTD.repomInsights). Se o numero divergir entre a
+       aba e a TV, o bug e de layout, nao de regra. */
+    const mov = OTD.repomMovimento(rows);
+    const ins = OTD.repomInsights(rows);
+    const ICO = { critico: "🚨", atencao: "⚠️", info: "📊", positivo: "✅" };
+
+    function cardMov(ico, cor, rot, m, ds) {
+      return kpi(ico, cor, rot, OTD.fmtBRLcents(m.adiant),
+        OTD.fmtNum(m.qtd) + " cartas frete · " + OTD.fmtBRL(m.pago) +
+        " pagos" + (ds ? " · " + ds : ""));
+    }
+    /* reaproveita o cardInsight da aba Geral: mesmo componente, mesma leitura */
+    const insHtml = ins.map(function (n) {
+      return cardInsight({ nivel: n.sev, icone: ICO[n.sev], titulo: n.titulo,
+                           valor: n.valor, texto: n.texto });
+    }).join("");
+
+    return secao("Movimento",
+                 '<span class="hint">adiantamentos emitidos, pela data da carta frete</span>') +
+      '<div class="grid g-3">' +
+        cardMov("🕐", "c-orange", "Hoje", mov.hoje, OTD.fmtData(mov.ref).slice(0, 5)) +
+        cardMov("📅", "c-blue", "Semana atual", mov.semana,
+                "desde " + OTD.fmtData(mov.iniSemana).slice(0, 5)) +
+        cardMov("🗓️", "c-green", "Mês atual", mov.mes,
+                "média " + OTD.fmtBRL(mov.mediaDia) + "/dia em " +
+                mov.diasComMovimento + " dias") +
+      "</div>" +
+      secao("Alertas & Insights",
+            '<span class="hint">leitura automática — cada linha traz o número que a originou</span>') +
+      '<div class="grid g-3">' + insHtml + "</div>" +
+      secao("Números do período") +
       '<div class="grid g-kpi">' +
         kpi("💰", "c-orange", "Receita das cargas", OTD.fmtBRLcents(t.receita),
             "faturamento da Torre nas cargas do agregado") +

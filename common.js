@@ -915,6 +915,154 @@ const OTD = (function () {
     return t;
   }
 
+  /* -------------------------------------------------------------------- */
+  /* MOVIMENTO: o que foi emitido hoje / na semana / no mes.               */
+  /* A data de referencia e a EMISSAO da carta frete (dtEmi) - e o momento */
+  /* em que o adiantamento e gerado, que e o que a operacao acompanha.     */
+  /* -------------------------------------------------------------------- */
+  function repomMovimento(rows, hoje) {
+    const ref = hoje || dayKey(new Date());
+    const d = new Date(ref + "T12:00:00");
+    /* semana comeca na SEGUNDA (padrao da operacao) */
+    const diaSem = (d.getDay() + 6) % 7;
+    const iniSemana = dayKey(new Date(d.getTime() - diaSem * 86400000));
+    const iniMes = ref.slice(0, 8) + "01";
+
+    function vazio() { return { qtd: 0, adiant: 0, pago: 0, saldo: 0, receita: 0 }; }
+    const mov = { hoje: vazio(), semana: vazio(), mes: vazio(),
+                  iniSemana: iniSemana, iniMes: iniMes, ref: ref };
+    const porDia = new Map();
+
+    rows.forEach(function (r) {
+      const e = r.dtEmi;
+      if (!e) return;
+      function soma(a) {
+        a.qtd += 1; a.adiant += r.adiant || 0; a.pago += r.pago || 0;
+        a.saldo += r.saldo || 0; a.receita += r.receita || 0;
+      }
+      if (e >= iniMes && e <= ref) {
+        soma(mov.mes);
+        let g = porDia.get(e);
+        if (!g) { g = { data: e, qtd: 0, adiant: 0 }; porDia.set(e, g); }
+        g.qtd += 1; g.adiant += r.adiant || 0;
+      }
+      if (e >= iniSemana && e <= ref) soma(mov.semana);
+      if (e === ref) soma(mov.hoje);
+    });
+
+    mov.dias = Array.from(porDia.values()).sort(function (a, b) {
+      return a.data < b.data ? -1 : 1;
+    });
+    /* media so dos dias que TIVERAM movimento - fim de semana nao derruba */
+    mov.diasComMovimento = mov.dias.length;
+    mov.mediaDia = mov.diasComMovimento ? mov.mes.adiant / mov.diasComMovimento : 0;
+    mov.mediaCargasDia = mov.diasComMovimento ? mov.mes.qtd / mov.diasComMovimento : 0;
+    return mov;
+  }
+
+  /* -------------------------------------------------------------------- */
+  /* INSIGHTS do REPOM - leituras deterministicas, cada uma acompanhada do */
+  /* numero que a originou. Mesmas regras na aba e no telao. Sem chute.    */
+  /* -------------------------------------------------------------------- */
+  function repomInsights(rows, hoje) {
+    const ref = hoje || dayKey(new Date());
+    const t = repomTotais(rows, ref);
+    const prev = repomPrevisao(rows);
+    const mov = repomMovimento(rows, ref);
+    const faixas = repomIdade(rows, ref);
+    const out = [];
+    function add(sev, titulo, texto, valor) {
+      out.push({ sev: sev, titulo: titulo, texto: texto, valor: valor || "" });
+    }
+
+    /* 1. cortes ja vencidos - dinheiro que deveria ter saido */
+    const venc = prev.filter(function (p) { return p.data < ref; });
+    const vq = venc.reduce(function (a, p) { return a + p.qtd; }, 0);
+    const vv = venc.reduce(function (a, p) { return a + p.valor; }, 0);
+    if (vq) {
+      add("critico", "Saldo com corte vencido",
+        vq + " contrato" + (vq === 1 ? "" : "s") + " com data de pagamento já " +
+        "passada. O mais antigo venceu em " + fmtData(venc[0].data) + ".",
+        fmtBRL(vv));
+    } else {
+      add("positivo", "Nenhum corte vencido",
+        "Todo saldo com previsão está dentro do prazo.", "OK");
+    }
+
+    /* 2. proximo corte - quanto precisa estar em caixa */
+    const futuro = prev.filter(function (p) { return p.data >= ref; });
+    if (futuro.length) {
+      const p = futuro[0];
+      add("atencao", "Próximo corte: " + fmtData(p.data),
+        p.qtd + " contratos a pagar nesse corte. Somando os vencidos, o caixa " +
+        "precisa cobrir " + fmtBRL(p.valor + vv) + ".", fmtBRL(p.valor));
+    }
+
+    /* 3. saldo sem previsao - o contrato nem foi quitado ainda */
+    if (t.semPrevisao) {
+      const ag = repomAguardando(rows);
+      const vAg = ag.reduce(function (a, g) { return a + g.valor; }, 0);
+      add(t.semPrevisao > t.comPrevisao ? "critico" : "atencao",
+        "Saldo travado antes da quitação",
+        t.semPrevisao + " contratos com saldo aberto ainda sem data de quitação. " +
+        "Sem quitar, não entram em nenhum corte. Principal: " +
+        (ag[0] ? ag[0].status + " (" + ag[0].qtd + ")" : "—") + ".",
+        fmtBRL(vAg));
+    }
+
+    /* 4. envelhecimento: saldo parado ha mais de 60 dias */
+    const velho = faixas[faixas.length - 1];
+    if (velho && velho.qtd) {
+      const pct = t.saldo ? (velho.valor / t.saldo) * 100 : 0;
+      add(pct >= 20 ? "critico" : "atencao", "Saldo parado há mais de 60 dias",
+        velho.qtd + " contratos representam " + fmtPct(pct, 1) +
+        " de todo o saldo em aberto.", fmtBRL(velho.valor));
+    }
+
+    /* 5. ritmo de emissao - hoje contra a media do mes */
+    if (mov.diasComMovimento >= 3) {
+      const dif = mov.mediaDia
+        ? ((mov.hoje.adiant - mov.mediaDia) / mov.mediaDia) * 100 : 0;
+      const caiu = dif < -25, subiu = dif > 25;
+      add(caiu ? "atencao" : (subiu ? "info" : "positivo"),
+        "Adiantamento de hoje x média do mês",
+        "Hoje saíram " + fmtNum(mov.hoje.qtd) + " cartas frete. A média do mês é " +
+        fmtNum(Math.round(mov.mediaCargasDia)) + " por dia com movimento (" +
+        fmtBRL(mov.mediaDia) + " de adiantamento) — " +
+        (caiu ? "hoje está abaixo" : (subiu ? "hoje está acima" : "em linha")) +
+        " (" + (dif >= 0 ? "+" : "") + fmtPct(dif, 0) + ").",
+        fmtBRL(mov.hoje.adiant));
+    }
+
+    /* 6. concentracao do saldo num unico proprietario */
+    const porProp = repomAgrupar(rows.filter(function (r) { return r.aberto; }), "prop");
+    if (porProp.length && t.saldo) {
+      const p = porProp[0];
+      const pct = (p.valor / t.saldo) * 100;
+      if (pct >= 15) {
+        add(pct >= 40 ? "critico" : "atencao", "Saldo concentrado num proprietário",
+          shortName(p.chave, 38) + " responde por " + fmtPct(pct, 1) +
+          " do saldo em aberto, em " + p.qtd + " contratos.", fmtBRL(p.valor));
+      }
+    }
+
+    /* 7. margem do repasse */
+    if (t.receita) {
+      add(t.pctMargem < 30 ? "atencao" : "positivo", "Margem sobre o repasse",
+        "A Torre faturou " + fmtBRL(t.receita) + " nessas cargas e repassou " +
+        fmtPct(t.repasse, 1) + " ao agregado.", fmtPct(t.pctMargem, 1));
+    }
+
+    /* 8. movimento do mes - leitura de acompanhamento */
+    add("info", "Movimento do mês",
+      fmtNum(mov.mes.qtd) + " cartas frete emitidas em " + mov.diasComMovimento +
+      " dias com movimento, " + fmtBRL(mov.mes.pago) + " pagos ao agregado.",
+      fmtBRL(mov.mes.adiant));
+
+    const ordem = { critico: 0, atencao: 1, info: 2, positivo: 3 };
+    return out.sort(function (a, b) { return ordem[a.sev] - ordem[b.sev]; });
+  }
+
   /* Valores distintos para montar os multi-select, ja ordenados. */
   function repomOpcoes(campo) {
     const s = new Set();
@@ -933,6 +1081,7 @@ const OTD = (function () {
     repomIdade: repomIdade, repomTotais: repomTotais,
     repomOpcoes: repomOpcoes, repomDiasEmAberto: repomDiasEmAberto,
     repomFaixaIdade: repomFaixaIdade,
+    repomMovimento: repomMovimento, repomInsights: repomInsights,
     PALETTE: PALETTE, MESES_PT_FULL: MESES_PT_FULL, MESES_PT_CURTO: MESES_PT_CURTO,
     DIAS_PT_FULL: DIAS_PT_FULL, GRUPO_SEG: GRUPO_SEG,
     fmtBRL: fmtBRL, fmtBRLcents: fmtBRLcents, fmtNum: fmtNum, fmtKm: fmtKm,
