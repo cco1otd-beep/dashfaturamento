@@ -1,0 +1,814 @@
+/* ===========================================================================
+   TORRE DE CONTROLE LOGISTICA - OTD LOGISTICS
+   style.css - design system compartilhado (dashboard + modo TV)
+   =========================================================================== */
+
+:root{
+  --bg:#060605;            --bg-1:#0b0a09;          --bg-panel:#131110;
+  --bg-panel-2:#1a1714;    --bg-panel-3:#201c18;
+  --border:#2b2620;        --border-soft:#211d19;
+  --orange:#F0800E;        --orange-light:#FFA94D;  --orange-soft:#FFCB94;
+  --orange-dark:#C4650A;   --orange-glow:rgba(240,128,14,.35);
+  --text:#F6F4F0;          --text-dim:#ABA69C;      --text-faint:#6E6A62;
+  --teal:#2DD4BF;  --blue:#4FA3E3;  --amber:#FFC145;
+  --purple:#B18CFF; --green:#4ADE80; --red:#F1553F; --pink:#FF7AB6;
+  --radius-s:10px; --radius-m:16px; --radius-l:22px;
+  --shadow-card:0 10px 30px -12px rgba(0,0,0,.6);
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+
+/* Salvaguarda de cor (secao 2.2): hex fixo, nunca var(), nunca wildcard. */
+html, body{ background:#0b0a09; color:#F6F4F0; }
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:
+    radial-gradient(1100px 620px at 88% -8%, rgba(240,128,14,.13), transparent 60%),
+    radial-gradient(900px 520px at -6% 4%, rgba(45,212,191,.08), transparent 60%),
+    #060605;
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+}
+
+.num{ font-variant-numeric:tabular-nums; }
+
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-track{ background:#0b0a09; }
+::-webkit-scrollbar-thumb{ background:#2b2620; border-radius:8px; }
+::-webkit-scrollbar-thumb:hover{ background:#3a332b; }
+
+/* ===========================  SHELL  ==================================== */
+.page{ max-width:1720px; margin:0 auto; padding:18px 26px 60px; }
+/* coluna flex: o cabeçalho ocupa o que precisa e os slides tomam TODO o resto,
+   sem número mágico de altura (era calc(100vh - 178px), que sobrava faixa preta) */
+.tv-page{
+  width:100vw; height:100vh; overflow:hidden; padding:16px 34px 30px;
+  position:relative; display:flex; flex-direction:column;
+}
+
+/* ===========================  HEADER  =================================== */
+.header{
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  padding:14px 20px; margin-bottom:20px;
+  background:linear-gradient(180deg,#161311 0%,#100e0c 100%);
+  border:1px solid var(--border); border-radius:var(--radius-l);
+  box-shadow:var(--shadow-card);
+}
+.header .logo{ height:40px; width:auto; object-fit:contain; }
+.header .brand{ display:flex; flex-direction:column; gap:2px; }
+.header h1{
+  margin:0; font-size:19px; letter-spacing:.4px; font-weight:800;
+  display:flex; align-items:center; gap:9px; color:#F6F4F0;
+}
+.header .sub{ font-size:12px; color:var(--text-dim); letter-spacing:.3px; }
+.header .spacer{ flex:1; }
+.header .clock{
+  text-align:right; font-size:12px; color:var(--text-dim); line-height:1.5;
+}
+.header .clock b{ display:block; font-size:20px; color:var(--text); font-weight:700; }
+
+.brand-dot{
+  width:10px; height:10px; border-radius:50%; background:var(--orange);
+  box-shadow:0 0 0 0 var(--orange-glow); animation:pulse 2.2s infinite;
+  flex:0 0 auto;
+}
+@keyframes pulse{
+  0%{ box-shadow:0 0 0 0 rgba(240,128,14,.45); }
+  70%{ box-shadow:0 0 0 12px rgba(240,128,14,0); }
+  100%{ box-shadow:0 0 0 0 rgba(240,128,14,0); }
+}
+
+/* ===========================  PILLS  ==================================== */
+.pill{
+  border:1px solid var(--border); background:var(--bg-panel-2); color:var(--text-dim);
+  padding:5px 13px; border-radius:20px; font-size:12px; font-weight:700;
+  white-space:nowrap; font-variant-numeric:tabular-nums;
+}
+.pill.on{
+  background:linear-gradient(180deg,var(--orange),var(--orange-dark));
+  border-color:var(--orange); color:#1a1105;
+}
+
+/* ============================  ABAS  ==================================== */
+.tabs{
+  display:flex; gap:4px; flex-wrap:wrap; margin:18px 0 6px;
+  border-bottom:1px solid var(--border); padding-bottom:0;
+}
+.tab{
+  background:none; border:none; border-bottom:3px solid transparent;
+  color:var(--text-faint); font-size:13px; font-weight:700; cursor:pointer;
+  padding:11px 15px 9px; display:flex; align-items:center; gap:7px;
+  font-family:inherit; transition:all .16s var(--ease); white-space:nowrap;
+}
+.tab:hover{ color:var(--orange-soft); }
+.tab.on{ color:var(--orange); border-bottom-color:var(--orange); }
+.tabpane{ animation:cardIn .4s var(--ease) both; }
+
+/* =======================  TITULO DE SECAO  ============================== */
+.section-title{ display:flex; align-items:center; gap:11px; margin:30px 0 14px; }
+.section-title:before{
+  content:""; width:4px; height:20px; border-radius:3px;
+  background:linear-gradient(180deg,var(--orange-light),var(--orange-dark));
+}
+.section-title h2{
+  margin:0; font-size:13.5px; text-transform:uppercase; letter-spacing:1.4px;
+  color:var(--text); font-weight:800;
+}
+.section-title .hint{ font-size:11.5px; color:var(--text-faint); margin-left:4px; }
+.live-tag{
+  font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+  color:var(--red); border:1px solid rgba(241,85,63,.4);
+  background:rgba(241,85,63,.1); padding:3px 8px; border-radius:20px;
+  animation:blink 1.8s infinite;
+}
+@keyframes blink{ 0%,100%{opacity:1} 50%{opacity:.45} }
+
+/* ===========================  FILTROS  ================================== */
+.filterbar{
+  background:linear-gradient(180deg,#161311,#100e0c);
+  border:1px solid var(--border); border-radius:var(--radius-m);
+  padding:14px 16px; display:flex; flex-direction:column; gap:12px;
+}
+.filterrow{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+.filterrow .lbl{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:1.1px;
+  color:var(--text-faint); font-weight:700; min-width:74px;
+}
+.chip{
+  border:1px solid var(--border); background:var(--bg-panel-2); color:var(--text-dim);
+  padding:6px 13px; border-radius:20px; font-size:12px; cursor:pointer;
+  transition:all .18s var(--ease); font-weight:600; white-space:nowrap;
+}
+.chip:hover{ border-color:var(--orange-dark); color:var(--orange-soft); }
+.chip.on{
+  background:linear-gradient(180deg,var(--orange),var(--orange-dark));
+  border-color:var(--orange); color:#1a1105; box-shadow:0 4px 14px -6px var(--orange-glow);
+}
+input[type=date],input[type=text],input[type=number],select{
+  background:var(--bg-panel-2); border:1px solid var(--border); color:var(--text);
+  border-radius:9px; padding:6px 10px; font-size:12px; outline:none;
+  font-family:inherit;
+}
+input:focus,select:focus{ border-color:var(--orange-dark); }
+.btn{
+  background:var(--bg-panel-3); border:1px solid var(--border); color:var(--text-dim);
+  border-radius:9px; padding:6px 14px; font-size:12px; cursor:pointer; font-weight:600;
+  transition:all .18s var(--ease);
+}
+.btn:hover{ border-color:var(--orange-dark); color:var(--orange-soft); }
+.btn.primary{
+  background:linear-gradient(180deg,var(--orange),var(--orange-dark));
+  color:#1a1105; border-color:var(--orange);
+}
+
+/* multiselect com busca */
+.ms{ position:relative; }
+.ms-toggle{
+  min-width:186px; text-align:left; display:flex; align-items:center; gap:8px;
+  justify-content:space-between;
+}
+.ms-toggle .cnt{
+  background:var(--orange); color:#1a1105; border-radius:20px; font-size:10px;
+  padding:1px 7px; font-weight:800;
+}
+.ms-pop{
+  position:absolute; z-index:60; top:calc(100% + 6px); left:0; width:280px;
+  background:#15120f; border:1px solid var(--border); border-radius:12px;
+  box-shadow:0 22px 44px -18px rgba(0,0,0,.85); padding:10px; display:none;
+}
+.ms.open .ms-pop{ display:block; }
+.ms-pop input{ width:100%; margin-bottom:8px; }
+.ms-list{ max-height:230px; overflow:auto; display:flex; flex-direction:column; gap:2px; }
+.ms-item{
+  display:flex; align-items:center; gap:8px; padding:5px 7px; border-radius:7px;
+  font-size:12px; color:var(--text-dim); cursor:pointer;
+}
+.ms-item:hover{ background:var(--bg-panel-2); color:var(--text); }
+.ms-item input{ width:auto; margin:0; accent-color:var(--orange); }
+.ms-actions{ display:flex; gap:6px; margin-top:8px; }
+
+/* ============================  GRIDS  =================================== */
+.grid{ display:grid; gap:14px; }
+.g-kpi{ grid-template-columns:repeat(6,1fr); }
+.g-alert{ grid-template-columns:1.1fr 1.1fr .8fr; }
+.g-highlight{ grid-template-columns:repeat(6,1fr); }
+.g-charts-3{ grid-template-columns:1.2fr 1fr 1fr; }
+.g-charts-2{ grid-template-columns:1fr 1fr; }
+.g-goal{ grid-template-columns:1fr 1fr 1fr; }
+.g-4{ grid-template-columns:repeat(4,1fr); }
+.g-3{ grid-template-columns:repeat(3,1fr); }
+.g-2{ grid-template-columns:1fr 1fr; }
+
+@media(max-width:1500px){
+  .g-kpi{ grid-template-columns:repeat(3,1fr); }
+  .g-highlight{ grid-template-columns:repeat(3,1fr); }
+  .g-charts-3{ grid-template-columns:1fr 1fr; }
+  .g-4{ grid-template-columns:repeat(2,1fr); }
+}
+@media(max-width:900px){
+  .g-kpi,.g-highlight,.g-charts-3,.g-charts-2,.g-goal,.g-alert,.g-4,.g-3,.g-2{
+    grid-template-columns:1fr;
+  }
+  .page{ padding:14px 14px 40px; }
+}
+
+/* ============================  CARD  ==================================== */
+.card{
+  position:relative; background:linear-gradient(180deg,#161311 0%,#100e0c 100%);
+  border:1px solid var(--border); border-radius:var(--radius-m); padding:16px 17px;
+  box-shadow:var(--shadow-card); animation:cardIn .5s var(--ease) both;
+  overflow:hidden;
+}
+.card:after{
+  content:""; position:absolute; top:0; right:0; bottom:0; left:0; border-radius:var(--radius-m); padding:1px;
+  background:linear-gradient(140deg,rgba(240,128,14,.32),transparent 42%,transparent 68%,rgba(240,128,14,.12));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none;
+}
+@keyframes cardIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+
+/* ============================  KPI  ===================================== */
+.kpi{ display:flex; flex-direction:column; gap:9px; }
+.kpi .top{ display:flex; align-items:center; gap:10px; }
+.kpi .ico{
+  width:34px; height:34px; border-radius:11px; display:grid; place-items:center;
+  font-size:16px; background:rgba(240,128,14,.14); color:var(--orange-light);
+  border:1px solid rgba(240,128,14,.22);
+}
+.kpi .ico.accent{ background:rgba(240,128,14,.14); color:var(--orange-light); border-color:rgba(240,128,14,.22); }
+.kpi .ico.warn{ background:rgba(255,193,69,.13); color:var(--amber); border-color:rgba(255,193,69,.22); }
+.kpi .ico.danger{ background:rgba(241,85,63,.13); color:var(--red); border-color:rgba(241,85,63,.22); }
+.kpi .ico.ok{ background:rgba(74,222,128,.12); color:var(--green); border-color:rgba(74,222,128,.22); }
+.kpi .ico.info{ background:rgba(79,163,227,.12); color:var(--blue); border-color:rgba(79,163,227,.22); }
+.kpi .lbl{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:1.1px;
+  color:var(--text-faint); font-weight:700;
+}
+.kpi .val{ font-size:25px; font-weight:800; letter-spacing:-.4px; line-height:1.1; color:#F6F4F0; }
+.kpi .sub{ font-size:11.5px; color:var(--text-dim); }
+.kpi .delta{ font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
+.delta.up{ color:var(--green); } .delta.down{ color:var(--red); } .delta.flat{ color:var(--text-faint); }
+
+/* =========================  DESTAQUES  ================================== */
+.hl{ display:flex; flex-direction:column; gap:6px; }
+.hl .medal{ font-size:19px; }
+.hl .tag{
+  font-size:9.5px; text-transform:uppercase; letter-spacing:1.1px; font-weight:800;
+  color:var(--orange); border:1px solid rgba(240,128,14,.3);
+  background:rgba(240,128,14,.09); padding:2px 8px; border-radius:20px; align-self:flex-start;
+}
+.hl .nome{ font-size:13.5px; font-weight:700; color:var(--text); line-height:1.25; }
+.hl .valor{ font-size:20px; font-weight:800; color:var(--orange-soft); letter-spacing:-.3px; }
+.hl .rodape{ font-size:11px; color:var(--text-faint); }
+
+/* ==========================  PANEL / CHART  ============================= */
+.panel{ display:flex; flex-direction:column; gap:10px; }
+.panel .phead{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.panel .ptitle{ font-size:12.5px; font-weight:800; letter-spacing:.5px; color:var(--text); }
+.panel .pcount{ font-size:11px; color:var(--text-faint); }
+.chart-wrap{ position:relative; min-height:270px; height:270px; }
+.chart-wrap.tall{ min-height:330px; height:330px; }
+.chart-wrap.short{ min-height:210px; height:210px; }
+.legend-mini{ display:flex; flex-wrap:wrap; gap:8px 14px; font-size:11px; color:var(--text-dim); }
+.legend-mini i{ width:9px; height:9px; border-radius:3px; display:inline-block; margin-right:5px; }
+
+/* ============================  GAUGE  =================================== */
+.goal-card{ display:flex; flex-direction:column; gap:10px; align-items:center; }
+.gauge-wrap{ position:relative; width:100%; height:186px; }
+.gauge-center{
+  position:absolute; top:0; right:0; bottom:0; left:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; pointer-events:none;
+}
+.gauge-center .pct{ font-size:29px; font-weight:800; letter-spacing:-.5px; }
+.gauge-center .cap{ font-size:10.5px; text-transform:uppercase; letter-spacing:1.1px; color:var(--text-faint); }
+.goal-lines{ width:100%; display:flex; flex-direction:column; gap:5px; }
+.goal-line{ display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); }
+.goal-line b{ color:var(--text); font-weight:700; }
+.goal-edit{ display:flex; gap:6px; width:100%; }
+.goal-edit input{ flex:1; }
+
+/* ============================  TABELA  ================================== */
+.tablecard{ padding:0; overflow:hidden; }
+.tablehead{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:14px 17px; border-bottom:1px solid var(--border-soft);
+}
+.tablehead .ptitle{ font-size:12.5px; font-weight:800; letter-spacing:.5px; }
+.tablehead .spacer{ flex:1; }
+.tablewrap{ overflow:auto; max-height:560px; }
+.dtbl{ width:100%; border-collapse:collapse; font-size:12px; }
+.dtbl thead th{
+  position:sticky; top:0; z-index:5; background:#171412; color:var(--text-faint);
+  text-transform:uppercase; letter-spacing:.9px; font-size:10px; font-weight:800;
+  text-align:left; padding:10px 12px; border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.dtbl tbody td{
+  padding:9px 12px; border-bottom:1px solid var(--border-soft); color:var(--text-dim);
+  white-space:nowrap; max-width:280px; overflow:hidden; text-overflow:ellipsis;
+}
+.dtbl tbody tr:hover td{ background:rgba(240,128,14,.05); color:var(--text); }
+.dtbl td.strong{ color:var(--text); font-weight:700; }
+.dtbl td.right{ text-align:right; }
+.dtbl tbody.pagefade{ animation:pageFade .45s var(--ease); }
+@keyframes pageFade{ from{ opacity:0; transform:translateY(5px); } to{ opacity:1; transform:none; } }
+.tablefoot{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 17px; font-size:11px; color:var(--text-faint);
+  border-top:1px solid var(--border-soft);
+}
+.empty-state{
+  padding:34px 18px; text-align:center; color:var(--text-faint); font-size:12.5px;
+}
+
+.badge{
+  display:inline-block; padding:2.5px 9px; border-radius:20px; font-size:10.5px;
+  font-weight:800; letter-spacing:.4px; white-space:nowrap;
+}
+.b-green{ background:rgba(74,222,128,.13); color:var(--green); border:1px solid rgba(74,222,128,.28); }
+.b-amber{ background:rgba(255,193,69,.13); color:var(--amber); border:1px solid rgba(255,193,69,.28); }
+.b-red{ background:rgba(241,85,63,.13); color:var(--red); border:1px solid rgba(241,85,63,.28); }
+.b-grey{ background:rgba(171,166,156,.11); color:var(--text-dim); border:1px solid rgba(171,166,156,.22); }
+.b-blue{ background:rgba(79,163,227,.13); color:var(--blue); border:1px solid rgba(79,163,227,.28); }
+.b-orange{ background:rgba(240,128,14,.13); color:var(--orange-light); border:1px solid rgba(240,128,14,.28); }
+
+.spacer{ flex:1; }
+
+/* barra de progresso em célula de tabela (aba Projeção / Veículos) */
+.pbar{ display:block; width:100%; min-width:90px; height:7px; border-radius:5px;
+  background:var(--bg-panel-3); overflow:hidden; }
+.pbar i{ display:block; height:100%; border-radius:5px;
+  background:linear-gradient(90deg,var(--orange-dark),var(--orange-light)); }
+.pbar.ok i{ background:linear-gradient(90deg,#2f9e5c,var(--green)); }
+
+/* cartões de regra (aba Regras) */
+.rule{
+  display:flex; gap:12px; padding:11px 0; border-bottom:1px solid var(--border-soft);
+  font-size:12.5px; color:var(--text-dim); line-height:1.5;
+}
+.rule:last-child{ border-bottom:none; }
+.rule .cod{
+  flex:0 0 42px; font-weight:800; color:var(--orange); font-size:12px;
+  letter-spacing:.5px;
+}
+.rule b{ color:var(--text); }
+
+/* =====================  INSIGHTS / ALERTAS  ============================= */
+.insight{
+  display:flex; gap:13px; align-items:flex-start; padding:14px 15px;
+  border-radius:var(--radius-m); border:1px solid var(--border);
+  background:linear-gradient(180deg,#161311,#100e0c); position:relative; overflow:hidden;
+}
+.insight:before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--text-faint);
+}
+.insight.critico:before{ background:var(--red); }
+.insight.atencao:before{ background:var(--amber); }
+.insight.info:before{ background:var(--blue); }
+.insight.positivo:before{ background:var(--green); }
+.insight .ic{ font-size:20px; line-height:1; flex:0 0 auto; margin-top:2px; }
+.insight .txt{ flex:1; min-width:0; }
+.insight .tit{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:1.1px; font-weight:800;
+  color:var(--text-faint); margin-bottom:3px;
+}
+.insight .vl{ font-size:17px; font-weight:800; color:var(--text); margin-bottom:3px; }
+.insight.critico .vl{ color:var(--red); }
+.insight.atencao .vl{ color:var(--amber); }
+.insight.positivo .vl{ color:var(--green); }
+.insight .ds{ font-size:12px; color:var(--text-dim); line-height:1.45; }
+.selo-ia{
+  font-size:9.5px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase;
+  color:var(--purple); border:1px solid rgba(177,140,255,.35);
+  background:rgba(177,140,255,.1); padding:3px 9px; border-radius:20px;
+}
+
+/* ===================  CONTADOR DE CARGAS  =============================== */
+.contador{
+  display:flex; flex-direction:column; gap:5px; align-items:center; text-align:center;
+  padding:15px 12px;
+}
+.contador .n{ font-size:32px; font-weight:800; letter-spacing:-.8px; line-height:1; }
+.contador .t{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:1.1px;
+  color:var(--text-faint); font-weight:800;
+}
+.contador .d{ font-size:11px; color:var(--text-dim); }
+.contador .ic{ font-size:18px; }
+
+/* --- cartoes de destaque da aba Agregados REPOM --- */
+.destaque{ display:flex; flex-direction:column; gap:5px; }
+.destaque .lbl{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:1.4px;
+  color:var(--text-faint); font-weight:800;
+}
+.destaque .nome{ font-size:16px; font-weight:700; color:var(--text); line-height:1.25; }
+.destaque .vl{ font-size:26px; font-weight:800; color:var(--orange); letter-spacing:-.6px; }
+.destaque .sub{ font-size:12px; color:var(--text-dim); }
+
+/* ===========================  RANKING  ================================== */
+.ranklist{ display:flex; flex-direction:column; gap:8px; }
+.rankrow{ display:grid; grid-template-columns:24px 1fr 88px; align-items:center; gap:10px; }
+.rankrow .pos{
+  font-size:11px; font-weight:800; color:var(--text-faint); text-align:right;
+}
+.rankrow .nm{ font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rankrow .bar{ height:5px; border-radius:4px; background:var(--bg-panel-3); margin-top:4px; overflow:hidden; }
+.rankrow .bar i{ display:block; height:100%; border-radius:4px; background:linear-gradient(90deg,var(--orange-dark),var(--orange-light)); }
+.rankrow .vl{ font-size:12px; font-weight:700; color:var(--orange-soft); text-align:right; }
+
+/* =========================  OMS / ENTREGAS  ============================= */
+.oms-group{ margin-bottom:6px; }
+.oms-group h3{
+  margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:1.2px;
+  color:var(--text-dim); font-weight:800;
+}
+.status-col h4{
+  margin:0 0 8px; font-size:11.5px; text-transform:uppercase; letter-spacing:1px;
+  color:var(--text); font-weight:800; display:flex; align-items:center; gap:8px;
+}
+.status-col h4 .cnt{
+  background:rgba(240,128,14,.14); color:var(--orange-light); border-radius:20px;
+  font-size:10.5px; padding:1px 8px; border:1px solid rgba(240,128,14,.25);
+}
+.miniline{
+  font-size:11.5px; color:var(--text-dim); padding:6px 0;
+  border-bottom:1px solid var(--border-soft); line-height:1.45;
+}
+.miniline b{ color:var(--text); }
+.miniline:last-child{ border-bottom:none; }
+.manual-card .val{ color:var(--text-faint); font-size:15px; font-style:italic; }
+
+/* ============================  FOOTER  ================================== */
+.footer{
+  margin-top:34px; padding-top:16px; border-top:1px solid var(--border-soft);
+  font-size:11px; color:var(--text-faint); display:flex; gap:14px;
+  justify-content:space-between; flex-wrap:wrap;
+}
+
+/* =============================  TV  ===================================== */
+.tv-header{
+  display:flex; align-items:center; margin-bottom:12px; flex:0 0 auto;
+}
+.tv-header .logo{ height:44px; flex:0 0 auto; }
+/* clamp: 38px na TV Full HD, encolhe sozinho em janela estreita em vez de
+   quebrar a linha e empurrar o selo do segmento para baixo */
+.tv-header h1{
+  margin:0; font-size:clamp(21px, 2.05vw, 38px); font-weight:800; color:#F6F4F0;
+  display:flex; align-items:center; letter-spacing:.5px;
+  text-transform:uppercase; line-height:1.05; white-space:nowrap;
+}
+.tv-header h1 .brand-dot{ margin-right:4px; }
+.tv-header .sub{ font-size:15px; color:#ABA69C; margin-top:2px; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }
+/* o selo do segmento fica NA MESMA LINHA do título — nunca quebra */
+.tv-header .titulo-linha{
+  display:flex; align-items:center; flex-wrap:nowrap; min-width:0;
+}
+.tv-header .spacer{ flex:1 1 auto; min-width:12px; }
+.tv-header #tvSelo{ flex:0 0 auto; }
+.tv-header #tvSelo > *{ white-space:nowrap; }
+.tv-header .clock{ text-align:right; color:#ABA69C; font-size:13px;
+  white-space:nowrap; flex:0 0 auto; line-height:1.35; }
+.tv-header .clock b{ display:block; font-size:26px; color:#F6F4F0; line-height:1.1; }
+.tv-header .clock .sep{ color:#3a352e; }
+.tv-header .clock #tvBase{ color:#6E6A62; }
+/* Em tela estreita a data e a hora da base não cabem na mesma linha do
+   cabeçalho — em vez de cortar o texto, a base desce para a linha de baixo. */
+@media (max-width:1620px){
+  .tv-header .clock .sep{ display:none; }
+  .tv-header .clock #tvBase{ display:block; }
+}
+/* Abaixo de 1330px o respiro maior do cabeçalho não cabe mais: volta ao
+   espaçamento compacto em vez de empurrar o relógio para fora da tela.
+   Quem valida isso é o verifica_layout.py — ele falha se algo passar da borda. */
+/* o compacto de tela estreita vive no bloco de compatibilidade, no fim do
+   arquivo - aqui usaria `gap` em flex, que a TV ignora */
+
+.tv-slides{ position:relative; width:100%; flex:1 1 auto; min-height:0; }
+/* top/right/bottom/left escritos um a um DE PROPOSITO: o atalho `inset` so
+   existe a partir do Chromium 87, e o navegador embarcado do Raspberry pode
+   ser mais velho. Sem os quatro lados o slide vira altura-de-conteudo e a
+   tela fica espremida no topo com faixa preta embaixo. */
+.tv-slide{
+  position:absolute; top:0; right:0; bottom:0; left:0;
+  width:100%; height:100%;
+  opacity:0; transition:opacity .8s var(--ease);
+  pointer-events:none; display:flex; flex-direction:column; }
+.tv-slide.on{ opacity:1; pointer-events:auto; }
+
+.tv-progress{
+  position:fixed; left:0; right:0; bottom:0; height:5px; background:#1a1714;
+}
+.tv-progress-bar{
+  height:100%; width:0%; background:linear-gradient(90deg,#C4650A,#FFA94D);
+  transition:width linear;
+}
+.tv-dots{
+  position:fixed; bottom:16px; left:0; right:0; display:flex; justify-content:center;
+  pointer-events:none;
+}
+.tv-dots i{ width:8px; height:8px; border-radius:50%; background:#2b2620; display:block; }
+.tv-dots i.on{ background:#F0800E; }
+
+.tv-kpi{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:1fr 1fr; gap:20px; height:100%; }
+.tv-kpi .card{ display:flex; flex-direction:column; justify-content:center; }
+.tv-kpi .lbl{ font-size:18px; text-transform:uppercase; letter-spacing:1.6px; color:#6E6A62; font-weight:800; }
+.tv-kpi .val{ font-size:66px; font-weight:800; letter-spacing:-1px; color:#F6F4F0; }
+.tv-kpi .sub{ font-size:17px; color:#ABA69C; }
+
+.tv-legend{ display:flex; flex-direction:column; justify-content:center; }
+.tv-legend .row{ display:flex; align-items:center; }
+.tv-legend .dot{ width:17px; height:17px; border-radius:5px; flex:0 0 auto; }
+.tv-legend .nm{ font-size:17px; color:#ABA69C; flex:1; }
+.tv-legend .vl{ font-size:32px; font-weight:800; color:#F6F4F0; }
+.tv-legend .pc{ font-size:17px; color:#6E6A62; width:64px; text-align:right; }
+
+.tv-2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; height:100%; }
+.tv-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; height:100%; }
+.tv-full{ height:100%; display:flex; flex:1; min-height:0; }
+.tv-full > .card{ flex:1; }
+.tv-2 .card,.tv-3 .card,.tv-full .card{ display:flex; flex-direction:column; }
+.tv-2 .chart-wrap,.tv-3 .chart-wrap,.tv-full .chart-wrap{ flex:1; height:auto; min-height:0; }
+.tv-slide .ptitle{ font-size:17px; }
+.tv-slide .dtbl{ font-size:15px; }
+.tv-slide .dtbl thead th{ font-size:12px; }
+.tv-slide .dtbl tbody td{ padding:11px 13px; }
+.tv-slide .rankrow{ grid-template-columns:30px 1fr 120px; }
+.tv-slide .rankrow .nm{ font-size:16px; }
+.tv-slide .rankrow .vl{ font-size:16px; }
+.tv-slide .hl .nome{ font-size:20px; }
+.tv-slide .hl .valor{ font-size:31px; }
+.tv-slide .gauge-wrap{ height:250px; }
+.tv-slide .gauge-center .pct{ font-size:42px; }
+.tv-slide .miniline{ font-size:17px; }
+.tv-slide .status-col h4{ font-size:15px; }
+.tv-slide .kpi .val{ font-size:34px; }
+.tv-slide .kpi .lbl{ font-size:12.5px; }
+.tv-slide .kpi .sub{ font-size:13px; }
+
+/* ---------------------- TV · cards de alerta -------------------------- */
+.tv-alerta{
+  display:flex; align-items:center; padding:22px 26px;
+  border-radius:20px; border:2px solid #F1553F;
+  background:linear-gradient(135deg, rgba(241,85,63,.18), rgba(241,85,63,.05));
+  position:relative; overflow:hidden;
+}
+.tv-alerta.atencao{
+  border-color:#FFC145;
+  background:linear-gradient(135deg, rgba(255,193,69,.16), rgba(255,193,69,.04));
+}
+.tv-alerta .ic{ font-size:42px; flex:0 0 auto; }
+.tv-alerta .txt{ flex:1; min-width:0; }
+.tv-alerta .tit{
+  font-size:14px; text-transform:uppercase; letter-spacing:1.6px; font-weight:800;
+  color:#ABA69C; margin-bottom:5px;
+}
+.tv-alerta .vl{ font-size:34px; font-weight:800; color:#F1553F; line-height:1.1; }
+.tv-alerta.atencao .vl{ color:#FFC145; }
+.tv-alerta .ds{ font-size:17px; color:#ABA69C; margin-top:5px; line-height:1.4; }
+.tv-alerta.pulsa{ animation:alertaPulsa 2.4s infinite; }
+@keyframes alertaPulsa{
+  0%,100%{ box-shadow:0 0 0 0 rgba(241,85,63,.34); }
+  55%{ box-shadow:0 0 0 16px rgba(241,85,63,0); }
+}
+
+/* Os cards de alerta/insight esticam para ocupar a tela toda: com 3 (ou 4)
+   por pagina fixos, esticar e melhor do que sobrar faixa preta no telao. */
+#tvCriticos > *, #tvInsights > *{ flex:1 1 0; min-height:0; }
+
+.tv-ok{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:100%; text-align:center;
+}
+.tv-ok .ic{ font-size:82px; }
+.tv-ok .tt{ font-size:34px; font-weight:800; color:#4ADE80; }
+.tv-ok .ds{ font-size:19px; color:#ABA69C; }
+
+/* ---------------------- TV · contador de cargas ----------------------- */
+.tv-contador{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:1fr 1fr;
+  gap:20px; height:100%; }
+.tv-contador .card{ display:flex; flex-direction:column; align-items:center;
+  justify-content:center; }
+.tv-contador .ic{ font-size:46px; }
+.tv-contador .n{ font-size:86px; font-weight:800; letter-spacing:-2px; line-height:1; }
+.tv-contador .t{ font-size:19px; text-transform:uppercase; letter-spacing:1.6px;
+  color:#6E6A62; font-weight:800; }
+.tv-contador .d{ font-size:17px; color:#ABA69C; }
+
+/* ---------------------- TV · insights --------------------------------- */
+.tv-insight{
+  display:flex; align-items:center; padding:18px 24px;
+  border-radius:16px; border:1px solid #2b2620; background:#131110; position:relative;
+  overflow:hidden;
+}
+.tv-insight:before{ content:""; position:absolute; left:0; top:0; bottom:0; width:6px;
+  background:#6E6A62; }
+.tv-insight.critico:before{ background:#F1553F; }
+.tv-insight.atencao:before{ background:#FFC145; }
+.tv-insight.info:before{ background:#4FA3E3; }
+.tv-insight.positivo:before{ background:#4ADE80; }
+.tv-insight .ic{ font-size:40px; flex:0 0 auto; }
+.tv-insight .tit{ font-size:14px; text-transform:uppercase; letter-spacing:1.5px;
+  font-weight:800; color:#8E8880; }
+.tv-insight .vl{ font-size:29px; font-weight:800; color:#F6F4F0; margin:4px 0; }
+.tv-insight.critico .vl{ color:#F1553F; }
+.tv-insight.atencao .vl{ color:#FFC145; }
+.tv-insight.positivo .vl{ color:#4ADE80; }
+.tv-insight .ds{ font-size:16px; color:#ABA69C; line-height:1.4; }
+
+/* ---------------------- TV · cargas em atraso ------------------------- */
+.tv-atraso{
+  display:flex; align-items:center; padding:14px 18px;
+  border-radius:14px; border:1px solid #2b2620; background:#131110;
+  position:relative; overflow:hidden;
+}
+.tv-atraso:before{ content:""; position:absolute; left:0; top:0; bottom:0; width:7px; }
+.tv-atraso.critico:before{ background:#F1553F; }
+.tv-atraso.atencao:before{ background:#FFC145; }
+.tv-atraso.leve:before{ background:#9AA5B1; }
+.tv-atraso .tempo{
+  flex:0 0 152px; text-align:center; font-size:31px; font-weight:800;
+  letter-spacing:-.6px; line-height:1;
+}
+.tv-atraso.critico .tempo{ color:#F1553F; }
+.tv-atraso.atencao .tempo{ color:#FFC145; }
+.tv-atraso.leve .tempo{ color:#ABA69C; }
+.tv-atraso .tempo small{ display:block; font-size:12px; font-weight:700;
+  color:#6E6A62; text-transform:uppercase; letter-spacing:1.2px; margin-top:5px; }
+.tv-atraso .info{ flex:1; min-width:0; }
+.tv-atraso .rom{ font-size:22px; font-weight:800; color:#F6F4F0; }
+.tv-atraso .cli{ font-size:17px; color:#ABA69C; margin-top:2px; }
+.tv-atraso .rot{ font-size:15px; color:#6E6A62; margin-top:2px; }
+.tv-atraso .prazo{ flex:0 0 190px; text-align:right; font-size:15px; color:#6E6A62; }
+.tv-atraso .prazo b{ display:block; font-size:17px; color:#ABA69C; }
+.tv-col-titulo{
+  font-size:19px; font-weight:800; text-transform:uppercase; letter-spacing:1.6px;
+  color:#ABA69C; margin-bottom:12px; display:flex; align-items:center; }
+.tv-col-titulo .qtd{
+  background:rgba(241,85,63,.16); color:#F1553F; border:1px solid rgba(241,85,63,.3);
+  border-radius:20px; padding:2px 12px; font-size:16px;
+}
+.tv-col-titulo .qtd.zero{
+  background:rgba(74,222,128,.14); color:#4ADE80; border-color:rgba(74,222,128,.3);
+}
+.tv-atraso-lista{ display:flex; flex-direction:column; flex:1;
+  justify-content:center; }
+.tv-atraso-vazio{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:#6E6A62; text-align:center;
+}
+.tv-atraso-vazio .ic{ font-size:52px; }
+.tv-atraso-vazio .tt{ font-size:22px; font-weight:800; color:#4ADE80; }
+.tv-atraso-vazio .ds{ font-size:16px; max-width:420px; line-height:1.45; }
+@keyframes tvPisca{ 0%,100%{ opacity:1 } 50%{ opacity:.45 } }
+.tv-atraso.critico .tempo{ animation:tvPisca 2.4s ease-in-out infinite; }
+
+/* paginação interna dos cards do telão */
+.tv-pag{
+  font-size:14px; color:#6E6A62; font-weight:700; letter-spacing:.6px;
+}
+.tv-op-tag{
+  font-size:14px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase;
+  color:#1a1105; background:#F0800E; padding:5px 14px; border-radius:20px;
+  white-space:nowrap; flex:0 0 auto;
+}
+
+/* ==================  TV · AGREGADOS REPOM (telao dedicado)  ============== */
+/* Faixa de 3 numeros grandes no topo das telas de saldo e repasse. */
+.tv-repom-destaques{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:20px; flex:0 0 auto;
+}
+.tv-repom-big{
+  background:linear-gradient(180deg,#161311 0%,#100e0c 100%);
+  border:2px solid #2b2620; border-radius:22px; padding:20px 24px;
+  display:flex; flex-direction:column; justify-content:center; }
+.tv-repom-big .rot{
+  font-size:15px; text-transform:uppercase; letter-spacing:1.6px;
+  color:#6E6A62; font-weight:800;
+}
+.tv-repom-big .vl{
+  font-size:52px; font-weight:800; letter-spacing:-1.6px; line-height:1;
+  color:#F6F4F0;
+}
+.tv-repom-big .ds{ font-size:16px; color:#ABA69C; }
+.tv-repom-big.vermelho{ border-color:#F1553F; }
+.tv-repom-big.vermelho .vl{ color:#F1553F; }
+.tv-repom-big.laranja{ border-color:#F0800E; }
+.tv-repom-big.laranja .vl{ color:#F0800E; }
+.tv-repom-big.verde{ border-color:#4ADE80; }
+.tv-repom-big.verde .vl{ color:#4ADE80; }
+.tv-repom-big.azul{ border-color:#4FA3E3; }
+.tv-repom-big.azul .vl{ color:#4FA3E3; }
+.tv-repom-big.pulsa{ animation:pulseBorda 2s infinite; }
+@keyframes pulseBorda{
+  0%,100%{ box-shadow:0 0 0 0 rgba(241,85,63,.45); }
+  55%{ box-shadow:0 0 0 13px rgba(241,85,63,0); }
+}
+
+/* Lista paginada de agregados / pendencias. */
+/* as linhas se esticam para preencher a altura do card: pagina cheia sempre
+   ocupa a tela inteira, sem faixa preta embaixo */
+.tv-repom-lista{ display:flex; flex-direction:column; flex:1; min-height:0; }
+.tv-repom-lista > .tv-repom-linha{ flex:1 1 0; min-height:0; }
+.tv-repom-linha{
+  display:flex; align-items:center; padding:12px 16px;
+  border-radius:14px; background:#17130f; border:1px solid #241f1a;
+}
+.tv-repom-linha .dias{
+  font-size:31px; font-weight:800; line-height:1; min-width:96px;
+  letter-spacing:-1px;
+}
+.tv-repom-linha .dias .un{ font-size:17px; font-weight:700; margin-left:2px; }
+.tv-repom-linha .pos{
+  font-size:25px; font-weight:800; color:#6E6A62; min-width:56px; line-height:1;
+}
+.tv-repom-linha .meio{ flex:1; min-width:0; }
+.tv-repom-linha .nm{
+  font-size:21px; font-weight:700; color:#F6F4F0; line-height:1.2;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tv-repom-linha .ds{ font-size:15px; color:#ABA69C; margin-top:2px; }
+.tv-repom-linha .vl{
+  font-size:26px; font-weight:800; color:#F0800E; white-space:nowrap;
+}
+
+/* ---- Telao REPOM: provisao de caixa e insights ------------------------- */
+/* linha de total da provisao: destaque discreto, so o fundo muda */
+.tv-repom-linha.total{
+  background:#1d1a14; border-color:#3a332b;
+}
+.tv-repom-linha.total .vl{ font-weight:800; }
+
+/* cards de insight: sempre 4 por pagina, cada um ocupa 1/4 da altura */
+.tv-repom-insights{
+  display:flex; flex-direction:column; flex:1; min-height:0;
+}
+.tv-repom-ins{
+  flex:1 1 0; min-height:0;
+  display:flex; align-items:center; padding:14px 20px;
+  border-radius:16px; background:#17130f; border:1px solid #241f1a;
+  border-left-width:6px;
+}
+.tv-repom-ins .ic{ font-size:32px; flex:0 0 auto; line-height:1; }
+.tv-repom-ins .txt{ flex:1; min-width:0; }
+.tv-repom-ins .tt{
+  font-size:23px; font-weight:800; color:#F6F4F0; line-height:1.15;
+}
+.tv-repom-ins .ds{
+  font-size:17px; color:#ABA69C; margin-top:4px; line-height:1.3;
+}
+.tv-repom-ins .vl{
+  font-size:30px; font-weight:800; flex:0 0 auto; text-align:right;
+  letter-spacing:-.8px;
+}
+.tv-repom-ins.critico{ border-left-color:#F1553F; }
+.tv-repom-ins.critico .vl{ color:#F1553F; }
+.tv-repom-ins.atencao{ border-left-color:#FFC145; }
+.tv-repom-ins.atencao .vl{ color:#FFC145; }
+.tv-repom-ins.info{ border-left-color:#4FA3E3; }
+.tv-repom-ins.info .vl{ color:#4FA3E3; }
+.tv-repom-ins.positivo{ border-left-color:#4ADE80; }
+.tv-repom-ins.positivo .vl{ color:#4ADE80; }
+
+/* ---- Compatibilidade: navegador antigo do telao --------------------- */
+/* O `gap` em FLEXBOX so existe a partir do Chromium 84, e o navegador
+   embarcado da TV/Raspberry e mais velho: ele ignora a linha inteira e os
+   elementos ficam colados - logo grudada no titulo, tarja grudada no titulo,
+   cards sem respiro. Margem funciona em qualquer versao, entao o espacamento
+   do modo TV e feito SO por margem.
+   O `gap` de GRID pode ficar: existe desde o Chromium 57 (.tv-2, .tv-3,
+   .tv-kpi, .tv-repom-destaques sao grid e continuam usando gap).
+   NAO reintroduza `gap` em container flex do modo TV.
+   Sintoma de regressao: cabecalho espremido so na TV, certo no notebook.  */
+.tv-header > * + *{ margin-left:26px; }
+.tv-header h1 > * + *{ margin-left:12px; }
+.tv-header .titulo-linha > * + *{ margin-left:22px; }
+.tv-slide > * + *{ margin-top:16px; }
+.tv-dots > * + *{ margin-left:8px; }
+.tv-kpi .card > * + *{ margin-top:10px; }
+.tv-legend > * + *{ margin-top:14px; }
+.tv-legend .row > * + *{ margin-left:13px; }
+.tv-alerta > * + *{ margin-left:20px; }
+.tv-ok > * + *{ margin-top:14px; }
+.tv-contador .card > * + *{ margin-top:8px; }
+.tv-insight > * + *{ margin-left:20px; }
+.tv-atraso > * + *{ margin-left:18px; }
+.tv-col-titulo > * + *{ margin-left:10px; }
+.tv-atraso-lista > * + *{ margin-top:12px; }
+.tv-atraso-vazio > * + *{ margin-top:10px; }
+.tv-repom-big > * + *{ margin-top:6px; }
+.tv-repom-lista > * + *{ margin-top:10px; }
+.tv-repom-linha > * + *{ margin-left:18px; }
+.tv-repom-insights > * + *{ margin-top:12px; }
+.tv-repom-ins > * + *{ margin-left:20px; }
+/* o ponto laranja e irmao de um NO DE TEXTO, nao de um elemento:
+   "* + *" nao o alcanca, entao ele leva margem propria */
+.tv-header h1 .brand-dot{ margin-right:12px; }
+@media (max-width:1330px){
+  .tv-header > * + *{ margin-left:16px; }
+  .tv-header .titulo-linha > * + *{ margin-left:12px; }
+}
