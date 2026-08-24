@@ -1848,6 +1848,11 @@
       ) +
       card(
         '<div class="phead"><span class="ptitle">De onde vem cada valor</span></div>' +
+        regra("A5b", "Carta frete reemitida",
+          "Quando o mesmo <b>romaneio</b> aparece com mais de uma carta frete, vale " +
+          "<b>somente a mais recente</b> — é reemissão, a segunda substitui a primeira. " +
+          "Sem isso a receita daquela carga entraria duas vezes. Confirmado com o gestor " +
+          "em 24/08/2026. A auditoria do pipeline informa quantas foram descartadas.") +
         regra("A6", "Pago ao agregado",
           "Coluna <i>Vlr. unitário</i> do lrepom — o valor cheio do contrato, confirmado " +
           "com o gestor.") +
