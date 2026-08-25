@@ -1940,10 +1940,10 @@
       '<span class="ptitle">' + OTD.escapeHtml(titulo) + "</span>" +
       '<span class="pcount">' + OTD.fmtNum(itens.length) + "</span></div>" +
       (itens.length
-        ? '<div class="rank">' + itens.slice(0, 12).map(montaLinha).join("") +
+        ? '<div class="mon-lista">' + itens.slice(0, 12).map(montaLinha).join("") +
           (itens.length > 12
-            ? '<div class="miniline" style="justify-content:center;color:#6E6A62">+' +
-              (itens.length - 12) + " outros</div>" : "") + "</div>"
+            ? '<div class="mon-mais">+' + (itens.length - 12) + " outros</div>"
+            : "") + "</div>"
         : '<div class="manual-card"><span class="val">✅ ' +
           OTD.escapeHtml(vazio) + "</span></div>") +
       "</div>";
@@ -1990,12 +1990,16 @@
     }
 
     /* ---- listas de acao ---- */
-    function linhaBase(r, dir, cor) {
-      return '<div class="rankrow"><div class="pos" style="color:' + cor +
-        ';font-size:13px;white-space:nowrap">' + dir + "</div>" +
-        '<div class="nm">' + E(r.placa) + ' <span style="color:#6E6A62">· ' +
-        E(r.cidade) + "/" + E(r.uf) + "</span></div>" +
-        '<div class="vl">' + E(r.seg) + "</div></div>";
+    /* Layout proprio: o .rankrow tem a 1a coluna de 24px e o tempo ("23h36
+       parado") vazava por cima da placa. Aqui cada peca tem sua coluna. */
+    function linhaBase(r, dir, cor, extra) {
+      return '<div class="mon-item">' +
+        '<div class="mon-t" style="color:' + cor + '">' + E(dir) + "</div>" +
+        '<div class="mon-c"><div class="mon-pl">' + E(r.placa) + "</div>" +
+        '<div class="mon-lo">' + E(r.cidade) + "/" + E(r.uf) + "</div>" +
+        (extra ? '<div class="mon-ex">' + extra + "</div>" : "") +
+        "</div>" +
+        '<div class="mon-sg">' + E(r.seg) + "</div></div>";
     }
     const listas = document.getElementById("monListas");
     if (listas) {
@@ -2010,9 +2014,8 @@
           function (r) {
             const quem = r.status === "Carga" ? r.remetente : r.destinatario;
             return linhaBase(r, OTD.fmtHM(r.hEvento) + " · " + r.status,
-                             OTD.monitorCorTempo(r.hEvento, LIM.retido)) +
-              '<div class="miniline"><span>acionar</span><b>' +
-              E(OTD.shortName(quem || "—", 38)) + "</b></div>";
+                             OTD.monitorCorTempo(r.hEvento, LIM.retido),
+                             "acionar <b>" + E(OTD.shortName(quem || "—", 34)) + "</b>");
           }, "Nada retido além do limite.") +
         monCardLista("Em viagem parados acima de " + LIM.pernoite + "h",
           OTD.monitorLista("pernoite", segs),
@@ -2025,9 +2028,8 @@
           function (r) {
             const falta = [r.faltaCte ? "CT-e" : null,
                            r.faltaMdfe ? "MDF-e" : null].filter(Boolean).join(" e ");
-            return linhaBase(r, "falta " + falta, "#FFC145") +
-              '<div class="miniline"><span>destino</span><b>' +
-              E(OTD.shortName(r.destino || "—", 38)) + "</b></div>";
+            return linhaBase(r, "falta " + falta, "#FFC145",
+                             "destino <b>" + E(OTD.shortName(r.destino || "—", 34)) + "</b>");
           }, "Documentação em dia.") +
         monCardLista("Sem posicionar acima de " + LIM.semPosicao + "h",
           OTD.monitorLista("semPosicao", segs),
@@ -2046,14 +2048,14 @@
     const ins = document.getElementById("monInsightsDash");
     if (ins) {
       const lista = OTD.monitorInsights(segs);
-      ins.innerHTML = lista.map(function (n) {
-        return '<div class="miniline"><span>' +
-          OTD.escapeHtml(({ critico: "🚨", atencao: "⚠️", info: "📊",
-                            positivo: "✅" })[n.sev] + " " + n.titulo) +
-          "</span><b>" + OTD.escapeHtml(String(n.valor)) + "</b></div>" +
-          '<div class="miniline" style="color:#6E6A62;font-size:12.5px">' +
-          OTD.escapeHtml(n.texto) + "</div>";
-      }).join("");
+      const ICO = { critico: "🚨", atencao: "⚠️", info: "📊", positivo: "✅" };
+      ins.innerHTML = '<div class="mon-ins-lista">' + lista.map(function (n) {
+        return '<div class="mon-ins ' + n.sev + '">' +
+          '<div class="ic">' + ICO[n.sev] + "</div>" +
+          '<div class="tx"><div class="tt">' + E(n.titulo) + "</div>" +
+          '<div class="ds">' + E(n.texto) + "</div></div>" +
+          '<div class="vl num">' + E(String(n.valor)) + "</div></div>";
+      }).join("") + "</div>";
     }
 
     /* ---- chips de segmento ---- */

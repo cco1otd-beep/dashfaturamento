@@ -15,7 +15,7 @@
    bug e de layout, nunca de criterio.
 
    Parametros de URL:
-     ?tela=contador|mapa|vazios|retidos|viagem|rastreio|insights
+     ?tela=contador|mapa|vazios|retidos|parados|documentos|rastreio|motorista|insights
                                    fixa UMA tela (TV dedicada a um assunto)
      ?slide=20                     segundos por tela (padrao 20)
      ?pagina=5                     segundos por alternancia de operacao
@@ -111,16 +111,15 @@
         const c = OTD.monitorContador(op.segs);
         return '<div class="tv-mon-grid">' +
           OTD.MONITOR_STATUS.map(function (s) {
-            return '<div class="tv-mon-card" style="border-color:' + s.cor + '33">' +
-              '<div class="ic">' + s.ic + "</div>" +
+            return '<div class="tv-mon-card" style="border-color:' + s.cor + '55">' +
+              '<div class="t" style="color:' + s.cor + '">' + E(s.rot) + "</div>" +
               '<div class="n num" style="color:' + s.cor + '">' +
-              OTD.fmtNum(c[s.id]) + "</div>" +
-              '<div class="t">' + E(s.rot) + "</div></div>";
+              OTD.fmtNum(c[s.id]) + "</div></div>";
           }).join("") +
-          '<div class="tv-mon-card" style="border-color:#4ADE8033">' +
-          '<div class="ic">🏁</div><div class="n num" style="color:#4ADE80">' +
-          OTD.fmtNum(c.finalizadas) + "</div>" +
-          '<div class="t">Finalizadas no dia</div></div>' +
+          '<div class="tv-mon-card" style="border-color:#4ADE8055">' +
+          '<div class="t" style="color:#4ADE80">Finalizadas no dia</div>' +
+          '<div class="n num" style="color:#4ADE80">' +
+          OTD.fmtNum(c.finalizadas) + "</div></div>" +
           "</div>";
       });
     }
@@ -209,75 +208,93 @@
     }
   });
 
-  /* --- 5. Em viagem: pernoite + documento pendente ----------------------- */
+  /* --- 5. Parados em viagem (pernoite) ----------------------------------- */
   telas.push({
-    id: "viagem",
-    titulo: "Em Viagem — Pernoite e Documento Pendente",
-    html: function () { return colunasHtml("monViagem"); },
+    id: "parados",
+    titulo: "Parados em Viagem — Verificar Pernoite",
+    html: function () { return colunasHtml("monParados"); },
     after: function () {
-      paginarOperacoes("monViagem", function (op) {
-        const pern = OTD.monitorLista("pernoite", op.segs);
-        const doc = OTD.monitorLista("semDocumento", op.segs);
-        let h = '<div class="tv-mon-sub">🌙 Parados há mais de ' +
-          LIM.pernoite + "h <span>" + pern.length + "</span></div>";
-        h += pern.length
-          ? '<div class="tv-mon-lista">' + pern.slice(0, 4).map(function (r) {
-              return linha(r, r.hParado, LIM.pernoite, "em viagem", "");
-            }).join("") + "</div>"
-          : vazioHtml("Ninguém parado além do pernoite.");
-        h += '<div class="tv-mon-sub">📄 Sem CT-e ou MDF-e <span>' +
-          doc.length + "</span></div>";
-        h += doc.length
-          ? '<div class="tv-mon-lista">' + doc.slice(0, 4).map(function (r) {
-              const falta = [r.faltaCte ? "CT-e" : null,
-                             r.faltaMdfe ? "MDF-e" : null].filter(Boolean).join(" e ");
-              return linha(r, r.hParado, LIM.pernoite, "falta " + falta,
-                '<span class="ev">' + E(OTD.shortName(r.destino || "—", 30)) + "</span>");
-            }).join("") + "</div>"
-          : vazioHtml("Documentação em dia.");
-        return h;
+      paginarOperacoes("monParados", function (op) {
+        const lista = OTD.monitorLista("pernoite", op.segs);
+        if (!lista.length) {
+          return vazioHtml("Ninguém parado além de " + LIM.pernoite + "h.");
+        }
+        return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
+          return linha(r, r.hParado, LIM.pernoite, "parado em rota",
+            '<span class="ev">' + E(OTD.shortName(r.destino || "", 34)) + "</span>");
+        }).join("") +
+          (lista.length > 7 ? '<div class="tv-mon-mais">+' +
+            (lista.length - 7) + " outros</div>" : "") + "</div>";
       });
     }
   });
 
-  /* --- 6. Rastreio e motorista ------------------------------------------- */
+  /* --- 6. Documento pendente --------------------------------------------- */
+  telas.push({
+    id: "documentos",
+    titulo: "Documento Pendente — Emitir com Urgência",
+    html: function () { return colunasHtml("monDocs"); },
+    after: function () {
+      paginarOperacoes("monDocs", function (op) {
+        const lista = OTD.monitorLista("semDocumento", op.segs);
+        if (!lista.length) return vazioHtml("Documentação em dia.");
+        return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
+          const falta = [r.faltaCte ? "CT-e" : null,
+                         r.faltaMdfe ? "MDF-e" : null].filter(Boolean).join(" e ");
+          return linha(r, r.hParado, LIM.pernoite, "falta " + falta,
+            '<span class="ev">' + E(OTD.shortName(r.destino || "—", 34)) + "</span>");
+        }).join("") +
+          (lista.length > 7 ? '<div class="tv-mon-mais">+' +
+            (lista.length - 7) + " outros</div>" : "") + "</div>";
+      });
+    }
+  });
+
+  /* --- 7. Sem posicionar -------------------------------------------------- */
   telas.push({
     id: "rastreio",
-    titulo: "Rastreio e Motorista",
+    titulo: "Sem Posicionar — Verificar Rastreio",
     html: function () { return colunasHtml("monRastreio"); },
     after: function () {
       paginarOperacoes("monRastreio", function (op) {
-        const sp = OTD.monitorLista("semPosicao", op.segs);
-        const sm = OTD.monitorLista("semMotorista", op.segs);
-        let h = '<div class="tv-mon-sub">📡 Sem posicionar há mais de ' +
-          LIM.semPosicao + "h <span>" + sp.length + "</span></div>";
-        h += sp.length
-          ? '<div class="tv-mon-lista">' + sp.slice(0, 4).map(function (r) {
-              return r.semRastreio
-                ? '<div class="tv-mon-linha"><div class="tempo num" ' +
-                  'style="color:#F1553F;font-size:23px">sem<br>rastreio</div>' +
-                  '<div class="meio"><div class="pl">' + E(r.placa) + "</div>" +
-                  '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) + "</div></div></div>"
-                : linha(r, r.horas, LIM.semPosicao, "última posição", "");
-            }).join("") + "</div>"
-          : vazioHtml("Toda a frota posicionando.");
-        h += '<div class="tv-mon-sub">👤 Veículo sem motorista <span>' +
-          sm.length + "</span></div>";
-        h += sm.length
-          ? '<div class="tv-mon-lista">' + sm.slice(0, 4).map(function (r) {
-              return '<div class="tv-mon-linha"><div class="tempo num" ' +
-                'style="color:#FFC145;font-size:26px">RH</div>' +
-                '<div class="meio"><div class="pl">' + E(r.placa) + "</div>" +
-                '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) +
-                " · precisa contratar</div></div></div>";
-            }).join("") + "</div>"
-          : vazioHtml("Todos os veículos com motorista.");
-        return h;
+        const lista = OTD.monitorLista("semPosicao", op.segs);
+        if (!lista.length) return vazioHtml("Toda a frota posicionando.");
+        return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
+          if (r.semRastreio) {
+            return '<div class="tv-mon-linha"><div class="tempo num" ' +
+              'style="color:#F1553F;font-size:21px;line-height:1.1">sem<br>rastreio</div>' +
+              '<div class="meio"><div class="pl">' + E(r.placa) + "</div>" +
+              '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) + "</div></div></div>";
+          }
+          return linha(r, r.horas, LIM.semPosicao, "sem posição", "");
+        }).join("") +
+          (lista.length > 7 ? '<div class="tv-mon-mais">+' +
+            (lista.length - 7) + " outros</div>" : "") + "</div>";
       });
     }
   });
 
-  /* --- 7. Alertas & Insights -------------------------------------------- */
+  /* --- 8. Sem motorista (RH) ---------------------------------------------- */
+  telas.push({
+    id: "motorista",
+    titulo: "Veículo sem Motorista — RH Contratar",
+    html: function () { return colunasHtml("monMot"); },
+    after: function () {
+      paginarOperacoes("monMot", function (op) {
+        const lista = OTD.monitorLista("semMotorista", op.segs);
+        if (!lista.length) return vazioHtml("Todos os veículos com motorista.");
+        return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
+          return '<div class="tv-mon-linha"><div class="tempo num" ' +
+            'style="color:#B18CFF;font-size:25px">RH</div>' +
+            '<div class="meio"><div class="pl">' + E(r.placa) + "</div>" +
+            '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) +
+            ' · <span class="rt">precisa contratar</span></div></div></div>';
+        }).join("") + "</div>";
+      });
+    }
+  });
+
+  /* --- 9. Alertas & Insights -------------------------------------------- */
   const ICONE_SEV = { critico: "🚨", atencao: "⚠️", info: "📊", positivo: "✅" };
 
   const INSIGHTS = OTD.monitorInsights();
