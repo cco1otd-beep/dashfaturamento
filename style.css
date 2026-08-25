@@ -812,3 +812,126 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   .tv-header > * + *{ margin-left:16px; }
   .tv-header .titulo-linha > * + *{ margin-left:12px; }
 }
+
+/* ====================  TELÃO · PAINEL DE MONITORAMENTO  ================== */
+/* Duas colunas que alternam de operação a cada 5s. Sem `gap` em flex — ver o
+   bloco de compatibilidade no fim do arquivo (navegador antigo da TV). */
+.tv-mon-colunas{
+  display:grid; grid-template-columns:1fr 1fr; gap:20px;
+  flex:1; min-height:0;
+}
+.tv-mon-colunas.uma{ grid-template-columns:1fr; }
+.tv-mon-col{
+  background:linear-gradient(180deg,#161311 0%,#100e0c 100%);
+  border:1px solid #2b2620; border-radius:22px; padding:18px 20px;
+  display:flex; flex-direction:column; min-height:0; overflow:hidden;
+}
+.tv-mon-col > * + *{ margin-top:12px; }
+
+.tv-mon-cab{
+  display:flex; align-items:baseline; justify-content:space-between;
+  border-bottom:1px solid #241f1a; padding-bottom:10px; flex:0 0 auto;
+}
+.tv-mon-cab .nm{
+  font-size:24px; font-weight:800; color:#F0800E; letter-spacing:.3px;
+}
+.tv-mon-cab .qt{ font-size:15px; color:#6E6A62; font-weight:700; }
+
+/* --- cards do contador --- */
+.tv-mon-grid{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:14px;
+  flex:1; min-height:0;
+}
+.tv-mon-card{
+  background:#17130f; border:2px solid #241f1a; border-radius:16px;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:10px;
+}
+.tv-mon-card > * + *{ margin-top:6px; }
+.tv-mon-card .ic{ font-size:26px; line-height:1; }
+.tv-mon-card .n{ font-size:52px; font-weight:800; letter-spacing:-2px; line-height:1; }
+.tv-mon-card .t{
+  font-size:13px; text-transform:uppercase; letter-spacing:1.2px;
+  color:#6E6A62; font-weight:800; text-align:center;
+}
+
+/* --- listas de ação --- */
+.tv-mon-lista{ display:flex; flex-direction:column; flex:1; min-height:0; }
+.tv-mon-lista > * + *{ margin-top:9px; }
+.tv-mon-lista > .tv-mon-linha{ flex:1 1 0; min-height:0; }
+.tv-mon-linha{
+  display:flex; align-items:center; padding:10px 14px;
+  border-radius:14px; background:#17130f; border:1px solid #241f1a;
+}
+.tv-mon-linha > * + *{ margin-left:16px; }
+.tv-mon-linha .tempo{
+  font-size:30px; font-weight:800; letter-spacing:-1px; line-height:1.05;
+  min-width:104px; text-align:center; flex:0 0 auto;
+}
+.tv-mon-linha .meio{ flex:1; min-width:0; }
+.tv-mon-linha .pl{
+  font-size:23px; font-weight:800; color:#F6F4F0; letter-spacing:.5px;
+}
+.tv-mon-linha .lc{ font-size:15px; color:#ABA69C; margin-top:2px; }
+.tv-mon-linha .lc .rt{ color:#FFC145; font-weight:700; }
+.tv-mon-linha .dt{ font-size:14px; color:#6E6A62; margin-top:2px; }
+.tv-mon-linha .dt b{ color:#ABA69C; }
+
+.tv-mon-sub{
+  font-size:16px; font-weight:800; color:#ABA69C; text-transform:uppercase;
+  letter-spacing:1.2px; display:flex; align-items:center; flex:0 0 auto;
+}
+.tv-mon-sub > * + *{ margin-left:10px; }
+.tv-mon-sub span{
+  background:#241f1a; color:#F0800E; border-radius:20px; padding:1px 10px;
+  font-size:15px;
+}
+.tv-mon-vazio{
+  display:flex; align-items:center; justify-content:center; flex:1;
+  color:#6E6A62; font-size:18px; text-align:center; padding:16px;
+}
+.tv-mon-mais{
+  text-align:center; color:#6E6A62; font-size:14px; padding-top:4px;
+  flex:0 0 auto;
+}
+
+/* --- mapa --- */
+.tv-mon-mapa-wrap{
+  display:grid; grid-template-columns:1fr 380px; gap:20px;
+  flex:1; min-height:0;
+}
+.tv-mon-mapa{
+  background:linear-gradient(180deg,#0f0d0b 0%,#0b0a09 100%);
+  border:1px solid #2b2620; border-radius:22px; padding:10px;
+  display:flex; align-items:center; justify-content:center; min-height:0;
+}
+.tv-mon-mapa svg.mapa-sa{ width:100%; height:100%; max-height:100%; }
+.tv-mon-mapa-lado{
+  background:linear-gradient(180deg,#161311 0%,#100e0c 100%);
+  border:1px solid #2b2620; border-radius:22px; padding:18px 20px;
+  display:flex; flex-direction:column; min-height:0;
+}
+.tv-mon-mapa-lado > * + *{ margin-top:12px; }
+.tv-mon-cidades{ display:flex; flex-direction:column; flex:1; min-height:0; }
+.tv-mon-cidades > * + *{ margin-top:8px; }
+.tv-mon-cidade{
+  display:flex; align-items:center; padding:8px 12px;
+  background:#17130f; border:1px solid #241f1a; border-radius:12px;
+  flex:1 1 0; min-height:0;
+}
+.tv-mon-cidade > * + *{ margin-left:14px; }
+.tv-mon-cidade .q{
+  font-size:26px; font-weight:800; color:#F0800E; min-width:46px;
+  text-align:center;
+}
+.tv-mon-cidade .c{ font-size:17px; color:#F6F4F0; font-weight:600; }
+.tv-mon-nota{
+  font-size:13px; color:#FFC145; background:rgba(255,193,69,.08);
+  border:1px solid rgba(255,193,69,.25); border-radius:12px; padding:9px 12px;
+  flex:0 0 auto;
+}
+
+/* O SVG do mapa não tem width/height próprios (só viewBox): sem teto ele
+   estoura o card no dashboard. No telão o .tv-mon-mapa já limita. */
+svg.mapa-sa{ max-width:100%; max-height:100%; display:block; }
+#monMapaDash{ overflow:hidden; }

@@ -39,6 +39,7 @@ const OTD = (function () {
   const OMS = (window.OTD_OMS || null);
   const ENTREGAS = (window.OTD_ENTREGAS || null);
   const ATRASOS = (window.OTD_ATRASOS || null);
+  const MONITOR = (window.OTD_MONITOR || null);
   const META = (window.OTD_META || {});
 
   /* ---- Agregados REPOM (aba propria + telao proprio) --------------------- */
@@ -1063,6 +1064,154 @@ const OTD = (function () {
     return out.sort(function (a, b) { return ordem[a.sev] - ordem[b.sev]; });
   }
 
+  /* -------------------------------------------------------------------- */
+  /* PAINEL DE MONITORAMENTO                                              */
+  /* Foto AO VIVO da frota. Toda a regra ja veio resolvida do pipeline     */
+  /* (generate_data.py, secao 5-B) - aqui e so leitura e formatacao, para  */
+  /* a aba e o telao NUNCA divergirem um do outro.                         */
+  /* -------------------------------------------------------------------- */
+  const MONITOR_STATUS = [
+    { id: "vazio",     rot: "Vazio",     ic: "\u26AA", cor: "#F1553F" },
+    { id: "destinado", rot: "Destinado", ic: "\u{1F4CD}", cor: "#B18CFF" },
+    { id: "carga",     rot: "Em carga",  ic: "\u{1F4E6}", cor: "#FFC145" },
+    { id: "viagem",    rot: "Em viagem", ic: "\u{1F69B}", cor: "#4FA3E3" },
+    { id: "descarga",  rot: "Em descarga", ic: "\u{1F3ED}", cor: "#2DD4BF" }
+  ];
+
+  /* "Pranchas e Rodando" e uma operacao so no telao, como na Torre. */
+  const MONITOR_OPERACOES = {
+    bens:     { rot: "Bens de Consumo",     segs: ["BENS DE CONSUMO"] },
+    latas:    { rot: "Latas",               segs: ["LATAS"] },
+    pranchas: { rot: "Pranchas & Rodando",  segs: ["PRANCHA", "AUTOPROPULSOR"] }
+  };
+
+  function monitorTem() {
+    return !!(MONITOR && MONITOR.contador &&
+              Object.keys(MONITOR.contador).length);
+  }
+
+  /* Soma o contador de varios segmentos (uma operacao do telao). */
+  function monitorContador(segs) {
+    const t = { total: 0, finalizadas: 0 };
+    MONITOR_STATUS.forEach(function (s) { t[s.id] = 0; });
+    if (!monitorTem()) return t;
+    (segs && segs.length ? segs : Object.keys(MONITOR.contador))
+      .forEach(function (seg) {
+        const c = MONITOR.contador[seg];
+        if (!c) return;
+        MONITOR_STATUS.forEach(function (s) { t[s.id] += c[s.id] || 0; });
+        t.total += c.total || 0;
+        t.finalizadas += c.finalizadas || 0;
+      });
+    return t;
+  }
+
+  /* Uma lista de acao (vazios, retidos, pernoite...) filtrada por segmento. */
+  function monitorLista(nome, segs) {
+    if (!MONITOR || !MONITOR[nome]) return [];
+    const lista = MONITOR[nome];
+    if (!segs || !segs.length) return lista.slice();
+    const set = new Set(segs);
+    return lista.filter(function (r) { return set.has(r.seg); });
+  }
+
+  function monitorMapa(segs) {
+    if (!MONITOR || !MONITOR.mapa) return [];
+    if (!segs || !segs.length) return MONITOR.mapa.slice();
+    const set = new Set(segs);
+    return MONITOR.mapa.map(function (g) {
+      let qtd = 0;
+      Object.keys(g.porSeg || {}).forEach(function (s) {
+        if (set.has(s)) qtd += g.porSeg[s];
+      });
+      return qtd ? Object.assign({}, g, { qtd: qtd }) : null;
+    }).filter(Boolean).sort(function (a, b) { return b.qtd - a.qtd; });
+  }
+
+  /* 5.28 -> "5h17". Valor nulo vira travessao, nunca "0h00". */
+  function fmtHM(h) {
+    if (h === null || h === undefined || isNaN(h)) return "\u2014";
+    const t = Math.max(0, Number(h));
+    const hh = Math.floor(t);
+    const mm = Math.round((t - hh) * 60);
+    return hh + "h" + String(mm === 60 ? 0 : mm).padStart(2, "0");
+  }
+
+  /* Cor pelo quanto o tempo passou do limite - mesma escala do resto. */
+  function monitorCorTempo(h, limite) {
+    if (h === null || h === undefined) return "#6E6A62";
+    if (h >= limite * 2) return "#F1553F";
+    if (h >= limite * 1.4) return "#FFC145";
+    return "#4FA3E3";
+  }
+
+  /* Limites vem do pipeline - a aba, o telao e o Excel usam o MESMO numero. */
+  function LIM() {
+    return (MONITOR && MONITOR.limites) ||
+           { retido: 5, pernoite: 11, semPosicao: 12 };
+  }
+
+  function monitorInsights(segs) {
+    const out = [];
+    function add(sev, titulo, texto, valor) {
+      out.push({ sev: sev, titulo: titulo, texto: texto, valor: valor });
+    }
+    const g = monitorContador(segs);
+    const vaz = monitorLista("vazios", segs);
+    const ret = monitorLista("retidos", segs);
+    const per = monitorLista("pernoite", segs);
+    const doc = monitorLista("semDocumento", segs);
+    const pos = monitorLista("semPosicao", segs);
+    const mot = monitorLista("semMotorista", segs);
+
+    if (doc.length) {
+      add("critico", "Documento pendente em viagem",
+        doc.length + " carga" + (doc.length === 1 ? "" : "s") + " rodando sem " +
+        "CT-e ou MDF-e emitido. Internacional e Ponta Grossa já saíram da conta — " +
+        "estes são pendências reais.", doc.length);
+    } else {
+      add("positivo", "Documentação em dia",
+        "Nenhuma carga em viagem sem CT-e ou MDF-e.", "OK");
+    }
+    if (ret.length) {
+      const pior = ret[0];
+      add(ret.length >= 5 ? "critico" : "atencao", "Retidos em carga/descarga",
+        ret.length + " veículos acima de " + LIM().retido + "h. O mais antigo é o " +
+        pior.placa + ", em " + pior.cidade + "/" + pior.uf + " há " +
+        fmtHM(pior.hEvento) + ".", ret.length);
+    }
+    if (vaz.length) {
+      const pct = g.total ? (vaz.length / g.total) * 100 : 0;
+      add(pct >= 15 ? "atencao" : "info", "Frota vazia esperando destino",
+        vaz.length + " de " + g.total + " veículos ativos (" + fmtPct(pct, 1) +
+        ") estão sem carga.", vaz.length);
+    }
+    if (per.length) {
+      add("atencao", "Parados em viagem",
+        per.length + " veículo" + (per.length === 1 ? "" : "s") + " parado" +
+        (per.length === 1 ? "" : "s") + " há mais de " + LIM().pernoite +
+        "h em rota. Confirmar se é pernoite programado.", per.length);
+    }
+    if (pos.length) {
+      const sem = pos.filter(function (r) { return r.semRastreio; }).length;
+      add(sem ? "critico" : "atencao", "Rastreio",
+        pos.length + " veículos sem posicionar há mais de " + LIM().semPosicao + "h" +
+        (sem ? ", sendo " + sem + " sem rastreio nenhum" : "") + ".", pos.length);
+    }
+    if (mot.length) {
+      add("atencao", "Veículo parado por falta de motorista",
+        mot.length + " veículo" + (mot.length === 1 ? "" : "s") +
+        " sem motorista designado. Depende de contratação.", mot.length);
+    }
+    add("info", "Frota ativa agora",
+      g.total + " veículos operando: " + g.viagem + " em viagem, " +
+      g.destinado + " destinados, " + (g.carga + g.descarga) +
+      " em pátio de cliente e " + g.vazio + " vazios.", g.total);
+
+    const ordem = { critico: 0, atencao: 1, info: 2, positivo: 3 };
+    return out.sort(function (a, b) { return ordem[a.sev] - ordem[b.sev]; });
+  }
+
   /* Valores distintos para montar os multi-select, ja ordenados. */
   function repomOpcoes(campo) {
     const s = new Set();
@@ -1074,7 +1223,7 @@ const OTD = (function () {
 
   return {
     DATA: DATA, VIAGENS: VIAGENS, DOCS: DOCS, OMS: OMS, ENTREGAS: ENTREGAS,
-    ATRASOS: ATRASOS, REPOM: REPOM, META: META,
+    ATRASOS: ATRASOS, REPOM: REPOM, MONITOR: MONITOR, META: META,
     REPOM_FAIXAS: REPOM_FAIXAS,
     repomFiltrar: repomFiltrar, repomAgrupar: repomAgrupar,
     repomPrevisao: repomPrevisao, repomAguardando: repomAguardando,
@@ -1082,6 +1231,11 @@ const OTD = (function () {
     repomOpcoes: repomOpcoes, repomDiasEmAberto: repomDiasEmAberto,
     repomFaixaIdade: repomFaixaIdade,
     repomMovimento: repomMovimento, repomInsights: repomInsights,
+    MONITOR_STATUS: MONITOR_STATUS, MONITOR_OPERACOES: MONITOR_OPERACOES,
+    monitorTem: monitorTem, monitorContador: monitorContador,
+    monitorLista: monitorLista, monitorMapa: monitorMapa,
+    fmtHM: fmtHM, monitorCorTempo: monitorCorTempo,
+    monitorInsights: monitorInsights,
     PALETTE: PALETTE, MESES_PT_FULL: MESES_PT_FULL, MESES_PT_CURTO: MESES_PT_CURTO,
     DIAS_PT_FULL: DIAS_PT_FULL, GRUPO_SEG: GRUPO_SEG,
     fmtBRL: fmtBRL, fmtBRLcents: fmtBRLcents, fmtNum: fmtNum, fmtKm: fmtKm,

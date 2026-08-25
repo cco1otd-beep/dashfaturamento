@@ -1887,6 +1887,187 @@
         }).join("") + "</div>");
   }
 
+  /* ======================================================================= */
+  /* ABA · PAINEL DE MONITORAMENTO                                           */
+  /* Foto AO VIVO da frota. Le exatamente as mesmas funcoes que o telao       */
+  /* (OTD.monitor*), entao aba e TV nunca divergem: se o numero diferir, o    */
+  /* bug e de layout, nunca de criterio.                                     */
+  /* Nao usa os filtros de periodo do topo - "agora" nao tem periodo.         */
+  /* ======================================================================= */
+  let monSeg = "TODOS";
+
+  function monSegmentosDisponiveis() {
+    return (OTD.MONITOR && OTD.MONITOR.segmentos) || [];
+  }
+  function monSegsAtivos() {
+    return monSeg === "TODOS" ? [] : [monSeg];
+  }
+
+  function abaMonitoramento() {
+    if (!OTD.monitorTem()) {
+      return secao("Painel de Monitoramento") +
+        '<div class="card"><div class="manual-card"><span class="val">' +
+        "Sem base de monitoramento. Coloque o <b>lmonitoramento</b> numa pasta " +
+        "de bases e rode o pipeline.</span></div></div>";
+    }
+    const M = OTD.MONITOR;
+    const chips = ["TODOS"].concat(monSegmentosDisponiveis()).map(function (s) {
+      return '<button class="chip' + (s === monSeg ? " on" : "") +
+        '" data-monseg="' + OTD.escapeHtml(s) + '">' +
+        OTD.escapeHtml(s === "TODOS" ? "Todos os segmentos" : s) + "</button>";
+    }).join("");
+
+    return secao("Painel de Monitoramento",
+        '<span class="live-tag">tempo real</span>' +
+        '<span class="hint">foto de ' + OTD.fmtDataHora(M.geradoEm) + "</span>") +
+      '<div class="filterbar" style="margin-bottom:16px"><div class="filterrow">' +
+      '<span class="lbl">Segmento</span>' + chips + "</div></div>" +
+      '<div class="grid g-3" id="monKpis"></div>' +
+      secao("Onde Está a Frota") +
+      '<div class="card"><div class="phead"><span class="ptitle">Mapa da frota</span>' +
+      '<span class="pcount" id="monMapaCnt"></span></div>' +
+      '<div id="monMapaDash" style="height:560px;display:flex;' +
+      'align-items:center;justify-content:center"></div></div>' +
+      secao("Ações do Monitoramento",
+        '<span class="hint">cada lista está ordenada da mais urgente para a menos</span>') +
+      '<div class="grid g-2" id="monListas"></div>' +
+      secao("Alertas & Insights") +
+      '<div class="card"><div id="monInsightsDash"></div></div>';
+  }
+
+  function monCardLista(titulo, itens, montaLinha, vazio) {
+    return '<div class="card panel"><div class="phead">' +
+      '<span class="ptitle">' + OTD.escapeHtml(titulo) + "</span>" +
+      '<span class="pcount">' + OTD.fmtNum(itens.length) + "</span></div>" +
+      (itens.length
+        ? '<div class="rank">' + itens.slice(0, 12).map(montaLinha).join("") +
+          (itens.length > 12
+            ? '<div class="miniline" style="justify-content:center;color:#6E6A62">+' +
+              (itens.length - 12) + " outros</div>" : "") + "</div>"
+        : '<div class="manual-card"><span class="val">✅ ' +
+          OTD.escapeHtml(vazio) + "</span></div>") +
+      "</div>";
+  }
+
+  function renderMonitoramento() {
+    if (!OTD.monitorTem()) return;
+    const M = OTD.MONITOR;
+    const segs = monSegsAtivos();
+    const LIM = M.limites;
+    const c = OTD.monitorContador(segs);
+    const E = OTD.escapeHtml;
+
+    /* ---- KPIs: os cinco status + finalizadas ---- */
+    const kpis = document.getElementById("monKpis");
+    if (kpis) {
+      kpis.innerHTML = OTD.MONITOR_STATUS.map(function (s) {
+        return '<div class="card kpi"><div class="lbl">' + E(s.rot) + "</div>" +
+          '<div class="val num" style="color:' + s.cor + '">' +
+          OTD.fmtNum(c[s.id]) + "</div>" +
+          '<div class="sub">' + s.ic + " de " + OTD.fmtNum(c.total) +
+          " ativos</div></div>";
+      }).join("") +
+      '<div class="card kpi"><div class="lbl">Finalizadas no dia</div>' +
+      '<div class="val num" style="color:#4ADE80">' + OTD.fmtNum(c.finalizadas) +
+      "</div><div class=\"sub\">🏁 vem do lviagens</div></div>";
+    }
+
+    /* ---- mapa ---- */
+    const pts = OTD.monitorMapa(segs);
+    const mapa = document.getElementById("monMapaDash");
+    if (mapa) {
+      mapa.innerHTML = window.OTD_MAPA
+        ? OTD_MAPA.desenhar(pts, { largura: 760, altura: 560, escape: E,
+                                   maxRotulos: 7 })
+        : "";
+    }
+    const cnt = document.getElementById("monMapaCnt");
+    if (cnt) {
+      const semLoc = (M.semCoordenada || []).reduce(function (a, g) {
+        return a + g.qtd; }, 0);
+      cnt.textContent = pts.length + " cidades" +
+        (semLoc ? " · " + semLoc + " sem localização precisa" : "");
+    }
+
+    /* ---- listas de acao ---- */
+    function linhaBase(r, dir, cor) {
+      return '<div class="rankrow"><div class="pos" style="color:' + cor +
+        ';font-size:13px;white-space:nowrap">' + dir + "</div>" +
+        '<div class="nm">' + E(r.placa) + ' <span style="color:#6E6A62">· ' +
+        E(r.cidade) + "/" + E(r.uf) + "</span></div>" +
+        '<div class="vl">' + E(r.seg) + "</div></div>";
+    }
+    const listas = document.getElementById("monListas");
+    if (listas) {
+      listas.innerHTML =
+        monCardLista("Vazios — precisam de destino",
+          OTD.monitorLista("vazios", segs),
+          function (r) {
+            return linhaBase(r, OTD.fmtHM(r.hParado) + " parado", "#F1553F");
+          }, "Nenhum veículo vazio.") +
+        monCardLista("Retidos em carga/descarga acima de " + LIM.retido + "h",
+          OTD.monitorLista("retidos", segs),
+          function (r) {
+            const quem = r.status === "Carga" ? r.remetente : r.destinatario;
+            return linhaBase(r, OTD.fmtHM(r.hEvento) + " · " + r.status,
+                             OTD.monitorCorTempo(r.hEvento, LIM.retido)) +
+              '<div class="miniline"><span>acionar</span><b>' +
+              E(OTD.shortName(quem || "—", 38)) + "</b></div>";
+          }, "Nada retido além do limite.") +
+        monCardLista("Em viagem parados acima de " + LIM.pernoite + "h",
+          OTD.monitorLista("pernoite", segs),
+          function (r) {
+            return linhaBase(r, OTD.fmtHM(r.hParado) + " parado",
+                             OTD.monitorCorTempo(r.hParado, LIM.pernoite));
+          }, "Ninguém parado além do pernoite.") +
+        monCardLista("Sem CT-e ou MDF-e emitido",
+          OTD.monitorLista("semDocumento", segs),
+          function (r) {
+            const falta = [r.faltaCte ? "CT-e" : null,
+                           r.faltaMdfe ? "MDF-e" : null].filter(Boolean).join(" e ");
+            return linhaBase(r, "falta " + falta, "#FFC145") +
+              '<div class="miniline"><span>destino</span><b>' +
+              E(OTD.shortName(r.destino || "—", 38)) + "</b></div>";
+          }, "Documentação em dia.") +
+        monCardLista("Sem posicionar acima de " + LIM.semPosicao + "h",
+          OTD.monitorLista("semPosicao", segs),
+          function (r) {
+            return linhaBase(r, r.semRastreio ? "sem rastreio"
+                                              : OTD.fmtHM(r.horas) + " sem posição",
+                             r.semRastreio ? "#F1553F" : "#FFC145");
+          }, "Toda a frota posicionando.") +
+        monCardLista("Veículo sem motorista (para o RH)",
+          OTD.monitorLista("semMotorista", segs),
+          function (r) { return linhaBase(r, "sem motorista", "#B18CFF"); },
+          "Todos os veículos com motorista.");
+    }
+
+    /* ---- insights: as mesmas leituras do telao ---- */
+    const ins = document.getElementById("monInsightsDash");
+    if (ins) {
+      const lista = OTD.monitorInsights(segs);
+      ins.innerHTML = lista.map(function (n) {
+        return '<div class="miniline"><span>' +
+          OTD.escapeHtml(({ critico: "🚨", atencao: "⚠️", info: "📊",
+                            positivo: "✅" })[n.sev] + " " + n.titulo) +
+          "</span><b>" + OTD.escapeHtml(String(n.valor)) + "</b></div>" +
+          '<div class="miniline" style="color:#6E6A62;font-size:12.5px">' +
+          OTD.escapeHtml(n.texto) + "</div>";
+      }).join("");
+    }
+
+    /* ---- chips de segmento ---- */
+    document.querySelectorAll("[data-monseg]").forEach(function (b) {
+      b.onclick = function () {
+        monSeg = b.dataset.monseg;
+        document.querySelectorAll("[data-monseg]").forEach(function (o) {
+          o.classList.toggle("on", o.dataset.monseg === monSeg);
+        });
+        renderMonitoramento();
+      };
+    });
+  }
+
   const ABAS = [
     { id: "geral", ico: "📊", nome: "Visão Geral", html: abaGeral, render: renderGeral },
     { id: "clientes", ico: "👥", nome: "Clientes", html: abaClientes, render: renderClientes },
@@ -1898,6 +2079,8 @@
     { id: "oms", ico: "🧭", nome: "OMS", html: abaOms, render: renderOms },
     { id: "entregas", ico: "📦", nome: "Entregas", html: abaEntregas, render: renderEntregas },
     { id: "repom", ico: "🤝", nome: "Agregados", html: abaRepom, render: renderRepom },
+    { id: "monitoramento", ico: "🛰️", nome: "Monitoramento",
+      html: abaMonitoramento, render: renderMonitoramento },
     { id: "operacional", ico: "🛰️", nome: "Operacional", html: abaOperacional,
       render: function (rows) { renderOperacional(); prepararViagens(rows); } },
     { id: "regras", ico: "⚙️", nome: "Regras", html: abaRegras, render: function () { } }
