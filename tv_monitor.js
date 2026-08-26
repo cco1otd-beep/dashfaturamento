@@ -84,16 +84,21 @@
     return '<div class="tv-mon-vazio">✅ ' + E(msg) + "</div>";
   }
 
-  /* linha de acao: tempo grande a esquerda, placa e local no meio */
+  /* Cartao de acao. O gestor pediu o STATUS como titulo em caixa alta no topo
+     - antes ele era um texto amarelo miudo no meio da linha e ninguem lia de
+     longe. Embaixo vem placa + cliente, e o local na terceira linha. */
   function linha(r, tempoH, limite, rotulo, detalhe) {
     const cor = OTD.monitorCorTempo(tempoH, limite);
     return '<div class="tv-mon-linha">' +
-      '<div class="tempo num" style="color:' + cor + '">' + OTD.fmtHM(tempoH) + "</div>" +
-      '<div class="meio"><div class="pl">' + E(r.placa || "—") + "</div>" +
+      '<div class="cab">' +
+      '<span class="st">' + E((rotulo || r.status || "").toUpperCase()) + "</span>" +
+      '<span class="tempo num" style="color:' + cor + '">' +
+      OTD.fmtHM(tempoH) + "</span></div>" +
+      '<div class="corpo"><span class="pl">' + E(r.placa || "—") + "</span>" +
+      (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) + "</span>" : "") +
+      "</div>" +
       '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) +
-      (rotulo ? ' · <span class="rt">' + E(rotulo) + "</span>" : "") + "</div>" +
-      (detalhe ? '<div class="dt">' + detalhe + "</div>" : "") +
-      "</div></div>";
+      (detalhe ? " · " + detalhe : "") + "</div></div>";
   }
 
   /* ======================================================================= */
@@ -261,10 +266,13 @@
         if (!lista.length) return vazioHtml("Toda a frota posicionando.");
         return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
           if (r.semRastreio) {
-            return '<div class="tv-mon-linha"><div class="tempo num" ' +
-              'style="color:#F1553F;font-size:21px;line-height:1.1">sem<br>rastreio</div>' +
-              '<div class="meio"><div class="pl">' + E(r.placa) + "</div>" +
-              '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) + "</div></div></div>";
+            return '<div class="tv-mon-linha"><div class="cab">' +
+              '<span class="st">SEM RASTREIO</span>' +
+              '<span class="tempo num" style="color:#F1553F">—</span></div>' +
+              '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
+              (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) +
+               "</span>" : "") + "</div>" +
+              '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) + "</div></div>";
           }
           return linha(r, r.horas, LIM.semPosicao, "sem posição", "");
         }).join("") +
@@ -284,11 +292,14 @@
         const lista = OTD.monitorLista("semMotorista", op.segs);
         if (!lista.length) return vazioHtml("Todos os veículos com motorista.");
         return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
-          return '<div class="tv-mon-linha"><div class="tempo num" ' +
-            'style="color:#B18CFF;font-size:25px">RH</div>' +
-            '<div class="meio"><div class="pl">' + E(r.placa) + "</div>" +
+          return '<div class="tv-mon-linha"><div class="cab">' +
+            '<span class="st">SEM MOTORISTA</span>' +
+            '<span class="tempo num" style="color:#B18CFF">RH</span></div>' +
+            '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
+            (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) +
+             "</span>" : "") + "</div>" +
             '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) +
-            ' · <span class="rt">precisa contratar</span></div></div></div>';
+            " · precisa contratar</div></div>";
         }).join("") + "</div>";
       });
     }

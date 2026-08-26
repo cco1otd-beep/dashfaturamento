@@ -1992,14 +1992,18 @@
     /* ---- listas de acao ---- */
     /* Layout proprio: o .rankrow tem a 1a coluna de 24px e o tempo ("23h36
        parado") vazava por cima da placa. Aqui cada peca tem sua coluna. */
-    function linhaBase(r, dir, cor, extra) {
+    /* Mesmo desenho do telão: STATUS em caixa alta no topo, placa + cliente
+       embaixo. Assim a aba e a TV se leem igual. */
+    function linhaBase(r, titulo, tempo, cor, extra) {
       return '<div class="mon-item">' +
-        '<div class="mon-t" style="color:' + cor + '">' + E(dir) + "</div>" +
-        '<div class="mon-c"><div class="mon-pl">' + E(r.placa) + "</div>" +
-        '<div class="mon-lo">' + E(r.cidade) + "/" + E(r.uf) + "</div>" +
-        (extra ? '<div class="mon-ex">' + extra + "</div>" : "") +
-        "</div>" +
-        '<div class="mon-sg">' + E(r.seg) + "</div></div>";
+        '<div class="mon-hd"><span class="st">' + E(String(titulo).toUpperCase()) +
+        '</span><span class="tp" style="color:' + cor + '">' + E(tempo) + "</span></div>" +
+        '<div class="mon-bd"><span class="pl">' + E(r.placa) + "</span>" +
+        (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 30)) +
+         "</span>" : "") +
+        '<span class="sg">' + E(r.seg) + "</span></div>" +
+        '<div class="mon-lo">' + E(r.cidade) + "/" + E(r.uf) +
+        (extra ? " · " + extra : "") + "</div></div>";
     }
     const listas = document.getElementById("monListas");
     if (listas) {
@@ -2007,20 +2011,20 @@
         monCardLista("Vazios — precisam de destino",
           OTD.monitorLista("vazios", segs),
           function (r) {
-            return linhaBase(r, OTD.fmtHM(r.hParado) + " parado", "#F1553F");
+            return linhaBase(r, "parado", OTD.fmtHM(r.hParado), "#F1553F");
           }, "Nenhum veículo vazio.") +
         monCardLista("Retidos em carga/descarga acima de " + LIM.retido + "h",
           OTD.monitorLista("retidos", segs),
           function (r) {
             const quem = r.status === "Carga" ? r.remetente : r.destinatario;
-            return linhaBase(r, OTD.fmtHM(r.hEvento) + " · " + r.status,
+            return linhaBase(r, r.status, OTD.fmtHM(r.hEvento),
                              OTD.monitorCorTempo(r.hEvento, LIM.retido),
                              "acionar <b>" + E(OTD.shortName(quem || "—", 34)) + "</b>");
           }, "Nada retido além do limite.") +
         monCardLista("Em viagem parados acima de " + LIM.pernoite + "h",
           OTD.monitorLista("pernoite", segs),
           function (r) {
-            return linhaBase(r, OTD.fmtHM(r.hParado) + " parado",
+            return linhaBase(r, "parado em rota", OTD.fmtHM(r.hParado),
                              OTD.monitorCorTempo(r.hParado, LIM.pernoite));
           }, "Ninguém parado além do pernoite.") +
         monCardLista("Sem CT-e ou MDF-e emitido",
@@ -2028,19 +2032,19 @@
           function (r) {
             const falta = [r.faltaCte ? "CT-e" : null,
                            r.faltaMdfe ? "MDF-e" : null].filter(Boolean).join(" e ");
-            return linhaBase(r, "falta " + falta, "#FFC145",
+            return linhaBase(r, "falta " + falta, "—", "#FFC145",
                              "destino <b>" + E(OTD.shortName(r.destino || "—", 34)) + "</b>");
           }, "Documentação em dia.") +
         monCardLista("Sem posicionar acima de " + LIM.semPosicao + "h",
           OTD.monitorLista("semPosicao", segs),
           function (r) {
-            return linhaBase(r, r.semRastreio ? "sem rastreio"
-                                              : OTD.fmtHM(r.horas) + " sem posição",
+            return linhaBase(r, r.semRastreio ? "sem rastreio" : "sem posição",
+                             r.semRastreio ? "—" : OTD.fmtHM(r.horas),
                              r.semRastreio ? "#F1553F" : "#FFC145");
           }, "Toda a frota posicionando.") +
         monCardLista("Veículo sem motorista (para o RH)",
           OTD.monitorLista("semMotorista", segs),
-          function (r) { return linhaBase(r, "sem motorista", "#B18CFF"); },
+          function (r) { return linhaBase(r, "sem motorista", "RH", "#B18CFF"); },
           "Todos os veículos com motorista.");
     }
 

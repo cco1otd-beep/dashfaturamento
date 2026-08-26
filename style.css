@@ -864,23 +864,42 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-mon-lista{ display:flex; flex-direction:column; flex:1; min-height:0; }
 .tv-mon-lista > * + *{ margin-top:9px; }
 .tv-mon-lista > .tv-mon-linha{ flex:1 1 0; min-height:0; }
+/* Cartão em três faixas: STATUS em caixa alta no topo (é o que o time lê de
+   longe), placa + cliente no meio, local embaixo. Antes o status era um texto
+   amarelo miúdo no meio da linha e passava despercebido na parede. */
 .tv-mon-linha{
-  display:flex; align-items:center; padding:10px 14px;
-  border-radius:14px; background:#17130f; border:1px solid #241f1a;
+  display:flex; flex-direction:column; justify-content:center;
+  padding:10px 16px; border-radius:14px;
+  background:#17130f; border:1px solid #241f1a;
 }
-.tv-mon-linha > * + *{ margin-left:16px; }
-.tv-mon-linha .tempo{
-  font-size:30px; font-weight:800; letter-spacing:-1px; line-height:1.05;
-  min-width:104px; text-align:center; flex:0 0 auto;
+.tv-mon-linha > * + *{ margin-top:3px; }
+.tv-mon-linha .cab{
+  display:flex; align-items:baseline; justify-content:space-between;
 }
-.tv-mon-linha .meio{ flex:1; min-width:0; }
+.tv-mon-linha .cab .st{
+  font-size:19px; font-weight:800; letter-spacing:1.8px; text-transform:uppercase;
+  color:#FFC145; line-height:1.1;
+}
+.tv-mon-linha .cab .tempo{
+  font-size:27px; font-weight:800; letter-spacing:-1px; line-height:1;
+  white-space:nowrap;
+}
+.tv-mon-linha .corpo{ display:flex; align-items:baseline; min-width:0; }
+.tv-mon-linha .corpo > * + *{ margin-left:12px; }
 .tv-mon-linha .pl{
-  font-size:23px; font-weight:800; color:#F6F4F0; letter-spacing:.5px;
+  font-size:26px; font-weight:800; color:#F6F4F0; letter-spacing:.6px;
+  flex:0 0 auto;
 }
-.tv-mon-linha .lc{ font-size:15px; color:#ABA69C; margin-top:2px; }
-.tv-mon-linha .lc .rt{ color:#FFC145; font-weight:700; }
-.tv-mon-linha .dt{ font-size:14px; color:#6E6A62; margin-top:2px; }
-.tv-mon-linha .dt b{ color:#ABA69C; }
+.tv-mon-linha .cli{
+  font-size:18px; font-weight:700; color:#4FA3E3; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.tv-mon-linha .lc{
+  font-size:15px; color:#ABA69C; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tv-mon-linha .lc .ev{ color:#6E6A62; }
+.tv-mon-linha .lc b{ color:#ABA69C; }
 
 .tv-mon-sub{
   font-size:16px; font-weight:800; color:#ABA69C; text-transform:uppercase;
@@ -949,33 +968,39 @@ svg.mapa-sa{ max-width:100%; max-height:100%; display:block; }
 .mon-lista{ display:flex; flex-direction:column; }
 .mon-lista > * + *{ margin-top:8px; }
 .mon-item{
-  display:grid; grid-template-columns:96px minmax(0,1fr) auto;
-  align-items:center; gap:14px;
-  padding:9px 12px; border-radius:12px;
+  padding:10px 14px; border-radius:12px;
   background:var(--bg-panel-2); border:1px solid var(--border-soft);
 }
-.mon-item .mon-t{
-  font-size:14px; font-weight:800; text-align:right; line-height:1.15;
-  font-variant-numeric:tabular-nums;
+.mon-item .mon-hd{
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin-bottom:3px;
 }
-.mon-item .mon-c{ min-width:0; }
-.mon-item .mon-pl{
-  font-size:15px; font-weight:800; color:var(--text); letter-spacing:.4px;
+.mon-item .mon-hd .st{
+  font-size:11.5px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase;
+  color:var(--amber);
+}
+.mon-item .mon-hd .tp{
+  font-size:15px; font-weight:800; font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.mon-item .mon-bd{ display:flex; align-items:baseline; gap:10px; min-width:0; }
+.mon-item .mon-bd .pl{
+  font-size:16px; font-weight:800; color:var(--text); letter-spacing:.5px;
+  flex:0 0 auto;
+}
+.mon-item .mon-bd .cli{
+  font-size:13px; font-weight:700; color:var(--blue); min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.mon-item .mon-bd .sg{
+  margin-left:auto; font-size:9.5px; font-weight:800; letter-spacing:.8px;
+  text-transform:uppercase; color:var(--text-faint); white-space:nowrap;
 }
 .mon-item .mon-lo{
-  font-size:12px; color:var(--text-dim); margin-top:1px;
+  font-size:12px; color:var(--text-dim); margin-top:3px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.mon-item .mon-ex{
-  font-size:11.5px; color:var(--text-faint); margin-top:3px;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.mon-item .mon-ex b{ color:var(--text-dim); font-weight:700; }
-.mon-item .mon-sg{
-  font-size:10px; font-weight:800; letter-spacing:.8px; text-transform:uppercase;
-  color:var(--text-faint); text-align:right; white-space:nowrap;
-  align-self:start; padding-top:3px;
-}
+.mon-item .mon-lo b{ color:var(--text-dim); font-weight:700; }
 .mon-mais{
   text-align:center; color:var(--text-faint); font-size:11.5px; padding:8px 0 2px;
 }
