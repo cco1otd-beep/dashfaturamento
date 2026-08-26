@@ -905,9 +905,11 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   display:grid; grid-template-columns:1fr 380px; gap:20px;
   flex:1; min-height:0;
 }
+/* fundo CLARO: as divisas de estado somem sobre preto - foi o defeito da
+   primeira versão. O mapa é a única peça clara do telão, de propósito. */
 .tv-mon-mapa{
-  background:linear-gradient(180deg,#0f0d0b 0%,#0b0a09 100%);
-  border:1px solid #2b2620; border-radius:22px; padding:10px;
+  background:#EFEAE1;
+  border:1px solid #2b2620; border-radius:22px; padding:8px;
   display:flex; align-items:center; justify-content:center; min-height:0;
 }
 .tv-mon-mapa svg.mapa-sa{ width:100%; height:100%; max-height:100%; }
@@ -939,7 +941,7 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 /* O SVG do mapa não tem width/height próprios (só viewBox): sem teto ele
    estoura o card no dashboard. No telão o .tv-mon-mapa já limita. */
 svg.mapa-sa{ max-width:100%; max-height:100%; display:block; }
-#monMapaDash{ overflow:hidden; }
+#monMapaDash{ overflow:hidden; background:#EFEAE1; border-radius:14px; }
 
 /* ==============  DASHBOARD · ABA MONITORAMENTO (listas)  ================= */
 /* Layout próprio em vez de reaproveitar .rankrow: lá a 1ª coluna tem 24px e

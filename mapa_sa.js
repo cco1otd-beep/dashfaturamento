@@ -79,8 +79,8 @@
      [-70.0, -4.4]]
   ];
 
-  /* Divisas dos estados brasileiros onde a frota opera. Traco grosseiro: o
-     objetivo e situar "isso e Sao Paulo, isso e Minas", nao medir area. */
+  /* Divisas dos estados brasileiros. Traco grosseiro de proposito: o objetivo
+     e situar "isso e Sao Paulo, isso e Minas", nao medir area. */
   const ESTADOS = [
     /* PR x SC */
     [[-54.2, -26.0], [-51.5, -26.2], [-49.5, -26.2], [-48.6, -25.9]],
@@ -100,7 +100,22 @@
     [[-58.2, -17.9], [-55.0, -17.9], [-52.5, -18.0]],
     /* MG x BA/ES */
     [[-46.0, -16.0], [-43.0, -14.5], [-40.0, -15.5], [-40.9, -18.0],
-     [-41.9, -20.8]]
+     [-41.9, -20.8]],
+    /* MG x RJ e RJ x SP */
+    [[-44.0, -22.6], [-42.5, -22.0], [-41.0, -21.5]],
+    [[-44.7, -23.4], [-44.0, -22.6]],
+    /* ES */
+    [[-41.9, -20.8], [-40.9, -18.0]],
+    /* BA x GO/TO */
+    [[-46.0, -16.0], [-46.4, -12.5], [-45.9, -10.0], [-43.5, -9.5]],
+    /* TO x MA/PI */
+    [[-48.0, -13.5], [-48.2, -9.0], [-47.5, -6.0], [-46.5, -5.5]],
+    /* MT x PA/AM */
+    [[-58.2, -17.9], [-58.4, -13.0], [-60.0, -12.0], [-60.4, -16.3]],
+    [[-58.4, -13.0], [-55.0, -12.0], [-51.5, -12.0], [-50.5, -13.5]],
+    /* PE/CE/RN - nordeste, so para o contorno nao ficar vazio */
+    [[-41.0, -8.5], [-38.0, -8.2], [-35.5, -8.5]],
+    [[-41.0, -4.5], [-38.5, -4.0], [-36.5, -5.2]]
   ];
 
   function projetar(lon, lat, w, h) {
@@ -160,30 +175,57 @@
    * desenhar(pontos, opcoes) -> string com o <svg> pronto.
    * pontos: [{cidade, uf, lat, lon, qtd, porStatus}]
    */
+  /* Duas paletas. O tema CLARO e o padrao no telao: sobre fundo preto as
+     divisas de estado somem (foi o defeito da 1a versao) - no claro elas
+     aparecem em cinza-escuro, como num mapa de papel. */
+  const TEMAS = {
+    claro: {
+      fundo: "#EFEAE1", mar: "#DCD5C8", terra: "#F7F4EE", brasil: "#FFFDF9",
+      contorno: "#8A8072", fronteira: "#6E6558", estado: "#B3A895",
+      pino: "#F0800E", pinoBorda: "#7A3D00", pinoTexto: "#FFFFFF",
+      rotulo: "#2A241D", halo: "#F7F4EE", chamada: "#8A8072"
+    },
+    escuro: {
+      fundo: "none", mar: "#141110", terra: "#1b1613", brasil: "#221b16",
+      contorno: "#4a4238", fronteira: "#5a5148", estado: "#3a332b",
+      pino: "#F0800E", pinoBorda: "#1a1105", pinoTexto: "#1a1105",
+      rotulo: "#F6F4F0", halo: "#0b0a09", chamada: "#5a5148"
+    }
+  };
+
   function desenhar(pontos, opcoes) {
     opcoes = opcoes || {};
     const w = opcoes.largura || 900;
     const h = opcoes.altura || 1000;
     const esc = opcoes.escape || function (s) { return s; };
     const maxRot = opcoes.maxRotulos || 8;
+    const T = TEMAS[opcoes.tema === "escuro" ? "escuro" : "claro"];
     const maxQtd = pontos.reduce(function (a, p) { return Math.max(a, p.qtd); }, 0);
 
     const out = [];
     out.push('<svg viewBox="0 0 ' + w + " " + h + '" ' +
       'preserveAspectRatio="xMidYMid meet" class="mapa-sa">');
+    out.push('<defs><marker id="setaMapa" viewBox="0 0 10 10" refX="9" refY="5" ' +
+      'markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+      '<path d="M0 0 L10 5 L0 10 z" fill="' + T.chamada + '"/></marker></defs>');
 
-    /* --- geografia, do mais claro ao mais escuro --- */
+    if (T.fundo !== "none") {
+      out.push('<rect x="0" y="0" width="' + w + '" height="' + h +
+        '" rx="14" fill="' + T.mar + '"/>');
+    }
+
+    /* --- geografia --- */
     out.push('<path d="' + traco(CONTORNO, w, h, true) + '" ' +
-      'fill="#141110" stroke="#2b2620" stroke-width="2"/>');
+      'fill="' + T.terra + '" stroke="' + T.contorno + '" stroke-width="2.2"/>');
     out.push('<path d="' + traco(BRASIL, w, h, true) + '" ' +
-      'fill="#1b1613" stroke="#4a4238" stroke-width="1.6"/>');
+      'fill="' + T.brasil + '" stroke="' + T.contorno + '" stroke-width="2"/>');
     FRONTEIRAS.forEach(function (f) {
       out.push('<path d="' + traco(f, w, h, false) + '" fill="none" ' +
-        'stroke="#332c25" stroke-width="1.2" stroke-dasharray="5 4"/>');
+        'stroke="' + T.fronteira + '" stroke-width="1.4" stroke-dasharray="6 4"/>');
     });
     ESTADOS.forEach(function (e) {
       out.push('<path d="' + traco(e, w, h, false) + '" fill="none" ' +
-        'stroke="#2e2822" stroke-width="1" stroke-dasharray="3 4"/>');
+        'stroke="' + T.estado + '" stroke-width="1.1"/>');
     });
 
     /* --- prepara os pinos --- */
@@ -203,8 +245,8 @@
       const alvoX = it.ancora === "end" ? it.rx - 4 : it.rx + 4;
       out.push('<path d="M' + it.x.toFixed(1) + " " + it.y.toFixed(1) +
         " L" + alvoX.toFixed(1) + " " + (it.ry - 4).toFixed(1) +
-        '" fill="none" stroke="#5a5148" stroke-width="1" ' +
-        'stroke-dasharray="2 3"/>');
+        '" fill="none" stroke="' + T.chamada + '" stroke-width="1.2" ' +
+        'marker-end="url(#setaMapa)"/>');
     });
 
     /* --- pinos: menores primeiro, maior por cima --- */
@@ -212,23 +254,23 @@
       .forEach(function (it) {
         const fonte = Math.max(13, it.r * 0.95);
         out.push('<circle cx="' + it.x.toFixed(1) + '" cy="' + it.y.toFixed(1) +
-          '" r="' + (it.r + 4).toFixed(1) + '" fill="rgba(240,128,14,.16)"/>');
+          '" r="' + (it.r + 4).toFixed(1) + '" fill="rgba(240,128,14,.22)"/>');
         out.push('<circle cx="' + it.x.toFixed(1) + '" cy="' + it.y.toFixed(1) +
-          '" r="' + it.r.toFixed(1) + '" fill="#F0800E" ' +
-          'stroke="#1a1105" stroke-width="2"/>');
+          '" r="' + it.r.toFixed(1) + '" fill="' + T.pino + '" ' +
+          'stroke="' + T.pinoBorda + '" stroke-width="2"/>');
         out.push('<text x="' + it.x.toFixed(1) + '" y="' +
           (it.y + fonte * 0.35).toFixed(1) + '" text-anchor="middle" ' +
           'font-size="' + fonte.toFixed(0) + '" font-weight="800" ' +
-          'fill="#1a1105">' + it.p.qtd + "</text>");
+          'fill="' + T.pinoTexto + '">' + it.p.qtd + "</text>");
       });
 
     /* --- rotulos por ultimo, sempre legiveis --- */
     rotulados.forEach(function (it) {
       out.push('<text x="' + it.rx.toFixed(1) + '" y="' + it.ry.toFixed(1) +
-        '" text-anchor="' + it.ancora + '" font-size="15" font-weight="800" ' +
-        'fill="#F6F4F0" stroke="#0b0a09" stroke-width="3.5" ' +
+        '" text-anchor="' + it.ancora + '" font-size="16" font-weight="800" ' +
+        'fill="' + T.rotulo + '" stroke="' + T.halo + '" stroke-width="4" ' +
         'paint-order="stroke">' + esc(it.p.cidade) + "/" + esc(it.p.uf) +
-        ' <tspan fill="#F0800E">' + it.p.qtd + "</tspan></text>");
+        ' <tspan fill="#C4650A">' + it.p.qtd + "</tspan></text>");
     });
 
     out.push("</svg>");
