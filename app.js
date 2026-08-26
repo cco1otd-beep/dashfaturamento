@@ -1218,7 +1218,13 @@
     ["OMS5", "Segunda-feira apura 3 dias consolidados (soma das contagens + média simples dos percentuais)."],
     ["ENT1", "Controle de Entregas em 4 status exclusivos: Finalizadas → Em descarga → Em viagem → Destinado. Só Finalizadas filtra pelo dia avaliado."],
     ["ENT2", "<b>Cargas em Atraso</b> é o complemento da OMS: a OMS mede o que <b>já foi atendido</b> (no prazo ou não); esta lista mostra o que <b>ainda não chegou</b> e já passou do prazo. Entra só romaneio <b>em aberto</b>: coleta sem <b>Dt. Carga (I)</b> (prazo = programação de carregamento do lcargas) e entrega já carregada mas sem <b>Dt. Descarga (I)</b> (prazo = previsão de entrega do lcargas), sempre comparados com o horário de geração da base. Romaneio sem prazo cadastrado fica de fora e é contado à parte."],
-    ["ENT3", "Severidade em Cargas em Atraso segue a mesma régua da OMS2: ≥ 8h <b>Crítico</b> · 2h–8h <b>Atenção</b> · &lt; 2h <b>Leve</b>. Nas rotas da regra OMS1b o prazo de coleta usado é o da LVIAGENS."]
+    ["ENT3", "Severidade em Cargas em Atraso segue a mesma régua da OMS2: ≥ 8h <b>Crítico</b> · 2h–8h <b>Atenção</b> · &lt; 2h <b>Leve</b>. Nas rotas da regra OMS1b o prazo de coleta usado é o da LVIAGENS."],
+    ["M1", "<b>Rodando só opera com pedido.</b> No segmento Rodando, veículo <b>Destinado</b> com <b>Pedido/shipment em branco</b> está parado sem utilidade e sai de TODAS as contas do painel — contador, mapa e listas de ação. Na base de estreia isso tirou 286 dos 300 \"Destinado\" do Rodando."],
+    ["M2", "<b>Documento pendente ignora dois casos.</b> Carga <b>internacional</b> (UF \"EX\") não entra, e <b>Ponta Grossa × Ponta Grossa</b> também não: pela regra R8 essa rota nunca emite CT-e, o faturamento é simulado."],
+    ["M3", "Os campos de tempo do lmonitoramento (<b>Tempo evento</b> e <b>Tempo parado</b>) são <b>acumulados</b>: \"30:00\" são trinta horas, não seis. Lidos direto, sem tratar virada de dia."],
+    ["M4", "Veículo <b>sem posição registrada</b> entra na tela de 12h marcado como \"sem rastreio\", em vez de ficar invisível."],
+    ["M5", "Motorista <b>DAVID DE AZEVEDO</b> é código interno de <b>veículo sem motorista</b> — gera a lista para o RH contratar."],
+    ["M6", "<b>MDF-e emitido pelo cliente.</b> Quando o remetente é <b>TIROL</b>, a falta de MDF-e <b>não é pendência</b>: a emissão é automática do cliente, então se há CT-e, há MDF-e. O <b>CT-e</b> faltando continua sendo cobrado normalmente. Confirmado com o gestor em 26/08/2026."]
   ];
 
   function abaRegras() {
