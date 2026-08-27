@@ -835,7 +835,22 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-mon-cab .nm{
   font-size:24px; font-weight:800; color:#F0800E; letter-spacing:.3px;
 }
-.tv-mon-cab .qt{ font-size:15px; color:#6E6A62; font-weight:700; }
+.tv-mon-cab .qt{ font-size:15px; color:#6E6A62; font-weight:700; flex:0 0 auto; }
+/* Titulo da tela ao lado do segmento, em branco (pedido de 27/08): quem passa
+   na sala precisa saber o que esta olhando sem ler o cabecalho la em cima.
+   flex:1 empurra a contagem para a direita sem depender de gap. */
+.tv-mon-cab .nm{ flex:0 0 auto; }
+.tv-mon-cab .tl{
+  flex:1 1 auto; min-width:0; margin-left:14px; margin-right:14px;
+  font-size:19px; font-weight:800; color:#FFFFFF; letter-spacing:.6px;
+  text-transform:uppercase; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.tv-mon-tl{ color:#FFFFFF !important; letter-spacing:.6px; text-transform:uppercase; }
+/* a coluna lateral do mapa e estreita: titulo menor para nao virar reticencia */
+.tv-mon-mapa-lado .tv-mon-cab .tl{ font-size:16px; margin-left:10px; margin-right:10px; }
+.tv-mon-mapa-lado .tv-mon-cab .nm{ font-size:21px; }
+.tv-mon-mapa-lado .tv-mon-cab .qt{ font-size:13px; }
 
 /* --- cards do contador --- */
 .tv-mon-grid{

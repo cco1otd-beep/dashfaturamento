@@ -15,7 +15,8 @@
    bug e de layout, nunca de criterio.
 
    Parametros de URL:
-     ?tela=contador|mapa|vazios|retidos|parados|documentos|rastreio|motorista|insights
+     ?tela=contador|mapa_bens|mapa_latas|mapa_pranchas|mapa_rodando|vazios|
+           retidos|parados|documentos|rastreio|motorista|insights
                                    fixa UMA tela (TV dedicada a um assunto)
      ?slide=20                     segundos por tela (padrao 20)
      ?pagina=5                     segundos por alternancia de operacao
@@ -63,6 +64,17 @@
     return '<div class="tv-mon-colunas" id="' + id + '"></div>';
   }
 
+  /* Titulo curto da tela em exibicao. Fica ao lado do nome do segmento, em
+     branco - pedido do gestor em 27/08: na parede o titulo do cabecalho e
+     pequeno demais, e quem passa na sala nao sabe o que esta olhando. */
+  let TITULO = "";
+
+  function cabecalho(rot, direita) {
+    return '<div class="tv-mon-cab"><span class="nm">' + E(rot) + "</span>" +
+      '<span class="tl">' + E(TITULO) + "</span>" +
+      '<span class="qt">' + direita + "</span></div>";
+  }
+
   /* Registra o bloco que troca as operacoes e delega o conteudo de cada
      coluna para monta(op) - assim toda tela ganha a alternancia de graca. */
   function paginarOperacoes(id, monta) {
@@ -73,9 +85,9 @@
       el.className = "tv-mon-colunas" + (ops.length === 1 ? " uma" : "");
       el.innerHTML = ops.map(function (op) {
         return '<div class="tv-mon-col">' +
-          '<div class="tv-mon-cab"><span class="nm">' + E(op.rot) + "</span>" +
-          '<span class="qt">' + OTD.fmtNum(OTD.monitorContador(op.segs).total) +
-          " veículos</span></div>" + monta(op) + "</div>";
+          cabecalho(op.rot, OTD.fmtNum(OTD.monitorContador(op.segs).total) +
+                    " veículos") +
+          monta(op) + "</div>";
       }).join("");
     });
   }
@@ -110,6 +122,7 @@
   telas.push({
     id: "contador",
     titulo: "Situação da Frota Agora",
+    curto: "SITUAÇÃO DA FROTA",
     html: function () { return colunasHtml("monContador"); },
     after: function () {
       paginarOperacoes("monContador", function (op) {
@@ -130,35 +143,43 @@
     }
   });
 
-  /* --- 2. Mapa da frota -------------------------------------------------- */
-  telas.push({
-    id: "mapa",
-    titulo: "Onde Está a Frota",
-    html: function () {
-      return '<div class="tv-mon-mapa-wrap">' +
-        '<div class="tv-mon-mapa" id="monMapa"></div>' +
-        '<div class="tv-mon-mapa-lado" id="monMapaLado"></div></div>';
-    },
-    after: function () {
-      registraBloco(PAGINAS.length, function (p) {
-        const ops = PAGINAS[p % PAGINAS.length];
-        const segs = ops.reduce(function (a, o) { return a.concat(o.segs); }, []);
-        const pts = OTD.monitorMapa(segs);
-        const el = document.getElementById("monMapa");
+  /* --- 2 a 5. Mapa da frota, UMA TELA POR SEGMENTO ----------------------- */
+  /* Ate 27/08 era uma tela so, com Bens+Latas somados no mesmo mapa e as
+     Pranchas alternando. Na parede isso nao respondia a pergunta que a sala
+     faz ("onde estao MEUS carros?"): dois segmentos no mesmo desenho viram
+     uma nuvem de pinos. Agora cada segmento tem o seu mapa, 20s inteiros. */
+  const MAPAS = [
+    { id: "mapa_bens",     rot: "Bens de Consumo", segs: ["BENS DE CONSUMO"] },
+    { id: "mapa_latas",    rot: "Latas",           segs: ["LATAS"] },
+    { id: "mapa_pranchas", rot: "Pranchas",        segs: ["PRANCHA"] },
+    { id: "mapa_rodando",  rot: "Rodando",         segs: ["AUTOPROPULSOR"] }
+  ];
+
+  MAPAS.forEach(function (mp) {
+    telas.push({
+      id: mp.id,
+      titulo: "Onde Está a Frota — " + mp.rot,
+      curto: "LOCALIZAÇÃO",
+      html: function () {
+        return '<div class="tv-mon-mapa-wrap">' +
+          '<div class="tv-mon-mapa" id="' + mp.id + '_m"></div>' +
+          '<div class="tv-mon-mapa-lado" id="' + mp.id + '_l"></div></div>';
+      },
+      after: function () {
+        const pts = OTD.monitorMapa(mp.segs);
+        const el = document.getElementById(mp.id + "_m");
         if (el) {
           el.innerHTML = window.OTD_MAPA
             ? OTD_MAPA.desenhar(pts, { largura: 900, altura: 1020, escape: E })
             : vazioHtml("mapa indisponível");
         }
-        const lado = document.getElementById("monMapaLado");
+        const lado = document.getElementById(mp.id + "_l");
         if (!lado) return;
-        const rot = ops.map(function (o) { return o.rot; }).join(" + ");
+        const total = pts.reduce(function (a, g) { return a + g.qtd; }, 0);
         const semLoc = (M && M.semCoordenada) || [];
         const totalSem = semLoc.reduce(function (a, g) { return a + g.qtd; }, 0);
         lado.innerHTML =
-          '<div class="tv-mon-cab"><span class="nm">' + E(rot) + "</span>" +
-          '<span class="qt">' + OTD.fmtNum(pts.reduce(function (a, g) {
-            return a + g.qtd; }, 0)) + " posicionados</span></div>" +
+          cabecalho(mp.rot, OTD.fmtNum(total) + " no mapa") +
           '<div class="tv-mon-cidades">' +
           (pts.length ? pts.slice(0, 9).map(function (g) {
             return '<div class="tv-mon-cidade"><span class="q num">' + g.qtd +
@@ -167,14 +188,15 @@
           "</div>" +
           (totalSem ? '<div class="tv-mon-nota">⚠️ ' + OTD.fmtNum(totalSem) +
             " sem localização precisa — o ponto de referência não traz a cidade</div>" : "");
-      });
-    }
+      }
+    });
   });
 
   /* --- 3. Vazios: precisam de destino ------------------------------------ */
   telas.push({
     id: "vazios",
     titulo: "Vazios — Precisam de Destino",
+    curto: "VAZIOS — DESTINAR",
     html: function () { return colunasHtml("monVazios"); },
     after: function () {
       paginarOperacoes("monVazios", function (op) {
@@ -194,6 +216,7 @@
   telas.push({
     id: "retidos",
     titulo: "Retidos em Carga e Descarga — Acionar Cliente",
+    curto: "RETIDOS — ACIONAR CLIENTE",
     html: function () { return colunasHtml("monRetidos"); },
     after: function () {
       paginarOperacoes("monRetidos", function (op) {
@@ -217,6 +240,7 @@
   telas.push({
     id: "parados",
     titulo: "Parados em Viagem — Verificar Pernoite",
+    curto: "PARADOS EM VIAGEM",
     html: function () { return colunasHtml("monParados"); },
     after: function () {
       paginarOperacoes("monParados", function (op) {
@@ -238,6 +262,7 @@
   telas.push({
     id: "documentos",
     titulo: "Documento Pendente — Emitir com Urgência",
+    curto: "DOCUMENTO PENDENTE",
     html: function () { return colunasHtml("monDocs"); },
     after: function () {
       paginarOperacoes("monDocs", function (op) {
@@ -259,6 +284,7 @@
   telas.push({
     id: "rastreio",
     titulo: "Sem Posicionar — Verificar Rastreio",
+    curto: "SEM POSICIONAR",
     html: function () { return colunasHtml("monRastreio"); },
     after: function () {
       paginarOperacoes("monRastreio", function (op) {
@@ -286,6 +312,7 @@
   telas.push({
     id: "motorista",
     titulo: "Veículo sem Motorista — RH Contratar",
+    curto: "SEM MOTORISTA",
     html: function () { return colunasHtml("monMot"); },
     after: function () {
       paginarOperacoes("monMot", function (op) {
@@ -314,9 +341,12 @@
   telas.push({
     id: "insights",
     titulo: "Alertas & Insights",
+    curto: "ALERTAS & INSIGHTS",
     html: function () {
       return '<div class="tv-full"><div class="card panel"><div class="phead">' +
-        '<span class="ptitle">Leitura automática do monitoramento</span>' +
+        '<span class="ptitle tv-mon-tl">' + E(TITULO) + "</span>" +
+        '<span class="ptitle" style="color:#ABA69C;font-weight:700">' +
+        "Leitura automática do monitoramento</span>" +
         '<span class="pcount tv-pag" id="monInsPag"></span></div>' +
         '<div class="tv-repom-insights" id="monIns"></div></div></div>';
     },
@@ -370,6 +400,8 @@
 
     const slides = document.querySelectorAll(".tv-slide");
     const t = SLIDES[atual];
+    /* antes do html(): os cabecalhos leem TITULO na montagem */
+    TITULO = t.curto || t.titulo || "";
     slides[atual].innerHTML = t.html();
     slides.forEach(function (s, k) { s.classList.toggle("on", k === atual); });
     document.querySelectorAll("#tvDots i").forEach(function (d, k) {
