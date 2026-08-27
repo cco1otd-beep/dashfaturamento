@@ -1,7 +1,7 @@
 /* ===========================================================================
    MAPA DA OPERACAO - OTD LOGISTICS
-   mapa_sa.js - pinta de laranja o ESTADO (ou o PAIS) onde a frota esta e
-   escreve dentro dele, em preto, quantos veiculos tem ali.
+   mapa_sa.js - pinta de laranja o ESTADO (Brasil) ou a PROVINCIA (vizinhos)
+   onde a frota esta e escreve dentro dela, em preto, quantos veiculos tem ali.
 
    Por que SVG desenhado aqui e nao uma biblioteca de mapa: o telao roda num
    Raspberry sem internet garantida, e qualquer mapa de tiles (Leaflet, Google)
@@ -12,8 +12,11 @@
      2. costa + divisas reais, com pinos -> os circulos de cidade se cobriam no
                                             Sudeste, e o mapa mostrava a America
                                             do Sul inteira, longe demais
-     3. (esta) regiao PINTADA + numero em preto, agrupando por estado/pais, e
-        zoom automatico na area onde a frota esta.
+     3. regiao PINTADA + numero em preto, com zoom automatico. Mas os vizinhos
+        vinham de uma base grosseira: "ficou horrivel o Mercosul", e 25 carros
+        em Jujuy pintavam a Argentina INTEIRA;
+     4. (esta) os vizinhos passam a ser PROVINCIAS (Natural Earth admin-1), com
+        o mesmo acabamento dos estados do IBGE.
 
    Projecao equirretangular (lat/lon direto para x/y).
    =========================================================================== */
@@ -102,7 +105,7 @@
         r = porId[uf];                       /* estado do Brasil: vem no dado */
       } else if (p.lon != null && p.lat != null) {
         /* carga internacional (UF "EX") ou UF em branco: descobre pelo ponto */
-        r = regiaoNoPonto(regioes, p.lon, p.lat, uf === "EX" ? "pais" : null) ||
+        r = regiaoNoPonto(regioes, p.lon, p.lat, uf === "EX" ? "prov" : null) ||
             regiaoNoPonto(regioes, p.lon, p.lat, null);
       }
       if (!r) { fora.push(p); return; }
@@ -115,24 +118,18 @@
   /* JANELA (o zoom)                                                        */
   /* ---------------------------------------------------------------------- */
   /**
-   * Comeca na janela base e SO abre - nunca fecha. Estado com carro entra
-   * inteiro (o poligono todo precisa aparecer); pais com carro entra so pela
-   * ancora, senao um caminhao no Peru jogaria o continente inteiro na tela e
-   * mataria o zoom.
+   * Comeca na janela base e SO abre - nunca fecha. Regiao com carro entra
+   * INTEIRA: o poligono todo precisa aparecer, senao a mancha laranja fica
+   * cortada na borda (foi o que aconteceu quando o mapa pintava o pais inteiro).
    */
   function janelaDe(regioes, porRegiao, foraDoMapa) {
     let lon0 = BASE.lon0, lon1 = BASE.lon1, lat0 = BASE.lat0, lat1 = BASE.lat1;
 
     regioes.forEach(function (r) {
       if (!porRegiao[r.id]) return;
-      if (r.tipo === "uf") {
-        const c = caixaDe(r.aneis);
-        lon0 = Math.min(lon0, c.x0); lon1 = Math.max(lon1, c.x1);
-        lat0 = Math.min(lat0, c.y0); lat1 = Math.max(lat1, c.y1);
-      } else {
-        lon0 = Math.min(lon0, r.ponto[0] - 2); lon1 = Math.max(lon1, r.ponto[0] + 2);
-        lat0 = Math.min(lat0, r.ponto[1] - 2); lat1 = Math.max(lat1, r.ponto[1] + 2);
-      }
+      const c = caixaDe(r.aneis);
+      lon0 = Math.min(lon0, c.x0); lon1 = Math.max(lon1, c.x1);
+      lat0 = Math.min(lat0, c.y0); lat1 = Math.max(lat1, c.y1);
     });
     (foraDoMapa || []).forEach(function (p) {
       if (p.lon == null || p.lat == null) return;
@@ -244,7 +241,7 @@
           (p[1] + fonte * 0.34 + fonte * 0.5).toFixed(1) +
           '" text-anchor="middle" font-size="' + (fonte * 0.32).toFixed(0) +
           '" font-weight="800" fill="' + T.sigla + '" opacity=".8">' +
-          esc(r.id) + "</text>");
+          esc(r.rot || r.id) + "</text>");
       }
     });
 
@@ -270,7 +267,8 @@
         out.push('<text x="' + (x - RAIO - 10).toFixed(1) + '" y="' +
           (y + 7).toFixed(1) + '" text-anchor="end" font-size="20" ' +
           'font-weight="800" fill="' + T.rotulo + '" stroke="' + T.halo +
-          '" stroke-width="4" paint-order="stroke">' + esc(bl.r.id) + "</text>");
+          '" stroke-width="4" paint-order="stroke">' +
+          esc(bl.r.rot || bl.r.id) + "</text>");
       });
     }
 
