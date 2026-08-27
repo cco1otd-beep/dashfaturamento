@@ -1930,7 +1930,10 @@
       '<span class="lbl">Segmento</span>' + chips + "</div></div>" +
       '<div class="grid g-3" id="monKpis"></div>' +
       secao("Onde Está a Frota") +
-      '<div class="card"><div class="phead"><span class="ptitle">Mapa da frota</span>' +
+      /* precisa da classe "panel": o flex do .phead so existe dentro dela -
+         sem ela o titulo e a contagem saem colados ("Mapa da frota16 cidades") */
+      '<div class="card panel"><div class="phead">' +
+      '<span class="ptitle">Mapa da frota</span>' +
       '<span class="pcount" id="monMapaCnt"></span></div>' +
       '<div id="monMapaDash" style="height:560px;display:flex;' +
       'align-items:center;justify-content:center"></div></div>' +

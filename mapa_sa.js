@@ -1,192 +1,282 @@
 /* ===========================================================================
-   MAPA DA AMERICA DO SUL - OTD LOGISTICS
-   mapa_sa.js - contorno do continente, divisas e pinos de caminhao.
+   MAPA DA OPERACAO - OTD LOGISTICS
+   mapa_sa.js - pinta de laranja o ESTADO (ou o PAIS) onde a frota esta e
+   escreve dentro dele, em preto, quantos veiculos tem ali.
 
-   Por que SVG desenhado a mao e nao uma biblioteca de mapa: o telao roda num
+   Por que SVG desenhado aqui e nao uma biblioteca de mapa: o telao roda num
    Raspberry sem internet garantida, e qualquer mapa de tiles (Leaflet, Google)
-   depende de rede. E uma silhueta SIMPLIFICADA - precisa ser reconhecivel a 3
-   metros, nao ser cartografia.
+   depende de rede. A geometria vem estatica do mapa_geo.js.
 
-   Duas coisas resolvidas na 2a versao, pedidas depois de ver na parede:
-     1. DIVISAS - so o contorno externo nao dava referencia nenhuma; agora tem
-        fronteira dos paises vizinhos e divisa dos estados onde a frota opera;
-     2. ROTULOS COM LINHA DE CHAMADA - no Sudeste as cidades ficam a poucos
-        pixels uma da outra e os nomes se cobriam. Agora o rotulo e empurrado
-        para uma coluna lateral livre e ligado ao pino por uma linha fina.
+   As tres versoes, porque cada uma corrigiu um defeito visto na parede:
+     1. silhueta desenhada a mao         -> "ficou futurista, queria desenho real"
+     2. costa + divisas reais, com pinos -> os circulos de cidade se cobriam no
+                                            Sudeste, e o mapa mostrava a America
+                                            do Sul inteira, longe demais
+     3. (esta) regiao PINTADA + numero em preto, agrupando por estado/pais, e
+        zoom automatico na area onde a frota esta.
 
    Projecao equirretangular (lat/lon direto para x/y).
    =========================================================================== */
 (function (global) {
   "use strict";
 
-  const LON0 = -82, LON1 = -33, LAT0 = -41, LAT1 = 13;
+  /* Janela base - o "zoom" pedido pelo gestor em 27/08: corta o extremo norte
+     e o extremo sul, que a operacao nao toca. Se algum veiculo cair fora, a
+     janela se abre sozinha (ver janelaDe): preferimos perder o zoom a esconder
+     caminhao. */
+  const BASE = { lon0: -70, lon1: -34.5, lat0: -34.5, lat1: -9.5 };
+  const MARGEM = 1.2;               /* graus de folga ao redor do conteudo */
 
-  /* A geometria vem do mapa_geo.js (costa GSHHS + fronteiras e divisas
-     estaduais WDB), gerado por gerar_mapa_geo.py. A 1a e a 2a versao usavam
-     poligonos tracados a mao e ficavam com cara de esquema, nao de mapa. */
-  function GEO() { return global.OTD_GEO || { costa: [], paises: [], estados: [] }; }
-
-  function projetar(lon, lat, w, h) {
-    return [
-      ((lon - LON0) / (LON1 - LON0)) * w,
-      ((LAT1 - lat) / (LAT1 - LAT0)) * h
-    ];
-  }
-
-  function traco(pontos, w, h, fechar) {
-    return pontos.map(function (p, i) {
-      const xy = projetar(p[0], p[1], w, h);
-      return (i ? "L" : "M") + xy[0].toFixed(1) + " " + xy[1].toFixed(1);
-    }).join(" ") + (fechar ? " Z" : "");
-  }
-
-  function raio(qtd, maxQtd) {
-    const base = 14;
-    if (!maxQtd || maxQtd <= 1) return base;
-    return base + 12 * Math.sqrt(Math.min(qtd, maxQtd) / maxQtd);
-  }
-
-  /**
-   * Coloca os rotulos numa COLUNA lateral, sem sobrepor, e devolve para cada
-   * um a posicao final. O pino fica onde a geografia manda; so o texto se
-   * afasta - e a linha de chamada mantem a ligacao visivel.
-   */
-  function posicionarRotulos(itens, w, h) {
-    const ALTURA = 21;                 /* espaco vertical minimo entre rotulos */
-    const dir = [], esq = [];
-    itens.forEach(function (it) {
-      (it.x > w * 0.52 ? dir : esq).push(it);
-    });
-
-    function acomodar(lista, x, ancora) {
-      lista.sort(function (a, b) { return a.y - b.y; });
-      let ultimo = -Infinity;
-      lista.forEach(function (it) {
-        let y = Math.max(it.y, ultimo + ALTURA);
-        y = Math.min(y, h - 8);
-        ultimo = y;
-        it.rx = x;
-        it.ry = y;
-        it.ancora = ancora;
-      });
-      /* se estourou embaixo, sobe o bloco inteiro mantendo o espacamento */
-      const excesso = ultimo - (h - 8);
-      if (excesso > 0) lista.forEach(function (it) { it.ry -= excesso; });
-    }
-
-    acomodar(dir, w - 6, "end");
-    acomodar(esq, 6, "start");
-    return itens;
-  }
-
-  /**
-   * desenhar(pontos, opcoes) -> string com o <svg> pronto.
-   * pontos: [{cidade, uf, lat, lon, qtd, porStatus}]
-   */
-  /* Duas paletas. O tema CLARO e o padrao no telao: sobre fundo preto as
-     divisas de estado somem (foi o defeito da 1a versao) - no claro elas
-     aparecem em cinza-escuro, como num mapa de papel. */
   const TEMAS = {
     claro: {
-      fundo: "#EFEAE1", mar: "#DCD5C8", terra: "#F7F4EE", brasil: "#FFFDF9",
-      contorno: "#8A8072", fronteira: "#6E6558", estado: "#B3A895",
-      pino: "#F0800E", pinoBorda: "#7A3D00", pinoTexto: "#FFFFFF",
-      rotulo: "#2A241D", halo: "#F7F4EE", chamada: "#8A8072"
+      mar: "#DCD5C8", terra: "#F3EFE7", divisa: "#B3A895", contorno: "#8A8072",
+      ativa: "#F0800E", ativaBorda: "#A9540A", numero: "#1A1105",
+      sigla: "#3B2A12", chamada: "#8A8072", rotulo: "#2A241D", halo: "#F7F4EE"
     },
     escuro: {
-      fundo: "none", mar: "#141110", terra: "#1b1613", brasil: "#221b16",
-      contorno: "#4a4238", fronteira: "#5a5148", estado: "#3a332b",
-      pino: "#F0800E", pinoBorda: "#1a1105", pinoTexto: "#1a1105",
-      rotulo: "#F6F4F0", halo: "#0b0a09", chamada: "#5a5148"
+      mar: "#141110", terra: "#1b1613", divisa: "#3a332b", contorno: "#4a4238",
+      ativa: "#F0800E", ativaBorda: "#7A3D00", numero: "#1a1105",
+      sigla: "#2A1A08", chamada: "#5a5148", rotulo: "#F6F4F0", halo: "#0b0a09"
     }
   };
 
+  function GEO() { return global.OTD_GEO || { regioes: [], costa: [] }; }
+
+  /* ---------------------------------------------------------------------- */
+  /* GEOMETRIA                                                              */
+  /* ---------------------------------------------------------------------- */
+  function dentroDoAnel(anel, lon, lat) {
+    let dentro = false;                       /* ray casting classico */
+    for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+      const xi = anel[i][0], yi = anel[i][1];
+      const xj = anel[j][0], yj = anel[j][1];
+      if ((yi > lat) !== (yj > lat) &&
+          lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+        dentro = !dentro;
+      }
+    }
+    return dentro;
+  }
+
+  function regiaoNoPonto(regioes, lon, lat, tipo) {
+    for (let k = 0; k < regioes.length; k++) {
+      const r = regioes[k];
+      if (tipo && r.tipo !== tipo) continue;
+      for (let a = 0; a < r.aneis.length; a++) {
+        if (dentroDoAnel(r.aneis[a], lon, lat)) return r;
+      }
+    }
+    return null;
+  }
+
+  function caixaDe(aneis) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    aneis.forEach(function (a) {
+      a.forEach(function (p) {
+        if (p[0] < x0) x0 = p[0];
+        if (p[0] > x1) x1 = p[0];
+        if (p[1] < y0) y0 = p[1];
+        if (p[1] > y1) y1 = p[1];
+      });
+    });
+    return { x0: x0, x1: x1, y0: y0, y1: y1 };
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* AGRUPAMENTO: cidade -> estado / pais                                   */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * pontos: [{cidade, uf, lat, lon, qtd}] - o que o pipeline ja entrega.
+   * Devolve { porRegiao: {id: qtd}, foraDoMapa: [pontos sem regiao] }.
+   */
+  function agrupar(pontos, regioes) {
+    const porRegiao = {};
+    const fora = [];
+    const porId = {};
+    regioes.forEach(function (r) { porId[r.id] = r; });
+
+    (pontos || []).forEach(function (p) {
+      const uf = String(p.uf || "").toUpperCase();
+      let r = null;
+      if (uf && uf !== "EX" && porId[uf]) {
+        r = porId[uf];                       /* estado do Brasil: vem no dado */
+      } else if (p.lon != null && p.lat != null) {
+        /* carga internacional (UF "EX") ou UF em branco: descobre pelo ponto */
+        r = regiaoNoPonto(regioes, p.lon, p.lat, uf === "EX" ? "pais" : null) ||
+            regiaoNoPonto(regioes, p.lon, p.lat, null);
+      }
+      if (!r) { fora.push(p); return; }
+      porRegiao[r.id] = (porRegiao[r.id] || 0) + (p.qtd || 0);
+    });
+    return { porRegiao: porRegiao, foraDoMapa: fora };
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* JANELA (o zoom)                                                        */
+  /* ---------------------------------------------------------------------- */
+  /**
+   * Comeca na janela base e SO abre - nunca fecha. Estado com carro entra
+   * inteiro (o poligono todo precisa aparecer); pais com carro entra so pela
+   * ancora, senao um caminhao no Peru jogaria o continente inteiro na tela e
+   * mataria o zoom.
+   */
+  function janelaDe(regioes, porRegiao, foraDoMapa) {
+    let lon0 = BASE.lon0, lon1 = BASE.lon1, lat0 = BASE.lat0, lat1 = BASE.lat1;
+
+    regioes.forEach(function (r) {
+      if (!porRegiao[r.id]) return;
+      if (r.tipo === "uf") {
+        const c = caixaDe(r.aneis);
+        lon0 = Math.min(lon0, c.x0); lon1 = Math.max(lon1, c.x1);
+        lat0 = Math.min(lat0, c.y0); lat1 = Math.max(lat1, c.y1);
+      } else {
+        lon0 = Math.min(lon0, r.ponto[0] - 2); lon1 = Math.max(lon1, r.ponto[0] + 2);
+        lat0 = Math.min(lat0, r.ponto[1] - 2); lat1 = Math.max(lat1, r.ponto[1] + 2);
+      }
+    });
+    (foraDoMapa || []).forEach(function (p) {
+      if (p.lon == null || p.lat == null) return;
+      lon0 = Math.min(lon0, p.lon - 1); lon1 = Math.max(lon1, p.lon + 1);
+      lat0 = Math.min(lat0, p.lat - 1); lat1 = Math.max(lat1, p.lat + 1);
+    });
+
+    return {
+      lon0: lon0 - MARGEM, lon1: lon1 + MARGEM,
+      lat0: lat0 - MARGEM, lat1: lat1 + MARGEM
+    };
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* DESENHO                                                                */
+  /* ---------------------------------------------------------------------- */
   function desenhar(pontos, opcoes) {
     opcoes = opcoes || {};
-    const w = opcoes.largura || 900;
-    const h = opcoes.altura || 1000;
     const esc = opcoes.escape || function (s) { return s; };
-    const maxRot = opcoes.maxRotulos || 8;
     const T = TEMAS[opcoes.tema === "escuro" ? "escuro" : "claro"];
-    const maxQtd = pontos.reduce(function (a, p) { return Math.max(a, p.qtd); }, 0);
+    const geo = GEO();
+    const regioes = geo.regioes || [];
+
+    const ag = agrupar(pontos, regioes);
+    const J = janelaDe(regioes, ag.porRegiao, ag.foraDoMapa);
+
+    /* o viewBox segue a proporcao da janela: sem isso sobram tarjas vazias
+       enormes dos lados, que era o defeito da versao anterior */
+    const larguraGraus = J.lon1 - J.lon0;
+    const alturaGraus = J.lat1 - J.lat0;
+    const H = 900;
+    const W = Math.round(H * (larguraGraus / alturaGraus));
+
+    function px(lon, lat) {
+      return [
+        ((lon - J.lon0) / larguraGraus) * W,
+        ((J.lat1 - lat) / alturaGraus) * H
+      ];
+    }
+    function caminho(pts, fechar) {
+      let d = "";
+      for (let i = 0; i < pts.length; i++) {
+        const xy = px(pts[i][0], pts[i][1]);
+        d += (i ? "L" : "M") + xy[0].toFixed(1) + " " + xy[1].toFixed(1);
+      }
+      return d + (fechar ? "Z" : "");
+    }
 
     const out = [];
-    out.push('<svg viewBox="0 0 ' + w + " " + h + '" ' +
+    out.push('<svg viewBox="0 0 ' + W + " " + H + '" ' +
       'preserveAspectRatio="xMidYMid meet" class="mapa-sa">');
-    out.push('<defs><marker id="setaMapa" viewBox="0 0 10 10" refX="9" refY="5" ' +
-      'markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
-      '<path d="M0 0 L10 5 L0 10 z" fill="' + T.chamada + '"/></marker></defs>');
+    out.push('<rect x="0" y="0" width="' + W + '" height="' + H +
+      '" rx="14" fill="' + T.mar + '"/>');
 
-    if (T.fundo !== "none") {
-      out.push('<rect x="0" y="0" width="' + w + '" height="' + h +
-        '" rx="14" fill="' + T.mar + '"/>');
+    /* --- silhueta do continente: contexto do que nao e regiao da lista ---- */
+    const silhueta = (geo.costa || []).map(function (c) {
+      return caminho(c, true);
+    }).join(" ");
+    if (silhueta) {
+      out.push('<path d="' + silhueta + '" fill="' + T.terra +
+        '" stroke="' + T.contorno + '" stroke-width="1" fill-rule="evenodd"/>');
     }
 
-    /* --- geografia real --- */
-    const geo = GEO();
-    /* a costa vem como poligonos fechados: preenche a terra de uma vez */
-    const terra = geo.costa.map(function (c) { return traco(c, w, h, true); }).join(" ");
-    if (terra) {
-      out.push('<path d="' + terra + '" fill="' + T.terra + '" ' +
-        'stroke="' + T.contorno + '" stroke-width="1.4" fill-rule="evenodd"/>');
-    }
-    geo.estados.forEach(function (e) {
-      out.push('<path d="' + traco(e, w, h, false) + '" fill="none" ' +
-        'stroke="' + T.estado + '" stroke-width="0.9"/>');
-    });
-    geo.paises.forEach(function (f) {
-      out.push('<path d="' + traco(f, w, h, false) + '" fill="none" ' +
-        'stroke="' + T.fronteira + '" stroke-width="1.5"/>');
+    const inativas = [], ativas = [];
+    regioes.forEach(function (r) {
+      (ag.porRegiao[r.id] ? ativas : inativas).push(r);
     });
 
-    /* --- prepara os pinos --- */
-    const itens = pontos.map(function (p) {
-      const xy = projetar(p.lon, p.lat, w, h);
-      return { p: p, x: xy[0], y: xy[1], r: raio(p.qtd, maxQtd) };
+    /* --- regioes sem veiculo: fundo neutro, so para dar a divisa ---------- */
+    inativas.forEach(function (r) {
+      const d = r.aneis.map(function (a) { return caminho(a, true); }).join(" ");
+      out.push('<path d="' + d + '" fill="' + T.terra + '" stroke="' +
+        T.divisa + '" stroke-width="1" stroke-linejoin="round"/>');
     });
 
-    /* rotulo so nos maiores; a lista ao lado do mapa nomeia todas as cidades */
-    const rotulados = itens.slice()
-      .sort(function (a, b) { return b.p.qtd - a.p.qtd; })
-      .slice(0, maxRot);
-    posicionarRotulos(rotulados, w, h);
-
-    /* --- linhas de chamada primeiro, para ficarem ATRAS dos pinos --- */
-    rotulados.forEach(function (it) {
-      const alvoX = it.ancora === "end" ? it.rx - 4 : it.rx + 4;
-      out.push('<path d="M' + it.x.toFixed(1) + " " + it.y.toFixed(1) +
-        " L" + alvoX.toFixed(1) + " " + (it.ry - 4).toFixed(1) +
-        '" fill="none" stroke="' + T.chamada + '" stroke-width="1.2" ' +
-        'marker-end="url(#setaMapa)"/>');
+    /* --- regioes COM veiculo: laranja --------------------------------------
+       Uma cor so, sem escala de intensidade: o numero ja diz a quantidade, e
+       degrade de laranja a 3 metros vira tudo igual. */
+    ativas.forEach(function (r) {
+      const d = r.aneis.map(function (a) { return caminho(a, true); }).join(" ");
+      out.push('<path d="' + d + '" fill="' + T.ativa + '" stroke="' +
+        T.ativaBorda + '" stroke-width="2" stroke-linejoin="round"/>');
     });
 
-    /* --- pinos: menores primeiro, maior por cima --- */
-    itens.slice().sort(function (a, b) { return a.p.qtd - b.p.qtd; })
-      .forEach(function (it) {
-        const fonte = Math.max(13, it.r * 0.95);
-        out.push('<circle cx="' + it.x.toFixed(1) + '" cy="' + it.y.toFixed(1) +
-          '" r="' + (it.r + 4).toFixed(1) + '" fill="rgba(240,128,14,.22)"/>');
-        out.push('<circle cx="' + it.x.toFixed(1) + '" cy="' + it.y.toFixed(1) +
-          '" r="' + it.r.toFixed(1) + '" fill="' + T.pino + '" ' +
-          'stroke="' + T.pinoBorda + '" stroke-width="2"/>');
-        out.push('<text x="' + it.x.toFixed(1) + '" y="' +
-          (it.y + fonte * 0.35).toFixed(1) + '" text-anchor="middle" ' +
-          'font-size="' + fonte.toFixed(0) + '" font-weight="800" ' +
-          'fill="' + T.pinoTexto + '">' + it.p.qtd + "</text>");
+    /* --- numeros ----------------------------------------------------------
+       Dentro da regiao quando cabe; num balao na lateral, com linha de
+       chamada, quando a regiao e pequena demais (DF, Sergipe, Alagoas). */
+    const baloes = [];
+    ativas.forEach(function (r) {
+      const qtd = ag.porRegiao[r.id];
+      const c = caixaDe(r.aneis);
+      const cantoA = px(c.x0, c.y1), cantoB = px(c.x1, c.y0);
+      const larg = Math.abs(cantoB[0] - cantoA[0]);
+      const alt = Math.abs(cantoB[1] - cantoA[1]);
+      const p = px(r.ponto[0], r.ponto[1]);
+      const texto = String(qtd);
+      /* 0,62 por caractere e a largura aproximada da fonte em peso 800 */
+      const cabe = larg > texto.length * 0.62 * 34 && alt > 46;
+
+      if (!cabe) { baloes.push({ r: r, qtd: qtd, x: p[0], y: p[1] }); return; }
+
+      const fonte = Math.max(28, Math.min(74, larg * 0.34, alt * 0.5));
+      out.push('<text x="' + p[0].toFixed(1) + '" y="' +
+        (p[1] + fonte * 0.34).toFixed(1) + '" text-anchor="middle" ' +
+        'font-size="' + fonte.toFixed(0) + '" font-weight="800" ' +
+        'fill="' + T.numero + '">' + texto + "</text>");
+      if (larg > 90 && alt > 90) {
+        out.push('<text x="' + p[0].toFixed(1) + '" y="' +
+          (p[1] + fonte * 0.34 + fonte * 0.5).toFixed(1) +
+          '" text-anchor="middle" font-size="' + (fonte * 0.32).toFixed(0) +
+          '" font-weight="800" fill="' + T.sigla + '" opacity=".8">' +
+          esc(r.id) + "</text>");
+      }
+    });
+
+    /* baloes empilhados na borda direita, sem se cobrir */
+    if (baloes.length) {
+      baloes.sort(function (u, v) { return u.y - v.y; });
+      const RAIO = 26, PASSO = 62;
+      let ultimo = -Infinity;
+      baloes.forEach(function (bl) {
+        let y = Math.max(bl.y, ultimo + PASSO);
+        y = Math.min(y, H - RAIO - 6);
+        ultimo = y;
+        const x = W - RAIO - 8;
+        out.push('<path d="M' + bl.x.toFixed(1) + " " + bl.y.toFixed(1) +
+          "L" + (x - RAIO).toFixed(1) + " " + y.toFixed(1) +
+          '" stroke="' + T.chamada + '" stroke-width="1.4" fill="none"/>');
+        out.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
+          '" r="' + RAIO + '" fill="' + T.ativa + '" stroke="' +
+          T.ativaBorda + '" stroke-width="2"/>');
+        out.push('<text x="' + x.toFixed(1) + '" y="' + (y + 8).toFixed(1) +
+          '" text-anchor="middle" font-size="24" font-weight="800" fill="' +
+          T.numero + '">' + bl.qtd + "</text>");
+        out.push('<text x="' + (x - RAIO - 10).toFixed(1) + '" y="' +
+          (y + 7).toFixed(1) + '" text-anchor="end" font-size="20" ' +
+          'font-weight="800" fill="' + T.rotulo + '" stroke="' + T.halo +
+          '" stroke-width="4" paint-order="stroke">' + esc(bl.r.id) + "</text>");
       });
-
-    /* --- rotulos por ultimo, sempre legiveis --- */
-    rotulados.forEach(function (it) {
-      out.push('<text x="' + it.rx.toFixed(1) + '" y="' + it.ry.toFixed(1) +
-        '" text-anchor="' + it.ancora + '" font-size="16" font-weight="800" ' +
-        'fill="' + T.rotulo + '" stroke="' + T.halo + '" stroke-width="4" ' +
-        'paint-order="stroke">' + esc(it.p.cidade) + "/" + esc(it.p.uf) +
-        ' <tspan fill="#C4650A">' + it.p.qtd + "</tspan></text>");
-    });
+    }
 
     out.push("</svg>");
     return out.join("");
   }
 
-  global.OTD_MAPA = { desenhar: desenhar, projetar: projetar };
+  global.OTD_MAPA = { desenhar: desenhar, agrupar: agrupar };
 })(window);
