@@ -15,8 +15,7 @@
    bug e de layout, nunca de criterio.
 
    Parametros de URL:
-     ?tela=contador|mapa_bens|mapa_latas|mapa_pranchas|mapa_rodando|vazios|
-           retidos|parados|documentos|rastreio|motorista|insights
+     ?tela=contador|mapa|vazios|retidos|parados|documentos|rastreio|motorista|insights
                                    fixa UMA tela (TV dedicada a um assunto)
      ?slide=20                     segundos por tela (padrao 20)
      ?pagina=5                     segundos por alternancia de operacao
@@ -143,37 +142,39 @@
     }
   });
 
-  /* --- 2 a 5. Mapa da frota, UMA TELA POR SEGMENTO ----------------------- */
-  /* Ate 27/08 era uma tela so, com Bens+Latas somados no mesmo mapa e as
-     Pranchas alternando. Na parede isso nao respondia a pergunta que a sala
-     faz ("onde estao MEUS carros?"): dois segmentos no mesmo desenho viram
-     uma nuvem de pinos. Agora cada segmento tem o seu mapa, 20s inteiros. */
+  /* --- 2. Mapa da frota: UMA tela, um segmento por vez -------------------- */
+  /* Ate 27/08 os segmentos vinham somados no mesmo desenho e viravam uma nuvem
+     de pinos sem dono. A 1a correcao criou quatro telas de mapa; o gestor
+     preferiu voltar a UMA tela paginando de 5 em 5 segundos, como os demais
+     cards do telao - com slide de 20s, os quatro segmentos passam inteiros
+     dentro da mesma tela e o telao nao fica pesado de mapa. */
   const MAPAS = [
-    { id: "mapa_bens",     rot: "Bens de Consumo", segs: ["BENS DE CONSUMO"] },
-    { id: "mapa_latas",    rot: "Latas",           segs: ["LATAS"] },
-    { id: "mapa_pranchas", rot: "Pranchas",        segs: ["PRANCHA"] },
-    { id: "mapa_rodando",  rot: "Rodando",         segs: ["AUTOPROPULSOR"] }
+    { rot: "Bens de Consumo", segs: ["BENS DE CONSUMO"] },
+    { rot: "Latas",           segs: ["LATAS"] },
+    { rot: "Pranchas",        segs: ["PRANCHA"] },
+    { rot: "Rodando",         segs: ["AUTOPROPULSOR"] }
   ];
 
-  MAPAS.forEach(function (mp) {
-    telas.push({
-      id: mp.id,
-      titulo: "Onde Está a Frota — " + mp.rot,
-      curto: "LOCALIZAÇÃO",
-      html: function () {
-        return '<div class="tv-mon-mapa-wrap">' +
-          '<div class="tv-mon-mapa" id="' + mp.id + '_m"></div>' +
-          '<div class="tv-mon-mapa-lado" id="' + mp.id + '_l"></div></div>';
-      },
-      after: function () {
+  telas.push({
+    id: "mapa",
+    titulo: "Onde Está a Frota",
+    curto: "LOCALIZAÇÃO",
+    html: function () {
+      return '<div class="tv-mon-mapa-wrap">' +
+        '<div class="tv-mon-mapa" id="monMapa"></div>' +
+        '<div class="tv-mon-mapa-lado" id="monMapaLado"></div></div>';
+    },
+    after: function () {
+      registraBloco(MAPAS.length, function (p) {
+        const mp = MAPAS[p % MAPAS.length];
         const pts = OTD.monitorMapa(mp.segs);
-        const el = document.getElementById(mp.id + "_m");
+        const el = document.getElementById("monMapa");
         if (el) {
           el.innerHTML = window.OTD_MAPA
             ? OTD_MAPA.desenhar(pts, { largura: 900, altura: 1020, escape: E })
             : vazioHtml("mapa indisponível");
         }
-        const lado = document.getElementById(mp.id + "_l");
+        const lado = document.getElementById("monMapaLado");
         if (!lado) return;
         const total = pts.reduce(function (a, g) { return a + g.qtd; }, 0);
         const semLoc = (M && M.semCoordenada) || [];
@@ -186,10 +187,13 @@
               '</span><span class="c">' + E(g.cidade) + "/" + E(g.uf) + "</span></div>";
           }).join("") : vazioHtml("nenhum veículo posicionado")) +
           "</div>" +
-          (totalSem ? '<div class="tv-mon-nota">⚠️ ' + OTD.fmtNum(totalSem) +
-            " sem localização precisa — o ponto de referência não traz a cidade</div>" : "");
-      }
-    });
+          '<div class="tv-mon-nota">' + (p + 1) + "/" + MAPAS.length + " · " +
+          MAPAS.map(function (x) { return x.rot; }).join(" · ") +
+          (totalSem ? "<br>⚠️ " + OTD.fmtNum(totalSem) +
+            " sem localização precisa — o ponto de referência não traz a cidade" : "") +
+          "</div>";
+      });
+    }
   });
 
   /* --- 3. Vazios: precisam de destino ------------------------------------ */
