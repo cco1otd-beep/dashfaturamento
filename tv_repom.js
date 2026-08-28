@@ -21,8 +21,8 @@
   const E = OTD.escapeHtml;
   const P = new URLSearchParams(location.search);
 
-  const SLIDE_SECONDS = Number(P.get("slide")) || 25;
-  const PAGE_SECONDS = 5;
+  const SLIDE_SECONDS = Number(P.get("slide")) || 45;
+  const PAGE_SECONDS = 8;
   const RELOAD_MINUTES = Number(P.get("reload")) || 10;
 
   const charts = {};
@@ -96,7 +96,7 @@
   }
 
   /* ======================================================================= */
-  /* PAGINACAO INTERNA DOS CARDS (troca a cada 5s)                           */
+  /* PAGINACAO INTERNA DOS CARDS (troca a cada 8s)                           */
   /* ======================================================================= */
   let blocos = [];
   let paginaAtual = 0;

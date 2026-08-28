@@ -6,7 +6,7 @@
    tv_repom.js. Uma TV apontada aqui mostra SO a foto ao vivo da frota.
 
    Formato pedido pelo gestor: a tela e dividida em DUAS COLUNAS, e o par de
-   operacoes ALTERNA a cada 5 segundos - primeiro Bens | Latas, depois
+   operacoes ALTERNA a cada 8 segundos - primeiro Bens | Latas, depois
    Pranchas & Rodando. Quem faz a alternancia e o mesmo mecanismo de paginacao
    dos outros teloes (registraBloco), para o ritmo ficar igual no predio todo.
 
@@ -17,8 +17,8 @@
    Parametros de URL:
      ?tela=contador|mapa|vazios|retidos|parados|documentos|rastreio|motorista|insights
                                    fixa UMA tela (TV dedicada a um assunto)
-     ?slide=20                     segundos por tela (padrao 20)
-     ?pagina=5                     segundos por alternancia de operacao
+     ?slide=45                     segundos por tela (padrao 45)
+     ?pagina=8                     segundos por alternancia de operacao
      ?reload=10                    minutos ate recarregar sozinho
    =========================================================================== */
 (function () {
@@ -27,14 +27,16 @@
   const E = OTD.escapeHtml;
   const P = new URLSearchParams(location.search);
 
-  const SLIDE_SECONDS = Number(P.get("slide")) || 20;
-  const PAGE_SECONDS = Number(P.get("pagina")) || 5;
+  /* 45s por tela e 8s por pagina - pedido do gestor em 28/08: com 20s/5s a
+     sala nao terminava de ler um card antes de ele virar. */
+  const SLIDE_SECONDS = Number(P.get("slide")) || 45;
+  const PAGE_SECONDS = Number(P.get("pagina")) || 8;
   const RELOAD_MINUTES = Number(P.get("reload")) || 10;
 
   const M = OTD.MONITOR;
   const LIM = (M && M.limites) || { retido: 5, pernoite: 11, semPosicao: 12 };
 
-  /* Os pares de coluna que alternam a cada 5s. Duas paginas: o gestor pediu
+  /* Os pares de coluna que alternam a cada 8s. Duas paginas: o gestor pediu
      Bens | Latas juntos, e Pranchas & Rodando alternando com eles. */
   const PAGINAS = [
     [OTD.MONITOR_OPERACOES.bens, OTD.MONITOR_OPERACOES.latas],
@@ -145,9 +147,9 @@
   /* --- 2. Mapa da frota: UMA tela, um segmento por vez -------------------- */
   /* Ate 27/08 os segmentos vinham somados no mesmo desenho e viravam uma nuvem
      de pinos sem dono. A 1a correcao criou quatro telas de mapa; o gestor
-     preferiu voltar a UMA tela paginando de 5 em 5 segundos, como os demais
-     cards do telao - com slide de 20s, os quatro segmentos passam inteiros
-     dentro da mesma tela e o telao nao fica pesado de mapa. */
+     preferiu voltar a UMA tela paginando junto com os demais cards do telao -
+     com slide de 45s e pagina de 8s os quatro segmentos passam inteiros dentro
+     da mesma tela e o telao nao fica pesado de mapa. */
   const MAPAS = [
     { rot: "Bens de Consumo", segs: ["BENS DE CONSUMO"] },
     { rot: "Latas",           segs: ["LATAS"] },
@@ -158,7 +160,7 @@
   telas.push({
     id: "mapa",
     titulo: "Onde Está a Frota",
-    curto: "LOCALIZAÇÃO",
+    curto: "MAPA",
     html: function () {
       return '<div class="tv-mon-mapa-wrap">' +
         '<div class="tv-mon-mapa" id="monMapa"></div>' +
@@ -167,30 +169,33 @@
     after: function () {
       registraBloco(MAPAS.length, function (p) {
         const mp = MAPAS[p % MAPAS.length];
-        const pts = OTD.monitorMapa(mp.segs);
+        /* o DESENHO usa a regiao (nao depende da tabela de coordenadas); a
+           lista ao lado continua por cidade, para quem quer o detalhe */
+        const regioes = OTD.monitorMapaUF(mp.segs);
+        const cidades = OTD.monitorMapa(mp.segs);
         const el = document.getElementById("monMapa");
         if (el) {
           el.innerHTML = window.OTD_MAPA
-            ? OTD_MAPA.desenhar(pts, { largura: 900, altura: 1020, escape: E })
+            ? OTD_MAPA.desenhar(regioes, { escape: E })
             : vazioHtml("mapa indisponível");
         }
         const lado = document.getElementById("monMapaLado");
         if (!lado) return;
-        const total = pts.reduce(function (a, g) { return a + g.qtd; }, 0);
-        const semLoc = (M && M.semCoordenada) || [];
-        const totalSem = semLoc.reduce(function (a, g) { return a + g.qtd; }, 0);
+        const total = regioes.reduce(function (a, g) { return a + g.qtd; }, 0);
+        const naLista = cidades.reduce(function (a, g) { return a + g.qtd; }, 0);
         lado.innerHTML =
           cabecalho(mp.rot, OTD.fmtNum(total) + " no mapa") +
           '<div class="tv-mon-cidades">' +
-          (pts.length ? pts.slice(0, 9).map(function (g) {
+          (cidades.length ? cidades.slice(0, 8).map(function (g) {
             return '<div class="tv-mon-cidade"><span class="q num">' + g.qtd +
               '</span><span class="c">' + E(g.cidade) + "/" + E(g.uf) + "</span></div>";
-          }).join("") : vazioHtml("nenhum veículo posicionado")) +
+          }).join("") : vazioHtml("nenhuma cidade identificada")) +
           "</div>" +
           '<div class="tv-mon-nota">' + (p + 1) + "/" + MAPAS.length + " · " +
           MAPAS.map(function (x) { return x.rot; }).join(" · ") +
-          (totalSem ? "<br>⚠️ " + OTD.fmtNum(totalSem) +
-            " sem localização precisa — o ponto de referência não traz a cidade" : "") +
+          (total > naLista ? "<br>" + OTD.fmtNum(total - naLista) +
+            " no mapa sem cidade no cadastro — contam no estado, não na lista"
+            : "") +
           "</div>";
       });
     }

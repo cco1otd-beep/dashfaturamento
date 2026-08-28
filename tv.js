@@ -4,7 +4,7 @@
 
    - Cards proprios (nao e "print" do dashboard): tipografia grande, uma ideia
      por tela, nada de tabela densa.
-   - Tela troca a cada 20s. Cards com muita informacao paginam a cada 5s.
+   - Tela troca a cada 45s. Cards com muita informacao paginam a cada 8s.
    - Card de ATENCAO destacado: so severidade critica.
    - Travado no MES ATUAL, sem interacao, loop infinito.
 
@@ -20,8 +20,8 @@
   const E = OTD.escapeHtml;
   const P = new URLSearchParams(location.search);
 
-  const SLIDE_SECONDS = Number(P.get("slide")) || 20;
-  const PAGE_SECONDS = 5;
+  const SLIDE_SECONDS = Number(P.get("slide")) || 45;
+  const PAGE_SECONDS = 8;
   const RELOAD_MINUTES = 10;
 
   const charts = {};
@@ -166,7 +166,7 @@
   }
 
   /* ======================================================================= */
-  /* PAGINACAO INTERNA DOS CARDS (troca a cada 5s)                           */
+  /* PAGINACAO INTERNA DOS CARDS (troca a cada 8s)                           */
   /* ======================================================================= */
   let blocos = [];        /* {render(pagina), nPag} do slide ativo */
   let paginaAtual = 0;
