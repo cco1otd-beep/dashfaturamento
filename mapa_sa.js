@@ -23,11 +23,14 @@
 (function (global) {
   "use strict";
 
-  /* Janela base - o "zoom" pedido pelo gestor em 27/08: corta o extremo norte
-     e o extremo sul, que a operacao nao toca. Se algum veiculo cair fora, a
-     janela se abre sozinha (ver janelaDe): preferimos perder o zoom a esconder
-     caminhao. */
-  const BASE = { lon0: -70, lon1: -34.5, lat0: -34.5, lat1: -9.5 };
+  /* Janela base. Ajustada em 28/08 a pedido do gestor: o recorte anterior
+     (lon -70, lat -34,5 a -9,5) cortava Peru e Chile fora da tela, e a
+     Argentina aparecia so pela metade - os tres ficavam sem contorno e sem
+     nome. Agora a janela abre para o oeste ate o Peru e desce ate o norte da
+     Patagonia; em troca corta o Brasil acima do Tocantins, onde a operacao
+     praticamente nao tem carga. Se algum veiculo cair fora, a janela se abre
+     sozinha (ver janelaDe): preferimos perder o zoom a esconder caminhao. */
+  const BASE = { lon0: -78.5, lon1: -34.5, lat0: -39.5, lat1: -7.5 };
   const MARGEM = 1.2;               /* graus de folga ao redor do conteudo */
 
   /* Mapa de calor: seis faixas de intensidade do laranja (28/08). Do mais
