@@ -30,6 +30,11 @@
   const BASE = { lon0: -70, lon1: -34.5, lat0: -34.5, lat1: -9.5 };
   const MARGEM = 1.2;               /* graus de folga ao redor do conteudo */
 
+  /* Mapa de calor: seis faixas de intensidade do laranja (28/08). Do mais
+     carregado ao menos carregado. Nao usar menos de 50%: abaixo disso o
+     laranja some no bege do mapa e o numero preto perde contraste. */
+  const FAIXAS = [1, 0.9, 0.8, 0.7, 0.6, 0.5];
+
   const TEMAS = {
     claro: {
       mar: "#DCD5C8", terra: "#F3EFE7", divisa: "#B3A895", contorno: "#8A8072",
@@ -205,13 +210,31 @@
         T.divisa + '" stroke-width="1" stroke-linejoin="round"/>');
     });
 
-    /* --- regioes COM veiculo: laranja --------------------------------------
-       Uma cor so, sem escala de intensidade: o numero ja diz a quantidade, e
-       degrade de laranja a 3 metros vira tudo igual. */
+    /* --- regioes COM veiculo: mapa de calor em 6 faixas --------------------
+       Pedido do gestor em 28/08. A intensidade e PROPORCIONAL: a regiao com
+       mais carros do segmento fica em 100% e as demais caem por faixa ate 50%.
+       Ancorar no maior (e nao no total do segmento) e o que faz a escala usar
+       as seis faixas - com 26 carros espalhados por 5 estados, nenhuma regiao
+       chega perto do total e o mapa sairia todo na faixa mais clara.
+       A borda fica sempre opaca, senao a regiao clara perde o contorno. */
+    const maxQtd = ativas.reduce(function (a, r) {
+      return Math.max(a, ag.porRegiao[r.id]);
+    }, 0);
+
+    function faixaDe(qtd) {
+      if (!maxQtd) return FAIXAS[FAIXAS.length - 1];
+      const razao = qtd / maxQtd;
+      for (let i = 0; i < FAIXAS.length; i++) {
+        if (razao > (FAIXAS.length - 1 - i) / FAIXAS.length) return FAIXAS[i];
+      }
+      return FAIXAS[FAIXAS.length - 1];
+    }
+
     ativas.forEach(function (r) {
       const d = r.aneis.map(function (a) { return caminho(a, true); }).join(" ");
-      out.push('<path d="' + d + '" fill="' + T.ativa + '" stroke="' +
-        T.ativaBorda + '" stroke-width="2" stroke-linejoin="round"/>');
+      out.push('<path d="' + d + '" fill="' + T.ativa + '" fill-opacity="' +
+        faixaDe(ag.porRegiao[r.id]) + '" stroke="' + T.ativaBorda +
+        '" stroke-width="2" stroke-linejoin="round"/>');
     });
 
     /* --- numeros ----------------------------------------------------------
@@ -259,8 +282,8 @@
           "L" + (x - RAIO).toFixed(1) + " " + y.toFixed(1) +
           '" stroke="' + T.chamada + '" stroke-width="1.4" fill="none"/>');
         out.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
-          '" r="' + RAIO + '" fill="' + T.ativa + '" stroke="' +
-          T.ativaBorda + '" stroke-width="2"/>');
+          '" r="' + RAIO + '" fill="' + T.ativa + '" fill-opacity="' +
+          faixaDe(bl.qtd) + '" stroke="' + T.ativaBorda + '" stroke-width="2"/>');
         out.push('<text x="' + x.toFixed(1) + '" y="' + (y + 8).toFixed(1) +
           '" text-anchor="middle" font-size="24" font-weight="800" fill="' +
           T.numero + '">' + bl.qtd + "</text>");
@@ -270,6 +293,33 @@
           '" stroke-width="4" paint-order="stroke">' +
           esc(bl.r.rot || bl.r.id) + "</text>");
       });
+    }
+
+    /* --- legenda das faixas ------------------------------------------------
+       Sem ela o degrade nao significa nada para quem chega na sala: a pessoa
+       ve dois laranjas diferentes e nao sabe se e mais carro ou menos. */
+    if (maxQtd) {
+      const LARG = 46, ALT = 16;
+      const x0 = 16, y0 = H - 48;
+      out.push('<rect x="' + (x0 - 8) + '" y="' + (y0 - 22) + '" width="' +
+        (FAIXAS.length * LARG + 108) + '" height="60" rx="9" fill="' + T.halo +
+        '" fill-opacity=".88" stroke="' + T.divisa + '" stroke-width="1"/>');
+      out.push('<text x="' + x0 + '" y="' + (y0 - 5) + '" font-size="13" ' +
+        'font-weight="800" fill="' + T.rotulo + '">CONCENTRAÇÃO DA FROTA</text>');
+      FAIXAS.forEach(function (f, i) {
+        const x = x0 + i * LARG;
+        out.push('<rect x="' + x + '" y="' + y0 + '" width="' + (LARG - 4) +
+          '" height="' + ALT + '" fill="' + T.ativa + '" fill-opacity="' + f +
+          '" stroke="' + T.ativaBorda + '" stroke-width="1"/>');
+      });
+      out.push('<text x="' + x0 + '" y="' + (y0 + ALT + 13) + '" font-size="12" ' +
+        'font-weight="700" fill="' + T.rotulo + '">maior concentração</text>');
+      out.push('<text x="' + (x0 + FAIXAS.length * LARG - 4) + '" y="' +
+        (y0 + ALT + 13) + '" text-anchor="end" font-size="12" font-weight="700" ' +
+        'fill="' + T.rotulo + '">menor</text>');
+      out.push('<text x="' + (x0 + FAIXAS.length * LARG + 14) + '" y="' +
+        (y0 + ALT - 2) + '" font-size="13" font-weight="800" fill="' +
+        T.rotulo + '">pico: ' + maxQtd + "</text>");
     }
 
     out.push("</svg>");
