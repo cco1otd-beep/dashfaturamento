@@ -48,13 +48,20 @@
   /* ======================================================================= */
   let blocos = [];
   let paginaAtual = 0;
+  let telaAtualId = "";
+  /* Onde cada tela parou de paginar. Sem isso a lista recomecava do item 1 a
+     cada volta do loop e as placas do fim NUNCA apareciam: com 45s de slide e
+     8s de pagina cabem ~5 paginas, e a tela de pernoite chega a ter 8. */
+  const posicaoDaTela = {};
 
   function registraBloco(nPag, render) {
-    blocos.push({ nPag: Math.max(1, nPag), render: render });
-    render(0);
+    const n = Math.max(1, nPag);
+    blocos.push({ nPag: n, render: render });
+    render(paginaAtual % n);
   }
   function avancaPaginas() {
     paginaAtual++;
+    if (telaAtualId) posicaoDaTela[telaAtualId] = paginaAtual;
     blocos.forEach(function (b) { b.render(paginaAtual % b.nPag); });
   }
 
@@ -76,21 +83,63 @@
       '<span class="qt">' + direita + "</span></div>";
   }
 
-  /* Registra o bloco que troca as operacoes e delega o conteudo de cada
-     coluna para monta(op) - assim toda tela ganha a alternancia de graca. */
-  function paginarOperacoes(id, monta) {
-    registraBloco(PAGINAS.length, function (p) {
+  /**
+   * Registra o bloco que troca as operacoes e delega o conteudo de cada coluna
+   * para monta(op, bloco).
+   *
+   * `bloco` e a pagina DA LISTA daquela coluna. Ate 28/08 a lista era cortada
+   * em 7 e o resto virava um "+5 outros" miudo no rodape - o gestor reclamou,
+   * com razao: aquelas placas nunca apareciam na parede. Agora a tela tem
+   *     PAGINAS.length x (maior numero de paginas de lista)
+   * paginas, e elas giram no mesmo ritmo de 8s do resto do telao. A ordem fica
+   * Bens|Latas p.1 -> Pranchas p.1 -> Bens|Latas p.2 -> Pranchas p.2 ...
+   *
+   * `conta(op)` devolve quantos itens a lista daquela operacao tem; sem ela, a
+   * tela pagina so entre operacoes, como antes.
+   */
+  function paginarOperacoes(id, monta, conta, porPagina) {
+    let blocosLista = 1;
+    if (conta && porPagina) {
+      PAGINAS.forEach(function (ops) {
+        ops.forEach(function (op) {
+          blocosLista = Math.max(blocosLista,
+            Math.ceil((conta(op) || 0) / porPagina));
+        });
+      });
+    }
+    registraBloco(PAGINAS.length * blocosLista, function (p) {
       const el = document.getElementById(id);
       if (!el) return;
       const ops = PAGINAS[p % PAGINAS.length];
+      const bloco = Math.floor(p / PAGINAS.length);
       el.className = "tv-mon-colunas" + (ops.length === 1 ? " uma" : "");
       el.innerHTML = ops.map(function (op) {
         return '<div class="tv-mon-col">' +
           cabecalho(op.rot, OTD.fmtNum(OTD.monitorContador(op.segs).total) +
                     " veículos") +
-          monta(op) + "</div>";
+          monta(op, bloco) + "</div>";
       }).join("");
     });
+  }
+
+  /**
+   * Monta a lista de uma coluna ja paginada. Devolve os cartoes da pagina e um
+   * rodape dizendo em que pedaco da lista estamos - "9-16 de 25" -, para quem
+   * olha saber que ainda vem mais e nao achar que a lista acabou.
+   */
+  function listaPaginada(lista, porPagina, bloco, montaLinha, vazio) {
+    if (!lista.length) return vazioHtml(vazio);
+    const nPag = Math.max(1, Math.ceil(lista.length / porPagina));
+    const pag = ((bloco % nPag) + nPag) % nPag;
+    const ini = pag * porPagina;
+    const fatia = lista.slice(ini, ini + porPagina);
+    return '<div class="tv-mon-lista">' + fatia.map(montaLinha).join("") +
+      (nPag > 1
+        ? '<div class="tv-mon-mais">' + (ini + 1) + "–" +
+          (ini + fatia.length) + " de " + lista.length +
+          " · página " + (pag + 1) + "/" + nPag + "</div>"
+        : "") +
+      "</div>";
   }
 
   function vazioHtml(msg) {
@@ -208,16 +257,15 @@
     curto: "VAZIOS — DESTINAR",
     html: function () { return colunasHtml("monVazios"); },
     after: function () {
-      paginarOperacoes("monVazios", function (op) {
-        const lista = OTD.monitorLista("vazios", op.segs);
-        if (!lista.length) return vazioHtml("Nenhum veículo vazio.");
-        return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
-          return linha(r, r.hParado, 12, "parado",
-            '<span class="ev">evento ' + OTD.fmtHM(r.hEvento) + "</span>");
-        }).join("") +
-          (lista.length > 7 ? '<div class="tv-mon-mais">+' +
-            (lista.length - 7) + " outros</div>" : "") + "</div>";
-      });
+      const POR_PAG = 7;
+      paginarOperacoes("monVazios", function (op, bloco) {
+        return listaPaginada(OTD.monitorLista("vazios", op.segs), POR_PAG, bloco,
+          function (r) {
+            return linha(r, r.hParado, 12, "parado",
+              '<span class="ev">evento ' + OTD.fmtHM(r.hEvento) + "</span>");
+          }, "Nenhum veículo vazio.");
+      }, function (op) { return OTD.monitorLista("vazios", op.segs).length; },
+        POR_PAG);
     }
   });
 
@@ -228,20 +276,17 @@
     curto: "RETIDOS — ACIONAR CLIENTE",
     html: function () { return colunasHtml("monRetidos"); },
     after: function () {
-      paginarOperacoes("monRetidos", function (op) {
-        const lista = OTD.monitorLista("retidos", op.segs);
-        if (!lista.length) {
-          return vazioHtml("Nada retido acima de " + LIM.retido + "h.");
-        }
-        return '<div class="tv-mon-lista">' + lista.slice(0, 6).map(function (r) {
-          const quem = r.status === "Carga" ? r.remetente : r.destinatario;
-          return linha(r, r.hEvento, LIM.retido, r.status,
-            '<span class="ev">acionar: <b>' +
-            E(OTD.shortName(quem || "—", 30)) + "</b></span>");
-        }).join("") +
-          (lista.length > 6 ? '<div class="tv-mon-mais">+' +
-            (lista.length - 6) + " outros</div>" : "") + "</div>";
-      });
+      const POR_PAG = 6;
+      paginarOperacoes("monRetidos", function (op, bloco) {
+        return listaPaginada(OTD.monitorLista("retidos", op.segs), POR_PAG, bloco,
+          function (r) {
+            const quem = r.status === "Carga" ? r.remetente : r.destinatario;
+            return linha(r, r.hEvento, LIM.retido, r.status,
+              '<span class="ev">acionar: <b>' +
+              E(OTD.shortName(quem || "—", 30)) + "</b></span>");
+          }, "Nada retido acima de " + LIM.retido + "h.");
+      }, function (op) { return OTD.monitorLista("retidos", op.segs).length; },
+        POR_PAG);
     }
   });
 
@@ -252,18 +297,15 @@
     curto: "PARADOS EM VIAGEM",
     html: function () { return colunasHtml("monParados"); },
     after: function () {
-      paginarOperacoes("monParados", function (op) {
-        const lista = OTD.monitorLista("pernoite", op.segs);
-        if (!lista.length) {
-          return vazioHtml("Ninguém parado além de " + LIM.pernoite + "h.");
-        }
-        return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
-          return linha(r, r.hParado, LIM.pernoite, "parado em rota",
-            '<span class="ev">' + E(OTD.shortName(r.destino || "", 34)) + "</span>");
-        }).join("") +
-          (lista.length > 7 ? '<div class="tv-mon-mais">+' +
-            (lista.length - 7) + " outros</div>" : "") + "</div>";
-      });
+      const POR_PAG = 7;
+      paginarOperacoes("monParados", function (op, bloco) {
+        return listaPaginada(OTD.monitorLista("pernoite", op.segs), POR_PAG, bloco,
+          function (r) {
+            return linha(r, r.hParado, LIM.pernoite, "parado em rota",
+              '<span class="ev">' + E(OTD.shortName(r.destino || "", 34)) + "</span>");
+          }, "Ninguém parado além de " + LIM.pernoite + "h.");
+      }, function (op) { return OTD.monitorLista("pernoite", op.segs).length; },
+        POR_PAG);
     }
   });
 
@@ -274,18 +316,17 @@
     curto: "DOCUMENTO PENDENTE",
     html: function () { return colunasHtml("monDocs"); },
     after: function () {
-      paginarOperacoes("monDocs", function (op) {
-        const lista = OTD.monitorLista("semDocumento", op.segs);
-        if (!lista.length) return vazioHtml("Documentação em dia.");
-        return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
-          const falta = [r.faltaCte ? "CT-e" : null,
-                         r.faltaMdfe ? "MDF-e" : null].filter(Boolean).join(" e ");
-          return linha(r, r.hParado, LIM.pernoite, "falta " + falta,
-            '<span class="ev">' + E(OTD.shortName(r.destino || "—", 34)) + "</span>");
-        }).join("") +
-          (lista.length > 7 ? '<div class="tv-mon-mais">+' +
-            (lista.length - 7) + " outros</div>" : "") + "</div>";
-      });
+      const POR_PAG = 7;
+      paginarOperacoes("monDocs", function (op, bloco) {
+        return listaPaginada(OTD.monitorLista("semDocumento", op.segs), POR_PAG,
+          bloco, function (r) {
+            const falta = [r.faltaCte ? "CT-e" : null,
+                           r.faltaMdfe ? "MDF-e" : null].filter(Boolean).join(" e ");
+            return linha(r, r.hParado, LIM.pernoite, "falta " + falta,
+              '<span class="ev">' + E(OTD.shortName(r.destino || "—", 34)) + "</span>");
+          }, "Documentação em dia.");
+      }, function (op) { return OTD.monitorLista("semDocumento", op.segs).length; },
+        POR_PAG);
     }
   });
 
@@ -296,24 +337,23 @@
     curto: "SEM POSICIONAR",
     html: function () { return colunasHtml("monRastreio"); },
     after: function () {
-      paginarOperacoes("monRastreio", function (op) {
-        const lista = OTD.monitorLista("semPosicao", op.segs);
-        if (!lista.length) return vazioHtml("Toda a frota posicionando.");
-        return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
-          if (r.semRastreio) {
-            return '<div class="tv-mon-linha"><div class="cab">' +
-              '<span class="st">SEM RASTREIO</span>' +
-              '<span class="tempo num" style="color:#F1553F">—</span></div>' +
-              '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
-              (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) +
-               "</span>" : "") + "</div>" +
-              '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) + "</div></div>";
-          }
-          return linha(r, r.horas, LIM.semPosicao, "sem posição", "");
-        }).join("") +
-          (lista.length > 7 ? '<div class="tv-mon-mais">+' +
-            (lista.length - 7) + " outros</div>" : "") + "</div>";
-      });
+      const POR_PAG = 7;
+      paginarOperacoes("monRastreio", function (op, bloco) {
+        return listaPaginada(OTD.monitorLista("semPosicao", op.segs), POR_PAG,
+          bloco, function (r) {
+            if (r.semRastreio) {
+              return '<div class="tv-mon-linha"><div class="cab">' +
+                '<span class="st">SEM RASTREIO</span>' +
+                '<span class="tempo num" style="color:#F1553F">—</span></div>' +
+                '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
+                (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) +
+                 "</span>" : "") + "</div>" +
+                '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) + "</div></div>";
+            }
+            return linha(r, r.horas, LIM.semPosicao, "sem posição", "");
+          }, "Toda a frota posicionando.");
+      }, function (op) { return OTD.monitorLista("semPosicao", op.segs).length; },
+        POR_PAG);
     }
   });
 
@@ -324,20 +364,21 @@
     curto: "SEM MOTORISTA",
     html: function () { return colunasHtml("monMot"); },
     after: function () {
-      paginarOperacoes("monMot", function (op) {
-        const lista = OTD.monitorLista("semMotorista", op.segs);
-        if (!lista.length) return vazioHtml("Todos os veículos com motorista.");
-        return '<div class="tv-mon-lista">' + lista.slice(0, 7).map(function (r) {
-          return '<div class="tv-mon-linha"><div class="cab">' +
-            '<span class="st">SEM MOTORISTA</span>' +
-            '<span class="tempo num" style="color:#B18CFF">RH</span></div>' +
-            '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
-            (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) +
-             "</span>" : "") + "</div>" +
-            '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) +
-            " · precisa contratar</div></div>";
-        }).join("") + "</div>";
-      });
+      const POR_PAG = 7;
+      paginarOperacoes("monMot", function (op, bloco) {
+        return listaPaginada(OTD.monitorLista("semMotorista", op.segs), POR_PAG,
+          bloco, function (r) {
+            return '<div class="tv-mon-linha"><div class="cab">' +
+              '<span class="st">SEM MOTORISTA</span>' +
+              '<span class="tempo num" style="color:#B18CFF">RH</span></div>' +
+              '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
+              (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) +
+               "</span>" : "") + "</div>" +
+              '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) +
+              " · precisa contratar</div></div>";
+          }, "Todos os veículos com motorista.");
+      }, function (op) { return OTD.monitorLista("semMotorista", op.segs).length; },
+        POR_PAG);
     }
   });
 
@@ -405,10 +446,12 @@
   function mostrar(i) {
     atual = ((i % SLIDES.length) + SLIDES.length) % SLIDES.length;
     blocos = [];
-    paginaAtual = 0;
 
     const slides = document.querySelectorAll(".tv-slide");
     const t = SLIDES[atual];
+    /* retoma a paginacao de onde esta tela parou na volta anterior */
+    telaAtualId = t.id;
+    paginaAtual = posicaoDaTela[t.id] || 0;
     /* antes do html(): os cabecalhos leem TITULO na montagem */
     TITULO = t.curto || t.titulo || "";
     slides[atual].innerHTML = t.html();

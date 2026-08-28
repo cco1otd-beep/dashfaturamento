@@ -39,16 +39,20 @@
     claro: {
       mar: "#DCD5C8", terra: "#F3EFE7", divisa: "#B3A895", contorno: "#8A8072",
       ativa: "#F0800E", ativaBorda: "#A9540A", numero: "#1A1105",
-      sigla: "#3B2A12", chamada: "#8A8072", rotulo: "#2A241D", halo: "#F7F4EE"
+      sigla: "#3B2A12", chamada: "#8A8072", rotulo: "#2A241D", halo: "#F7F4EE",
+      paisLinha: "#141110", paisNome: "#B9B0A2"
     },
     escuro: {
       mar: "#141110", terra: "#1b1613", divisa: "#3a332b", contorno: "#4a4238",
       ativa: "#F0800E", ativaBorda: "#7A3D00", numero: "#1a1105",
-      sigla: "#2A1A08", chamada: "#5a5148", rotulo: "#F6F4F0", halo: "#0b0a09"
+      sigla: "#2A1A08", chamada: "#5a5148", rotulo: "#F6F4F0", halo: "#0b0a09",
+      paisLinha: "#000000", paisNome: "#4a4238"
     }
   };
 
-  function GEO() { return global.OTD_GEO || { regioes: [], costa: [] }; }
+  function GEO() {
+    return global.OTD_GEO || { regioes: [], costa: [], paises: [] };
+  }
 
   /* ---------------------------------------------------------------------- */
   /* GEOMETRIA                                                              */
@@ -210,6 +214,35 @@
         T.divisa + '" stroke-width="1" stroke-linejoin="round"/>');
     });
 
+    /* --- nome do pais, cinza claro, ao FUNDO -------------------------------
+       Pedido do gestor em 28/08. Vem ANTES das regioes pintadas de proposito:
+       assim o laranja e o numero passam por cima e o nome nunca disputa com a
+       informacao que importa - ele so preenche o vazio, como marca d'agua. */
+    const paises = geo.paises || [];
+    paises.forEach(function (pz) {
+      const nome = (pz.nome || "").toUpperCase();
+      if (!nome) return;
+      const c = caixaDe(pz.aneis);
+      const a = px(c.x0, c.y1), b2 = px(c.x1, c.y0);
+      const largPx = Math.abs(b2[0] - a[0]);
+      const xy = px(pz.ponto[0], pz.ponto[1]);
+      /* fora da janela visivel: nao adianta escrever, sai cortado na borda */
+      if (xy[0] < 40 || xy[0] > W - 40 || xy[1] < 30 || xy[1] > H - 30) return;
+      /* a fonte tem de caber DENTRO do pais, senao o nome invade o vizinho -
+         0,78 por caractere ja inclui o espacamento entre letras */
+      const fonte = Math.min(40, (largPx * 0.8) / (nome.length * 0.78));
+      if (fonte < 13) return;                  /* pais espremido: sem nome */
+      /* o ponto de ancora nao e o centro horizontal do pais: sem prender o
+         texto na caixa, "PARAGUAI" escorregava para dentro do Brasil */
+      const meia = (nome.length * fonte * 0.78) / 2;
+      const xEsq = Math.min(a[0], b2[0]), xDir = Math.max(a[0], b2[0]);
+      const x = Math.max(xEsq + meia, Math.min(xDir - meia, xy[0]));
+      out.push('<text x="' + x.toFixed(1) + '" y="' + xy[1].toFixed(1) +
+        '" text-anchor="middle" font-size="' + fonte.toFixed(0) + '" ' +
+        'font-weight="700" letter-spacing="' + (fonte * 0.16).toFixed(1) +
+        '" fill="' + T.paisNome + '" opacity=".62">' + esc(nome) + "</text>");
+    });
+
     /* --- regioes COM veiculo: mapa de calor em 6 faixas --------------------
        Pedido do gestor em 28/08. A intensidade e PROPORCIONAL: a regiao com
        mais carros do segmento fica em 100% e as demais caem por faixa ate 50%.
@@ -235,6 +268,16 @@
       out.push('<path d="' + d + '" fill="' + T.ativa + '" fill-opacity="' +
         faixaDe(ag.porRegiao[r.id]) + '" stroke="' + T.ativaBorda +
         '" stroke-width="2" stroke-linejoin="round"/>');
+    });
+
+    /* --- contorno dos paises: preto e grosso -------------------------------
+       Sem ele divisa de estado e fronteira de pais tinham a mesma espessura e
+       o mapa virava um amontoado de linhas iguais. Vai por cima das regioes
+       pintadas, para a fronteira nao sumir dentro da mancha laranja. */
+    paises.forEach(function (pz) {
+      const d = pz.aneis.map(function (a) { return caminho(a, true); }).join(" ");
+      out.push('<path d="' + d + '" fill="none" stroke="' + T.paisLinha +
+        '" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>');
     });
 
     /* --- numeros ----------------------------------------------------------
