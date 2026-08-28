@@ -1981,21 +1981,23 @@
       "</div><div class=\"sub\">🏁 vem do lviagens</div></div>";
     }
 
-    /* ---- mapa ---- */
+    /* ---- mapa ----
+       O desenho usa a REGIAO (estado/provincia), que nao depende da tabela de
+       coordenadas: a UF vem preenchida sempre, entao todo veiculo ativo conta.
+       A contagem por cidade continua existindo, mas so como detalhe. */
+    const regioes = OTD.monitorMapaUF(segs);
     const pts = OTD.monitorMapa(segs);
     const mapa = document.getElementById("monMapaDash");
     if (mapa) {
       mapa.innerHTML = window.OTD_MAPA
-        ? OTD_MAPA.desenhar(pts, { largura: 760, altura: 560, escape: E,
-                                   maxRotulos: 7 })
+        ? OTD_MAPA.desenhar(regioes, { escape: E })
         : "";
     }
     const cnt = document.getElementById("monMapaCnt");
     if (cnt) {
-      const semLoc = (M.semCoordenada || []).reduce(function (a, g) {
-        return a + g.qtd; }, 0);
-      cnt.textContent = pts.length + " cidades" +
-        (semLoc ? " · " + semLoc + " sem localização precisa" : "");
+      const total = regioes.reduce(function (a, g) { return a + g.qtd; }, 0);
+      cnt.textContent = total + " veículos em " + regioes.length +
+        " estados/províncias · " + pts.length + " cidades identificadas";
     }
 
     /* ---- listas de acao ---- */

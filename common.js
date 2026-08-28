@@ -1128,6 +1128,23 @@ const OTD = (function () {
     }).filter(Boolean).sort(function (a, b) { return b.qtd - a.qtd; });
   }
 
+  /* O que o MAPA usa: uma entrada por regiao (estado do Brasil ou ponto no
+     exterior). Nao depende da tabela de coordenadas para o Brasil - a UF vem
+     preenchida sempre -, e por isso conta TODOS os ativos, nao so os que a
+     tabela de cidades conhecia. */
+  function monitorMapaUF(segs) {
+    const base = (MONITOR && MONITOR.mapaUF) || [];
+    if (!segs || !segs.length) return base.slice();
+    const set = new Set(segs);
+    return base.map(function (g) {
+      let qtd = 0;
+      Object.keys(g.porSeg || {}).forEach(function (s) {
+        if (set.has(s)) qtd += g.porSeg[s];
+      });
+      return qtd ? Object.assign({}, g, { qtd: qtd }) : null;
+    }).filter(Boolean).sort(function (a, b) { return b.qtd - a.qtd; });
+  }
+
   /* 5.28 -> "5h17". Valor nulo vira travessao, nunca "0h00". */
   function fmtHM(h) {
     if (h === null || h === undefined || isNaN(h)) return "\u2014";
@@ -1234,6 +1251,7 @@ const OTD = (function () {
     MONITOR_STATUS: MONITOR_STATUS, MONITOR_OPERACOES: MONITOR_OPERACOES,
     monitorTem: monitorTem, monitorContador: monitorContador,
     monitorLista: monitorLista, monitorMapa: monitorMapa,
+    monitorMapaUF: monitorMapaUF,
     fmtHM: fmtHM, monitorCorTempo: monitorCorTempo,
     monitorInsights: monitorInsights,
     PALETTE: PALETTE, MESES_PT_FULL: MESES_PT_FULL, MESES_PT_CURTO: MESES_PT_CURTO,
