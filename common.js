@@ -730,6 +730,24 @@ const OTD = (function () {
       }
     }
 
+    /* ---- 4b. CRT emitido e ainda sem romaneio ----------------------------
+       A operacao emite o CRT ANTES de vincular a carga (confirmado pelo gestor
+       em 31/08), entao esses documentos nao sao erro: o faturamento ja conta o
+       valor cheio. O que falta e o vinculo operacional - romaneio, KM, placa -
+       e enquanto ele nao vem a carga fica invisivel nas telas de operacao.
+       Por isso o aviso e "info", nunca critico. */
+    const orfaos = rows.filter(function (r) { return r.crtOrfao; });
+    if (orfaos.length) {
+      const vlr = orfaos.reduce(function (s2, r) {
+        return s2 + (Number(r.frete) || 0);
+      }, 0);
+      add("info", "🔗", "CRT aguardando vínculo",
+        fmtNum(orfaos.length) + " CRT",
+        fmtNum(orfaos.length) + " CRT já emitidos ainda não foram vinculados a um " +
+        "romaneio (" + fmtBRL(vlr) + "). O faturamento já conta esse valor; falta " +
+        "amarrar a carga para a viagem aparecer na operação.");
+    }
+
     /* ---- 5. qualidade de emissão de CT-e ---- */
     const docs = DOCS.filter(function (d) {
       if (mes && d.mesRef !== mes) return false;
