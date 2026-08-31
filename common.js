@@ -329,18 +329,68 @@ const OTD = (function () {
       elapsed: elapsed, totalDays: totalDays, isCurrent: isCurrent
     };
   }
+  /* --------------------------------------------------- meta por segmento --
+     Ate 31/08 existia UMA meta do mes, digitada a mao. O gestor pediu quatro,
+     uma por operacao, e escolheu o modelo "global = soma das quatro": a meta
+     do mes deixa de ser digitada e passa a ser a soma, entao total e partes
+     nunca discordam. Cada segmento tem sua propria sugestao automatica (o mes
+     fechado anterior DAQUELE segmento x 1,05), e o que o gestor digita fica
+     guardado por mes e por segmento. */
+  const SEGMENTOS_META = ["BENS DE CONSUMO", "LATAS", "AUTOPROPULSOR", "PRANCHA"];
+  const ROTULO_SEG_META = {
+    "BENS DE CONSUMO": "Bens de Consumo",
+    "LATAS": "Latas",
+    "AUTOPROPULSOR": "Autopropulsor / Rodando",
+    "PRANCHA": "Pranchas"
+  };
+
+  function chaveMetaSeg(mes, seg) { return "otd_meta_seg_" + seg + "_" + mes; }
+
+  function suggestGoalSeg(mes, seg) {
+    const meses = availableMonths();
+    const anterior = meses.filter(function (m) { return m < mes; }).pop();
+    if (!anterior) return 0;
+    const tot = DATA.reduce(function (s, r) {
+      return s + (r.mesRef === anterior && r.seg === seg ? (Number(r.frete) || 0) : 0);
+    }, 0);
+    return Math.round(tot * 1.05 / 1000) * 1000;
+  }
+  /* true quando o valor veio do gestor, e nao da sugestao - a tela avisa qual
+     e qual, senao ninguem sabe se o numero foi decidido ou calculado */
+  function goalSegDefinida(mes, seg) {
+    try {
+      const v = localStorage.getItem(chaveMetaSeg(mes, seg));
+      return v !== null && v !== "";
+    } catch (e) { return false; }
+  }
+  function getGoalSeg(mes, seg) {
+    try {
+      const v = localStorage.getItem(chaveMetaSeg(mes, seg));
+      if (v !== null && v !== "") return Number(v);
+    } catch (e) { /* modo kiosk sem storage */ }
+    return suggestGoalSeg(mes, seg);
+  }
+  function setGoalSeg(mes, seg, valor) {
+    try {
+      if (valor === null || valor === "") localStorage.removeItem(chaveMetaSeg(mes, seg));
+      else localStorage.setItem(chaveMetaSeg(mes, seg), String(valor));
+    } catch (e) { }
+  }
+
   function getGoal(mes) {
+    /* o hook do pipeline (META_FIXA_TEMPORARIA) continua mandando no total */
     if (META.metaFixaTemporaria && META.metaFixaTemporaria[mes]) {
       return Number(META.metaFixaTemporaria[mes]);
     }
-    try {
-      const v = localStorage.getItem("otd_meta_" + mes);
-      if (v !== null && v !== "") return Number(v);
-    } catch (e) { /* modo kiosk sem storage */ }
-    return suggestGoal(mes);
+    return SEGMENTOS_META.reduce(function (s, seg) {
+      return s + getGoalSeg(mes, seg);
+    }, 0);
   }
+  /* Mantida para nao quebrar chamada antiga: distribuir um total pelos quatro
+     seria inventar rateio, entao ela nao faz nada e avisa no console. */
   function setGoal(mes, valor) {
-    try { localStorage.setItem("otd_meta_" + mes, String(valor)); } catch (e) { }
+    console.warn("setGoal: a meta do mes agora e a soma das quatro por " +
+                 "segmento - use setGoalSeg(mes, segmento, valor).");
   }
   function suggestGoal(mes) {
     const meses = availableMonths();
@@ -1274,6 +1324,9 @@ const OTD = (function () {
     distinctSegmentos: distinctSegmentos,
     dailySeries: dailySeries, projectMonth: projectMonth,
     getGoal: getGoal, setGoal: setGoal, suggestGoal: suggestGoal,
+    SEGMENTOS_META: SEGMENTOS_META, ROTULO_SEG_META: ROTULO_SEG_META,
+    getGoalSeg: getGoalSeg, setGoalSeg: setGoalSeg,
+    suggestGoalSeg: suggestGoalSeg, goalSegDefinida: goalSegDefinida,
     escapeHtml: escapeHtml, shortName: shortName, clienteShort: clienteShort,
     corPct: corPct, corVazio: corVazio, corSeveridade: corSeveridade,
     rotuloSeveridade: rotuloSeveridade,

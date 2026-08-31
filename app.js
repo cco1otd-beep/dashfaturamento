@@ -740,11 +740,87 @@
   function abaProjecao() {
     return secao("Meta & Projeção do Mês") +
       '<div class="grid g-goal" id="gridMeta"></div>' +
+      secao("Meta por Operação",
+        '<span class="hint">a meta do mês é a soma das quatro</span>') +
+      '<div id="gridMetaSeg"></div>' +
       secao("Realizado vs Projeção") +
       painel("chRealProj", "Acumulado realizado × projeção linear", "", "tall") +
       secao("Projeção por Veículo") +
       tabelaCard("tbProj", "Projeção por Veículo", "", true);
   }
+  /**
+   * Card de metas por operacao. Quatro linhas editaveis + o total.
+   * O gestor escolheu em 31/08 o modelo "global = soma das quatro", entao aqui
+   * e o UNICO lugar onde a meta se edita; o card de cima so mostra o total.
+   * Cada linha diz se o valor foi definido por ele ou se ainda e a sugestao
+   * automatica - sem isso ninguem sabe se o numero foi decidido ou calculado.
+   */
+  function montarMetaPorSegmento(mes, rows) {
+    const box = document.getElementById("gridMetaSeg");
+    if (!box) return;
+
+    const realizado = {};
+    rows.forEach(function (r) {
+      if (r.mesRef !== mes) return;
+      realizado[r.seg] = (realizado[r.seg] || 0) + (Number(r.frete) || 0);
+    });
+
+    let somaMeta = 0, somaReal = 0;
+    const linhas = OTD.SEGMENTOS_META.map(function (seg) {
+      const meta = OTD.getGoalSeg(mes, seg);
+      const real = realizado[seg] || 0;
+      const pct = meta > 0 ? 100 * real / meta : 0;
+      const propria = OTD.goalSegDefinida(mes, seg);
+      somaMeta += meta; somaReal += real;
+      return '<tr>' +
+        '<td><b>' + E(OTD.ROTULO_SEG_META[seg] || seg) + "</b>" +
+        '<div class="sub">' + (propria ? "definida por você"
+          : "sugestão automática (mês anterior +5%)") + "</div></td>" +
+        '<td class="right">' + OTD.fmtBRL(real) + "</td>" +
+        '<td class="right">' + OTD.fmtBRL(meta) + "</td>" +
+        '<td class="right" style="color:' + (pct >= 100 ? "#4ADE80" : "#F0800E") +
+        '"><b>' + OTD.fmtPct(pct, 0) + "</b></td>" +
+        '<td><div class="goal-edit">' +
+        '<input type="number" class="mseg-in" data-seg="' + E(seg) +
+        '" placeholder="nova meta (R$)">' +
+        '<button class="btn primary mseg-ok" data-seg="' + E(seg) + '">Salvar</button>' +
+        (propria ? '<button class="btn mseg-rst" data-seg="' + E(seg) +
+          '" title="voltar para a sugestão automática">↺</button>' : "") +
+        "</div></td></tr>";
+    }).join("");
+
+    const pctTot = somaMeta > 0 ? 100 * somaReal / somaMeta : 0;
+    box.innerHTML = '<div class="card tablecard">' +
+      '<div class="tablehead"><span class="ptitle">Meta do mês por operação</span>' +
+      '<span class="pcount">' + E(OTD.monthLabelFull(mes)) + "</span></div>" +
+      '<div class="tablewrap"><table class="dtbl"><thead><tr>' +
+      "<th>Operação</th>" +
+      '<th style="text-align:right">Realizado</th>' +
+      '<th style="text-align:right">Meta</th>' +
+      '<th style="text-align:right">% Meta</th>' +
+      "<th>Ajustar</th></tr></thead><tbody>" + linhas +
+      '<tr class="linha-total"><td><b>TOTAL — meta do mês</b></td>' +
+      '<td class="right"><b>' + OTD.fmtBRL(somaReal) + "</b></td>" +
+      '<td class="right"><b>' + OTD.fmtBRL(somaMeta) + "</b></td>" +
+      '<td class="right"><b>' + OTD.fmtPct(pctTot, 0) + "</b></td><td></td></tr>" +
+      "</tbody></table></div></div>";
+
+    box.querySelectorAll(".mseg-ok").forEach(function (b) {
+      b.addEventListener("click", function () {
+        const seg = b.getAttribute("data-seg");
+        const inp = box.querySelector('.mseg-in[data-seg="' + seg + '"]');
+        const v = Number(inp && inp.value);
+        if (v > 0) { OTD.setGoalSeg(mes, seg, v); render(); }
+      });
+    });
+    box.querySelectorAll(".mseg-rst").forEach(function (b) {
+      b.addEventListener("click", function () {
+        OTD.setGoalSeg(mes, b.getAttribute("data-seg"), "");
+        render();
+      });
+    });
+  }
+
   function renderProjecao(rows) {
     const box = document.getElementById("gridMeta");
     if (F.meses.size !== 1 || F.de || F.ate) {
@@ -770,8 +846,8 @@
           '<div class="goal-line"><span>Meta</span><b class="num">' + OTD.fmtBRL(meta) + "</b></div>" +
           '<div class="goal-line"><span>Falta</span><b class="num">' + OTD.fmtBRL(Math.max(0, meta - p.total)) + "</b></div>" +
         "</div>" +
-        '<div class="goal-edit"><input type="number" id="inMeta" placeholder="nova meta (R$)">' +
-        '<button class="btn primary" id="btMeta">Salvar</button></div>' +
+        '<div class="goal-nota">soma das quatro metas por operação — ' +
+        'edite abaixo, em <b>Meta por Operação</b></div>' +
       "</div>" +
       '<div class="card goal-card">' +
         '<div class="ptitle" style="align-self:flex-start">Projeção de Fechamento</div>' +
@@ -802,10 +878,7 @@
     document.getElementById("pctMeta").style.color = pctMeta >= 100 ? "#4ADE80" : "#F0800E";
     document.getElementById("pctProj").textContent = OTD.fmtPct(pctProj, 0);
     document.getElementById("pctProj").style.color = pctProj >= 100 ? "#4ADE80" : "#F0800E";
-    document.getElementById("btMeta").addEventListener("click", function () {
-      const v = Number(document.getElementById("inMeta").value);
-      if (v > 0) { OTD.setGoal(mes, v); render(); }
-    });
+    montarMetaPorSegmento(mes, rows);
 
     const serie = OTD.dailySeries(rows, mes);
     const hoje = new Date();

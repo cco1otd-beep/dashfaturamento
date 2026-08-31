@@ -289,6 +289,17 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .goal-line b{ color:var(--text); font-weight:700; }
 .goal-edit{ display:flex; gap:6px; width:100%; }
 .goal-edit input{ flex:1; }
+/* nota que substituiu o campo da meta global: a meta do mes virou a soma das
+   quatro por operacao (31/08), entao aqui so se explica onde editar */
+.goal-nota{
+  width:100%; font-size:12px; color:var(--text-faint); line-height:1.45;
+  border-top:1px dashed var(--border-soft); padding-top:9px;
+}
+.dtbl tr.linha-total td{
+  border-top:2px solid var(--border); background:rgba(240,128,14,.06);
+}
+.dtbl .goal-edit{ min-width:230px; }
+.dtbl .goal-edit input{ min-width:90px; }
 
 /* ============================  TABELA  ================================== */
 .tablecard{ padding:0; overflow:hidden; }

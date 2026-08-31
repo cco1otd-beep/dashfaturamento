@@ -305,39 +305,58 @@
         (p[1] + fonte * 0.34).toFixed(1) + '" text-anchor="middle" ' +
         'font-size="' + fonte.toFixed(0) + '" font-weight="800" ' +
         'fill="' + T.numero + '">' + texto + "</text>");
-      if (larg > 90 && alt > 90) {
+      /* nome da regiao embaixo do numero. O nome vai INTEIRO (o gestor viu
+         "De" no lugar de "Santa Cruz de la Sierra" em 31/08): quem se ajusta
+         e a fonte, encolhida ate a palavra caber na largura da regiao. */
+      const rot = String(r.rot || r.id);
+      if (larg > 70 && alt > 70) {
+        const cabeNaLarg = (larg * 0.92) / (rot.length * 0.6);
+        const fRot = Math.max(11, Math.min(fonte * 0.34, cabeNaLarg));
         out.push('<text x="' + p[0].toFixed(1) + '" y="' +
-          (p[1] + fonte * 0.34 + fonte * 0.5).toFixed(1) +
-          '" text-anchor="middle" font-size="' + (fonte * 0.32).toFixed(0) +
-          '" font-weight="800" fill="' + T.sigla + '" opacity=".8">' +
-          esc(r.rot || r.id) + "</text>");
+          (p[1] + fonte * 0.34 + fRot * 1.45).toFixed(1) +
+          '" text-anchor="middle" font-size="' + fRot.toFixed(0) +
+          '" font-weight="800" fill="' + T.sigla + '" opacity=".85">' +
+          esc(rot) + "</text>");
       }
     });
 
-    /* baloes empilhados na borda direita, sem se cobrir */
+    /* Baloes das regioes pequenas. Vao para a borda MAIS PROXIMA - com todos
+       na direita, um veiculo em Tacna ou Arica puxava uma linha de chamada
+       atravessando o mapa inteiro (visto em 31/08). */
     if (baloes.length) {
-      baloes.sort(function (u, v) { return u.y - v.y; });
       const RAIO = 26, PASSO = 62;
-      let ultimo = -Infinity;
-      baloes.forEach(function (bl) {
-        let y = Math.max(bl.y, ultimo + PASSO);
-        y = Math.min(y, H - RAIO - 6);
-        ultimo = y;
-        const x = W - RAIO - 8;
-        out.push('<path d="M' + bl.x.toFixed(1) + " " + bl.y.toFixed(1) +
-          "L" + (x - RAIO).toFixed(1) + " " + y.toFixed(1) +
-          '" stroke="' + T.chamada + '" stroke-width="1.4" fill="none"/>');
-        out.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
-          '" r="' + RAIO + '" fill="' + T.ativa + '" fill-opacity="' +
-          faixaDe(bl.qtd) + '" stroke="' + T.ativaBorda + '" stroke-width="2"/>');
-        out.push('<text x="' + x.toFixed(1) + '" y="' + (y + 8).toFixed(1) +
-          '" text-anchor="middle" font-size="24" font-weight="800" fill="' +
-          T.numero + '">' + bl.qtd + "</text>");
-        out.push('<text x="' + (x - RAIO - 10).toFixed(1) + '" y="' +
-          (y + 7).toFixed(1) + '" text-anchor="end" font-size="20" ' +
-          'font-weight="800" fill="' + T.rotulo + '" stroke="' + T.halo +
-          '" stroke-width="4" paint-order="stroke">' +
-          esc(bl.r.rot || bl.r.id) + "</text>");
+      const lados = [
+        { itens: baloes.filter(function (b) { return b.x < W / 2; }),
+          x: RAIO + 10, ancora: "start", dx: RAIO + 10 },
+        { itens: baloes.filter(function (b) { return b.x >= W / 2; }),
+          x: W - RAIO - 10, ancora: "end", dx: -(RAIO + 10) }
+      ];
+      lados.forEach(function (lado) {
+        lado.itens.sort(function (u, v) { return u.y - v.y; });
+        let ultimo = -Infinity;
+        lado.itens.forEach(function (bl) {
+          let y = Math.max(bl.y, ultimo + PASSO);
+          y = Math.min(y, H - RAIO - 6);
+          ultimo = y;
+          const alvo = lado.x + (lado.ancora === "start" ? -RAIO : RAIO);
+          out.push('<path d="M' + bl.x.toFixed(1) + " " + bl.y.toFixed(1) +
+            "L" + alvo.toFixed(1) + " " + y.toFixed(1) +
+            '" stroke="' + T.chamada + '" stroke-width="1.4" fill="none"/>');
+          out.push('<circle cx="' + lado.x.toFixed(1) + '" cy="' + y.toFixed(1) +
+            '" r="' + RAIO + '" fill="' + T.ativa + '" fill-opacity="' +
+            faixaDe(bl.qtd) + '" stroke="' + T.ativaBorda +
+            '" stroke-width="2"/>');
+          out.push('<text x="' + lado.x.toFixed(1) + '" y="' + (y + 8).toFixed(1) +
+            '" text-anchor="middle" font-size="24" font-weight="800" fill="' +
+            T.numero + '">' + bl.qtd + "</text>");
+          const rotB = String(bl.r.rot || bl.r.id);
+          const fB = Math.max(12, Math.min(20, 190 / (rotB.length * 0.6)));
+          out.push('<text x="' + (lado.x + lado.dx).toFixed(1) + '" y="' +
+            (y + fB * 0.35).toFixed(1) + '" text-anchor="' + lado.ancora +
+            '" font-size="' + fB.toFixed(0) + '" font-weight="800" fill="' +
+            T.rotulo + '" stroke="' + T.halo + '" stroke-width="4" ' +
+            'paint-order="stroke">' + esc(rotB) + "</text>");
+        });
       });
     }
 
