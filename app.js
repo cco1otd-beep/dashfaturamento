@@ -230,14 +230,31 @@
       "</div>";
   }
 
+  /* Qual mes a tela deve tratar como "o mes fechado". Vale pelo seletor MES e
+     TAMBEM quando o gestor digita o intervalo do mes inteiro (01/08 a 31/08) -
+     e o mesmo recorte. Antes disso a aba Projecao ficava em branco e as metas
+     sumiam quando ele preenchia DE/ATE na mao. (01/09) */
+  function mesDoFiltro() {
+    if (F.meses.size === 1 && !F.de && !F.ate) return Array.from(F.meses)[0];
+    if (F.de && F.ate && F.de.slice(0, 7) === F.ate.slice(0, 7)) {
+      const mes = F.de.slice(0, 7);
+      const ultimo = new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0).getDate();
+      const inteiro = Number(F.de.slice(8, 10)) === 1 && Number(F.ate.slice(8, 10)) >= ultimo;
+      const mesOk = F.meses.size === 0 ||
+        (F.meses.size === 1 && Array.from(F.meses)[0] === mes);
+      if (inteiro && mesOk) return mes;
+    }
+    return null;
+  }
+
   function renderGeral(rows) {
     const total = OTD.totalFaturamento(rows);
     const viagens = OTD.contarViagens(rows);
     const km = OTD.totalKm(rows), kmC = OTD.totalKmCarregado(rows), kmV = OTD.totalKmVazio(rows);
 
     let delta = null;
-    if (F.meses.size === 1 && !F.de && !F.ate) {
-      const mes = Array.from(F.meses)[0];
+    if (mesDoFiltro()) {
+      const mes = mesDoFiltro();
       const ant = OTD.prevMonthKey(mes);
       const base = OTD.applyEntityFilters(OTD.DATA, F);
       const tAnt = base.reduce(function (s, r) { return s + (r.mesRef === ant ? r.frete : 0); }, 0);
@@ -270,7 +287,7 @@
 
     /* --- insights automáticos --- */
     const insights = OTD.gerarInsights(rows, {
-      mes: (F.meses.size === 1 && !F.de && !F.ate) ? Array.from(F.meses)[0] : null,
+      mes: mesDoFiltro(),
       metaVeiculo: metaVeiculo(), filtro: F,
       segs: F.segs.size ? Array.from(F.segs) : null,
       gruposOms: F.segs.size
@@ -283,19 +300,22 @@
 
     /* --- Faturado & Projeção por segmento (meta = R13) --- */
     const segs = ["LATAS", "BENS DE CONSUMO", "AUTOPROPULSOR", "PRANCHA"];
-    const mesProj = (F.meses.size === 1 && !F.de && !F.ate) ? Array.from(F.meses)[0] : null;
+    const mesProj = mesDoFiltro();
     const mv = metaVeiculo();
     document.getElementById("gridSeg").innerHTML = segs.map(function (s, i) {
       const sub = rows.filter(function (r) { return r.seg === s; });
       const v = OTD.totalFaturamento(sub);
-      const placas = new Set(sub.map(function (r) { return r.placa; }).filter(Boolean));
       /* R13: a meta soma so placas REAIS - "OTD-xxxx" e placa propria ficticia
          do autopropulsor (o veiculo transportado), nao um caminhao da frota. */
-      const placasReais = new Set(sub.filter(function (r) { return r.placa && !r.otd; })
-        .map(function (r) { return r.placa; }));
-      const metaSeg = placasReais.size * mv;                  /* R13 */
-      let linha = OTD.contarViagens(sub) + " viagens · " + placasReais.size + " placas" +
-        (placas.size > placasReais.size ? " (+" + (placas.size - placasReais.size) + " fictícias)" : "");
+      /* R13 revisado em 01/09: meta individual por placa, e o Autopropulsor
+         fora da regra de placa (ultimo mes fechado x 1,05). A contagem de
+         placas sai do mesmo lugar da meta, senao card e meta discordam. */
+      const r13 = OTD.metaR13Seg(sub, s, mv, mesProj);
+      const metaSeg = r13.valor;
+      const nFicticias = new Set(sub.filter(function (r) { return r.placa && r.otd; })
+        .map(function (r) { return OTD.placaChave(r.placa); })).size;
+      let linha = OTD.contarViagens(sub) + " viagens · " + r13.placas + " placas" +
+        (nFicticias ? " (+" + nFicticias + " fictícias)" : "");
       if (mesProj) {
         const p = OTD.projectMonth(sub, mesProj);
         linha += p.isCurrent ? " · projeção " + OTD.fmtBRL(p.projected) : " · mês fechado";
@@ -310,8 +330,18 @@
         (metaSeg > 0
           ? '<div class="pbar' + (pctMeta >= 100 ? " ok" : "") + '"><i style="width:' +
             Math.min(100, pctMeta) + '%"></i></div>' +
-            '<div class="sub">meta R13 ' + OTD.fmtBRL(metaSeg) + " · " + OTD.fmtPct(pctMeta, 0) + "</div>"
-          : '<div class="sub" style="color:var(--text-faint)">sem meta R13 — só placas fictícias</div>') +
+            '<div class="sub">meta R13 ' + OTD.fmtBRL(metaSeg) + " · " + OTD.fmtPct(pctMeta, 0) +
+            '<span style="color:var(--text-faint)"> · ' + E(r13.regra) +
+            (r13.cadastradas && r13.rodaram < r13.cadastradas
+              ? " · " + r13.rodaram + " de " + r13.cadastradas + " cadastradas rodaram"
+              : "") +
+            (r13.semMeta.length
+              ? " · " + r13.semMeta.length + " placa" + (r13.semMeta.length > 1 ? "s" : "") +
+                " sem meta cadastrada"
+              : "") + "</span></div>"
+          : '<div class="sub" style="color:var(--text-faint)">sem meta R13 — ' +
+            (OTD.segMetaSemPlaca(s) ? "sem mês fechado anterior" : "só placas fictícias") +
+            "</div>") +
         "</div>";
     }).join("");
 
@@ -471,7 +501,10 @@
       card('<div class="filterrow"><span class="lbl">Meta mensal por placa</span>' +
         '<input type="number" id="inMetaVeic" value="' + metaVeiculo() + '" step="1000">' +
         '<button class="btn primary" id="btMetaVeic">Salvar</button>' +
-        '<span class="pcount">R13 · meta do segmento = meta da placa × nº de placas do segmento</span></div>') +
+        '<span class="pcount">padrão para placa sem meta cadastrada · R13 · a meta do ' +
+        'segmento é a soma da meta de cada placa real (Autopropulsor fora da regra)' +
+        "</span></div>") +
+      card('<div id="avisoMetaPlaca"></div>') +
       '<div class="grid g-charts-2" style="margin-top:14px">' +
         painel("chPlacaFat", "Top 12 Placas", "por faturamento", "tall") +
         painel("chPlacaKm", "Top 12 Placas · % KM vazio", "quanto menor, melhor", "tall") +
@@ -489,15 +522,38 @@
     const mv = metaVeiculo();
     const ficticias = new Set(rows.filter(function (r) { return r.otd; })
       .map(function (r) { return r.placa; }));
+    /* aviso das placas que faturam sem meta cadastrada - o gestor pediu para
+       ser acusado quando faltar alguma (01/09) */
+    const semMeta = OTD.placasSemMeta();
+    const av = document.getElementById("avisoMetaPlaca");
+    if (av) {
+      av.innerHTML = semMeta.length
+        ? '<div class="phead"><span class="ptitle">⚠️ ' + semMeta.length +
+          " placas rodando sem meta cadastrada</span>" +
+          '<span class="pcount">entram com o padrão de ' + OTD.fmtBRL(mv) +
+          " até você mandar o valor de cada uma · " +
+          OTD.placasSemMeta(true).length + " no total, contando as que pararam" +
+          "</span></div>" +
+          '<div class="sub" style="margin-top:6px;line-height:1.9">' +
+          semMeta.map(function (d) {
+            return '<span class="badge b-grey">' + E(d.placa) + " · " +
+              E(d.seg.slice(0, 12)) + " · " + OTD.fmtBRL(d.valor) + "</span>";
+          }).join(" ") + "</div>"
+        : '<div class="phead"><span class="ptitle">✅ Todas as placas que faturam ' +
+          "têm meta cadastrada</span></div>";
+    }
     linhasCache.tbVei = ag.map(function (a) {
-      const pct = mv > 0 ? 100 * a.frete / mv : 0;
+      const meta = OTD.metaDaPlaca(a.chave, mv);
+      const cadastrada = OTD.metaDaPlacaCadastrada(a.chave) > 0;
+      const pct = meta > 0 ? 100 * a.frete / meta : 0;
       const bateu = pct >= 100;
       return [
         '<span class="strong">' + E(a.chave) + "</span>" +
           (ficticias.has(a.chave) ? ' <span class="badge b-grey">fictícia</span>' : ""),
         '<span style="color:' + (bateu ? "#4ADE80" : "var(--orange-soft)") + ';font-weight:700">' +
           OTD.fmtBRL(a.frete) + "</span>",
-        OTD.fmtBRL(mv),
+        OTD.fmtBRL(meta) + (cadastrada ? ""
+          : ' <span class="badge b-grey" title="placa sem meta cadastrada">padrão</span>'),
         '<span class="badge ' + (bateu ? "b-green" : pct >= 70 ? "b-amber" : "b-grey") + '">' +
           OTD.fmtPct(pct, 0) + "</span>",
         OTD.fmtNum(a.nViagens),
@@ -789,19 +845,29 @@
         "</div></td></tr>";
     }).join("");
 
-    const pctTot = somaMeta > 0 ? 100 * somaReal / somaMeta : 0;
+    /* O TOTAL tem que ser o MESMO numero do medidor de cima, senao a tela mostra
+       duas metas do mes. Quando a meta global antiga ainda esta valendo, e ela
+       que manda - a soma das quatro so entra depois da primeira definida. */
+    const metaMes = OTD.getGoal(mes);
+    const legado = !OTD.algumaGoalSegDefinida(mes) && OTD.goalLegado(mes) > 0;
+    const pctTot = metaMes > 0 ? 100 * somaReal / metaMes : 0;
     box.innerHTML = '<div class="card tablecard">' +
       '<div class="tablehead"><span class="ptitle">Meta do mês por operação</span>' +
-      '<span class="pcount">' + E(OTD.monthLabelFull(mes)) + "</span></div>" +
+      '<span class="pcount">' + E(OTD.monthLabelFull(mes)) +
+      (legado ? " · meta global antiga em vigor: " + OTD.fmtBRL(metaMes) +
+        " (a soma das quatro só passa a valer depois que você salvar a primeira)"
+        : "") + "</span></div>" +
       '<div class="tablewrap"><table class="dtbl"><thead><tr>' +
       "<th>Operação</th>" +
       '<th style="text-align:right">Realizado</th>' +
       '<th style="text-align:right">Meta</th>' +
       '<th style="text-align:right">% Meta</th>' +
       "<th>Ajustar</th></tr></thead><tbody>" + linhas +
-      '<tr class="linha-total"><td><b>TOTAL — meta do mês</b></td>' +
+      '<tr class="linha-total"><td><b>TOTAL — meta do mês</b>' +
+      (legado ? '<div class="sub">soma das quatro: ' + OTD.fmtBRL(somaMeta) + "</div>" : "") +
+      "</td>" +
       '<td class="right"><b>' + OTD.fmtBRL(somaReal) + "</b></td>" +
-      '<td class="right"><b>' + OTD.fmtBRL(somaMeta) + "</b></td>" +
+      '<td class="right"><b>' + OTD.fmtBRL(metaMes) + "</b></td>" +
       '<td class="right"><b>' + OTD.fmtPct(pctTot, 0) + "</b></td><td></td></tr>" +
       "</tbody></table></div></div>";
 
@@ -823,18 +889,34 @@
 
   function renderProjecao(rows) {
     const box = document.getElementById("gridMeta");
-    if (F.meses.size !== 1 || F.de || F.ate) {
+    const mes = mesDoFiltro();
+    if (!mes) {
       box.innerHTML = '<div class="card" style="grid-column:1/-1"><div class="empty-state">' +
-        "Selecione <b>exatamente um mês</b> (sem intervalo de datas) para ver meta e projeção.</div></div>";
+        "Selecione <b>um mês</b> no seletor MÊS — ou um intervalo DE/ATÉ que cubra o " +
+        "mês inteiro — para ver meta e projeção.</div></div>";
+      /* a tabela de metas tambem some junto; sem esta linha ela ficava em
+         branco sem explicacao (reclamacao do gestor em 01/09) */
+      const bs = document.getElementById("gridMetaSeg");
+      if (bs) bs.innerHTML = '<div class="card" style="grid-column:1/-1">' +
+        '<div class="empty-state">As metas são por mês. Escolha o mês acima para ' +
+        "editá-las.</div></div>";
       const el = document.getElementById("tbProj");
       if (el) pintarTabela("tbProj", ["Placa"], []);
       return;
     }
-    const mes = Array.from(F.meses)[0];
     const p = OTD.projectMonth(rows, mes);
     const meta = OTD.getGoal(mes);
     const pctMeta = meta > 0 ? 100 * p.total / meta : 0;
     const pctProj = meta > 0 ? 100 * p.projected / meta : 0;
+    /* de onde saiu o numero - o gestor precisa saber se e o dele ou a sugestao */
+    const usaLegado = !OTD.algumaGoalSegDefinida(mes) && OTD.goalLegado(mes) > 0;
+    const notaMeta = OTD.META.metaFixaTemporaria && OTD.META.metaFixaTemporaria[mes]
+      ? "meta fixa definida no pipeline"
+      : (usaLegado
+        ? "meta global antiga deste mês — vale até você definir a primeira " +
+          "meta em <b>Meta por Operação</b>"
+        : "soma das quatro metas por operação — edite abaixo, em " +
+          "<b>Meta por Operação</b>");
 
     box.innerHTML =
       '<div class="card goal-card">' +
@@ -846,8 +928,7 @@
           '<div class="goal-line"><span>Meta</span><b class="num">' + OTD.fmtBRL(meta) + "</b></div>" +
           '<div class="goal-line"><span>Falta</span><b class="num">' + OTD.fmtBRL(Math.max(0, meta - p.total)) + "</b></div>" +
         "</div>" +
-        '<div class="goal-nota">soma das quatro metas por operação — ' +
-        'edite abaixo, em <b>Meta por Operação</b></div>' +
+        '<div class="goal-nota">' + notaMeta + "</div>" +
       "</div>" +
       '<div class="card goal-card">' +
         '<div class="ptitle" style="align-self:flex-start">Projeção de Fechamento</div>' +
@@ -934,10 +1015,11 @@
     linhasCache.tbProj = agrupar(rows, function (r) { return r.placa; }).map(function (a) {
       const media = p.elapsed ? a.frete / p.elapsed : 0;
       const proj = media * p.totalDays;
-      const pctV = mv > 0 ? 100 * proj / mv : 0;
+      const metaP = OTD.metaDaPlaca(a.chave, mv);
+      const pctV = metaP > 0 ? 100 * proj / metaP : 0;
       return [
         '<span class="strong">' + E(a.chave) + "</span>",
-        OTD.fmtBRL(a.frete), OTD.fmtBRL(media), OTD.fmtBRL(proj), OTD.fmtBRL(mv),
+        OTD.fmtBRL(a.frete), OTD.fmtBRL(media), OTD.fmtBRL(proj), OTD.fmtBRL(metaP),
         '<span class="badge ' + (pctV >= 100 ? "b-green" : pctV >= 70 ? "b-amber" : "b-grey") + '">' +
           OTD.fmtPct(pctV, 0) + "</span>",
         '<span class="pbar' + (pctV >= 100 ? " ok" : "") + '"><i style="width:' +
@@ -1274,7 +1356,12 @@
     ["R10", "<b>CTe substituto</b> → data corrigida para a data original (\"emitido em: …\" na Observação)."],
     ["R11", "<b>SPAL (todas as filiais)</b> → consolidado como grupo único. HEINEKEN conta como CROWN (pagador)."],
     ["R12", "<b>R$/KM</b> = Σ(faturamento) ÷ Σ(KM Vazio + KM Carregado) por romaneio."],
-    ["R13", "<b>Meta por segmento</b> = soma das metas de todas as placas cujo segmento primário é o segmento."]
+    ["R13", "<b>Meta por placa</b> — cada caminhão tem a sua (50, 80 ou 100 mil), " +
+      "definida pelo gestor em 01/09/2026 e guardada no pipeline, igual em todas as telas. " +
+      "A <b>meta do segmento</b> é a soma da meta das placas reais que rodaram no período; " +
+      "placa ainda sem cadastro entra com o padrão e é acusada na aba Veículos. " +
+      "O <b>Autopropulsor fica fora da regra de placa</b> — a frota dele é o veículo " +
+      "transportado (placa fictícia OTD-xxxx), então a meta é o último mês fechado × 1,05."]
   ];
   const REGRAS_FATURAMENTO = [
     ["F1", "Faturamento = <b>Total do conhec.</b> dos CT-e com <b>Situação = Autorizada</b>. Dedup por <b>Nº conhec.</b>"],

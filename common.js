@@ -346,6 +346,91 @@ const OTD = (function () {
 
   function chaveMetaSeg(mes, seg) { return "otd_meta_seg_" + seg + "_" + mes; }
 
+  /* ---------------------------------------------- R13: meta POR PLACA -----
+     Ate 31/08 era um valor unico para toda a frota. Em 01/09 o gestor entregou
+     a meta individual de cada caminhao (50, 80 ou 100 mil) - a tabela viaja no
+     data.js, entao vale igual no dash e nos tres teloes, sem depender do
+     localStorage de cada Raspberry.
+     A placa e comparada SEM hifen: a base traz "AOA-3F18" e "AOA3F18" para o
+     mesmo caminhao, e sem normalizar a frota aparecia com 179 placas em vez
+     de 121. Placa fora da tabela entra com o padrao e e denunciada. */
+  const META_POR_PLACA = (META.metaPorPlaca || {});
+  const SEGS_META_SEM_PLACA = (META.segsMetaSemPlaca || []);
+  const FATOR_META_SEM_PLACA = Number(META.fatorMetaSemPlaca) || 1.05;
+
+  function placaChave(placa) {
+    return String(placa || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+  function placaFicticia(placa) { return /^OTD/.test(placaChave(placa)); }
+  function metaDaPlacaCadastrada(placa) {
+    const v = META_POR_PLACA[placaChave(placa)];
+    return v === undefined ? 0 : Number(v);
+  }
+  /* padrao = o valor editavel na aba Veiculos, para placa ainda sem cadastro */
+  function metaDaPlaca(placa, padrao) {
+    const v = metaDaPlacaCadastrada(placa);
+    return v > 0 ? v : (Number(padrao) || 0);
+  }
+  function segMetaSemPlaca(seg) { return SEGS_META_SEM_PLACA.indexOf(seg) >= 0; }
+
+  /* Meta R13 de um segmento no periodo filtrado.
+     - AUTOPROPULSOR nao usa placa: a frota dele e o veiculo transportado
+       ("OTD-xxxx"), contar placa nao mede nada. Decisao do gestor em 01/09:
+       ultimo mes fechado do segmento x 1,05.
+     - os demais: soma da meta individual das placas REAIS que apareceram. */
+  function metaR13Seg(rows, seg, padrao, mes) {
+    if (segMetaSemPlaca(seg)) {
+      const base = ultimoMesFechado(seg, mes);
+      return { valor: base * FATOR_META_SEM_PLACA, regra: "ultimo mes fechado +5%",
+               placas: 0, semMeta: [] };
+    }
+    const vistas = {}, semMeta = [];
+    let total = 0;
+    rows.forEach(function (r) {
+      /* "SEM PLACA" e o rotulo do CT-e sem placa informada, nao um caminhao -
+         somava R$ 50.000 de meta em cima de nada */
+      if (r.seg !== seg || !r.placa || r.placa === "SEM PLACA" ||
+          placaFicticia(r.placa)) return;
+      const k = placaChave(r.placa);
+      if (vistas[k]) return;
+      vistas[k] = true;
+      const cad = metaDaPlacaCadastrada(r.placa);
+      if (!cad) semMeta.push(r.placa);
+      total += cad > 0 ? cad : (Number(padrao) || 0);
+    });
+    return { valor: total, regra: "soma da meta de cada placa",
+             placas: Object.keys(vistas).length, semMeta: semMeta,
+             cadastradas: placasCadastradasDoSeg(seg),
+             rodaram: Object.keys(vistas).filter(function (k) {
+               return metaDaPlacaCadastrada(k) > 0;
+             }).length };
+  }
+  /* quantas placas cadastradas pertencem ao segmento (pelo que mais faturaram) */
+  function placasCadastradasDoSeg(seg) {
+    const mapa = META.segDaPlaca || {};
+    let n = 0;
+    Object.keys(mapa).forEach(function (k) { if (mapa[k] === seg) n++; });
+    return n;
+  }
+  /* faturamento do segmento no ultimo mes fechado antes de `mes` (ou antes do
+     mes corrente, quando a tela nao esta em um mes so) */
+  function ultimoMesFechado(seg, mes) {
+    const limite = mes || nowKey();
+    const anterior = availableMonths().filter(function (m) { return m < limite; }).pop();
+    if (!anterior) return 0;
+    return DATA.reduce(function (s, r) {
+      return s + (r.mesRef === anterior && r.seg === seg ? (Number(r.frete) || 0) : 0);
+    }, 0);
+  }
+  /* Placas que faturam e ainda nao tem meta cadastrada - vem do pipeline.
+     Por padrao so as que ainda rodam (faturaram do ultimo mes fechado em
+     diante): placa que parou em marco nao mexe na meta de hoje e so poluiria
+     o aviso. `todas` traz tambem o historico. */
+  function placasSemMeta(todas) {
+    const lista = META.placasSemMeta || [];
+    return todas ? lista : lista.filter(function (d) { return d.ativa; });
+  }
+
   function suggestGoalSeg(mes, seg) {
     const meses = availableMonths();
     const anterior = meses.filter(function (m) { return m < mes; }).pop();
@@ -377,10 +462,30 @@ const OTD = (function () {
     } catch (e) { }
   }
 
+  /* A meta global que o gestor salvou ANTES das quatro metas por operacao.
+     Ficava em "otd_meta_<mes>" e deixou de ser lida quando o total virou a soma
+     das quatro - o telao e os insights passaram a comparar com a sugestao
+     automatica, e o numero decidido sumiu. Enquanto nenhuma das quatro for
+     definida no mes, esse valor continua valendo. (correcao de 01/09) */
+  function goalLegado(mes) {
+    try {
+      const v = localStorage.getItem("otd_meta_" + mes);
+      if (v !== null && v !== "" && Number(v) > 0) return Number(v);
+    } catch (e) { }
+    return 0;
+  }
+  function algumaGoalSegDefinida(mes) {
+    return SEGMENTOS_META.some(function (seg) { return goalSegDefinida(mes, seg); });
+  }
+
   function getGoal(mes) {
     /* o hook do pipeline (META_FIXA_TEMPORARIA) continua mandando no total */
     if (META.metaFixaTemporaria && META.metaFixaTemporaria[mes]) {
       return Number(META.metaFixaTemporaria[mes]);
+    }
+    if (!algumaGoalSegDefinida(mes)) {
+      const legado = goalLegado(mes);
+      if (legado > 0) return legado;
     }
     return SEGMENTOS_META.reduce(function (s, seg) {
       return s + getGoalSeg(mes, seg);
@@ -713,21 +818,36 @@ const OTD = (function () {
       }
     }
 
-    /* ---- 4. veículos longe da meta ---- */
+    /* ---- 4. veículos longe da meta ----
+       cada placa tem a SUA meta desde 01/09 - comparar todo mundo com um valor
+       unico dava falso alarme no caminhao de 100 mil e passava pano no de 50 */
     if (metaVeic > 0) {
       const porPlaca = sumBy(rows.filter(function (r) { return !r.otd; }),
                              function (r) { return r.placa; });
       porPlaca.delete("—");
       let abaixo = 0, acima = 0;
-      porPlaca.forEach(function (v) { if (v >= metaVeic) acima++; else abaixo++; });
+      porPlaca.forEach(function (v, placa) {
+        if (v >= metaDaPlaca(placa, metaVeic)) acima++; else abaixo++;
+      });
       const n = abaixo + acima;
       if (n > 0) {
         const pctAcima = 100 * acima / n;
         add(pctAcima < 30 ? "atencao" : "info", "🚛", "Frota × meta por placa",
           acima + " de " + n + " bateram",
-          fmtPct(pctAcima, 0) + " da frota atingiu a meta de " + fmtBRL(metaVeic) +
-          " no período. " + abaixo + " placas ainda abaixo.");
+          fmtPct(pctAcima, 0) + " da frota atingiu a meta individual da placa " +
+          "no período. " + abaixo + " placas ainda abaixo.");
       }
+    }
+
+    /* ---- 4a. placa faturando sem meta cadastrada ------------------------- */
+    const semMetaCad = placasSemMeta();
+    if (semMetaCad.length) {
+      add("atencao", "🏷️", "Placas sem meta cadastrada",
+        fmtNum(semMetaCad.length) + " placas",
+        "Entram com o padrão de " + fmtBRL(metaVeic) + ". Maiores: " +
+        semMetaCad.slice(0, 4).map(function (d) {
+          return d.placa + " (" + fmtBRL(d.valor) + ")";
+        }).join(", ") + ".");
     }
 
     /* ---- 4b. CRT emitido e ainda sem romaneio ----------------------------
@@ -1345,6 +1465,11 @@ const OTD = (function () {
     SEGMENTOS_META: SEGMENTOS_META, ROTULO_SEG_META: ROTULO_SEG_META,
     getGoalSeg: getGoalSeg, setGoalSeg: setGoalSeg,
     suggestGoalSeg: suggestGoalSeg, goalSegDefinida: goalSegDefinida,
+    goalLegado: goalLegado, algumaGoalSegDefinida: algumaGoalSegDefinida,
+    metaDaPlaca: metaDaPlaca, metaDaPlacaCadastrada: metaDaPlacaCadastrada,
+    metaR13Seg: metaR13Seg, segMetaSemPlaca: segMetaSemPlaca,
+    placaChave: placaChave, placaFicticia: placaFicticia,
+    placasSemMeta: placasSemMeta, ultimoMesFechado: ultimoMesFechado,
     escapeHtml: escapeHtml, shortName: shortName, clienteShort: clienteShort,
     corPct: corPct, corVazio: corVazio, corSeveridade: corSeveridade,
     rotuloSeveridade: rotuloSeveridade,
