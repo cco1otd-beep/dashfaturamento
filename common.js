@@ -430,6 +430,11 @@ const OTD = (function () {
     const lista = META.placasSemMeta || [];
     return todas ? lista : lista.filter(function (d) { return d.ativa; });
   }
+  /* Placa CADASTRADA que nao faturou no ultimo mes fechado. Nao entra na meta -
+     a meta soma so quem faturou (decisao do gestor em 01/09) - mas ele quer ser
+     avisado quando uma delas VOLTAR a performar. */
+  function placasParadas() { return META.placasParadas || []; }
+  function placasVoltaram() { return META.placasVoltaram || []; }
 
   function suggestGoalSeg(mes, seg) {
     const meses = availableMonths();
@@ -847,6 +852,30 @@ const OTD = (function () {
         "Entram com o padrão de " + fmtBRL(metaVeic) + ". Maiores: " +
         semMetaCad.slice(0, 4).map(function (d) {
           return d.placa + " (" + fmtBRL(d.valor) + ")";
+        }).join(", ") + ".");
+    }
+
+    /* ---- 4c. placa parada que voltou a performar --------------------------
+       o gestor pediu para ser avisado no momento em que ela volta (01/09) */
+    const voltaram = placasVoltaram();
+    if (voltaram.length) {
+      add("positivo", "🔄", "Placa parada voltou a faturar",
+        fmtNum(voltaram.length) + (voltaram.length > 1 ? " placas" : " placa"),
+        voltaram.slice(0, 4).map(function (d) {
+          return d.placa + " (" + d.seg + ", " + fmtBRL(d.corrente) + " em " +
+            monthLabel(META.mesCorrente) + ")";
+        }).join(", ") + ". Estava sem faturar desde " +
+        (voltaram[0].mes ? monthLabel(voltaram[0].mes) : "sempre") +
+        " — confirmar se entra na meta do mês.");
+    }
+    const paradas = placasParadas();
+    if (paradas.length) {
+      add("info", "🅿️", "Placas cadastradas sem faturar",
+        fmtNum(paradas.length) + (paradas.length > 1 ? " placas" : " placa"),
+        "Não entram na meta enquanto não rodarem: " +
+        paradas.slice(0, 5).map(function (d) {
+          return d.placa + " (" + d.seg + ", último " +
+            (d.mes ? monthLabel(d.mes) : "nunca") + ")";
         }).join(", ") + ".");
     }
 
@@ -1470,6 +1499,7 @@ const OTD = (function () {
     metaR13Seg: metaR13Seg, segMetaSemPlaca: segMetaSemPlaca,
     placaChave: placaChave, placaFicticia: placaFicticia,
     placasSemMeta: placasSemMeta, ultimoMesFechado: ultimoMesFechado,
+    placasParadas: placasParadas, placasVoltaram: placasVoltaram,
     escapeHtml: escapeHtml, shortName: shortName, clienteShort: clienteShort,
     corPct: corPct, corVazio: corVazio, corSeveridade: corSeveridade,
     rotuloSeveridade: rotuloSeveridade,
