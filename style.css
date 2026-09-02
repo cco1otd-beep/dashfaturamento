@@ -920,6 +920,13 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
   font-size:18px; font-weight:700; color:#4FA3E3; min-width:0;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+/* Motorista: quem o time liga. Fica entre a placa e o local, em verde para
+   nao competir com o cliente (azul) nem com o tempo (vermelho). */
+.tv-mon-linha .mot{
+  font-size:17px; font-weight:700; color:#7BD389; letter-spacing:.3px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.tv-mon-linha .mot.vazio{ color:#F1553F; font-style:italic; font-weight:600; }
 .tv-mon-linha .lc{
   font-size:15px; color:#ABA69C; overflow:hidden; text-overflow:ellipsis;
   white-space:nowrap;

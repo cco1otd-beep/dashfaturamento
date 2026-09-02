@@ -1371,6 +1371,27 @@ const OTD = (function () {
     return hh + "h" + String(mm === 60 ? 0 : mm).padStart(2, "0");
   }
 
+  /* Nome do motorista para as telas de acao. O KMM usa um nome fixo como
+     "sem motorista designado" - escrever esse nome na parede faria o time ligar
+     para uma pessoa que nao esta no caminhao. (02/09) */
+  function monitorSemMotorista(r) {
+    const marca = (MONITOR && MONITOR.semMotoristaNome) || "";
+    const nome = String((r && r.motorista) || "").trim();
+    if (!nome) return true;
+    if (!marca) return false;
+    return sem_acento_upper(nome) === sem_acento_upper(marca);
+  }
+  function sem_acento_upper(s) {
+    return String(s).toUpperCase()
+      .replace(/[ÁÀÂÃÄ]/g, "A").replace(/[ÉÈÊË]/g, "E").replace(/[ÍÌÎÏ]/g, "I")
+      .replace(/[ÓÒÔÕÖ]/g, "O").replace(/[ÚÙÛÜ]/g, "U").replace(/Ç/g, "C")
+      .trim();
+  }
+  function monitorMotorista(r, max) {
+    if (monitorSemMotorista(r)) return "sem motorista designado";
+    return shortName(r.motorista, max || 30);
+  }
+
   /* Cor pelo quanto o tempo passou do limite - mesma escala do resto. */
   function monitorCorTempo(h, limite) {
     if (h === null || h === undefined) return "#6E6A62";
@@ -1470,6 +1491,7 @@ const OTD = (function () {
     monitorLista: monitorLista, monitorMapa: monitorMapa,
     monitorMapaUF: monitorMapaUF,
     fmtHM: fmtHM, monitorCorTempo: monitorCorTempo,
+    monitorMotorista: monitorMotorista, monitorSemMotorista: monitorSemMotorista,
     monitorInsights: monitorInsights,
     PALETTE: PALETTE, MESES_PT_FULL: MESES_PT_FULL, MESES_PT_CURTO: MESES_PT_CURTO,
     DIAS_PT_FULL: DIAS_PT_FULL, GRUPO_SEG: GRUPO_SEG,

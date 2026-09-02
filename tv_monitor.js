@@ -149,6 +149,11 @@
   /* Cartao de acao. O gestor pediu o STATUS como titulo em caixa alta no topo
      - antes ele era um texto amarelo miudo no meio da linha e ninguem lia de
      longe. Embaixo vem placa + cliente, e o local na terceira linha. */
+  /* true so quando sobra texto depois de tirar as tags */
+  function temTexto(html) {
+    return !!String(html || "").replace(/<[^>]*>/g, "").trim();
+  }
+
   function linha(r, tempoH, limite, rotulo, detalhe) {
     const cor = OTD.monitorCorTempo(tempoH, limite);
     return '<div class="tv-mon-linha">' +
@@ -159,8 +164,15 @@
       '<div class="corpo"><span class="pl">' + E(r.placa || "—") + "</span>" +
       (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) + "</span>" : "") +
       "</div>" +
+      /* o motorista e quem o time aciona - so com a placa alguem tem que ir
+         procurar no sistema para saber para quem ligar (pedido do gestor
+         em 02/09) */
+      '<div class="mot' + (OTD.monitorSemMotorista(r) ? " vazio" : "") + '">' +
+      E(OTD.monitorMotorista(r, 32)) + "</div>" +
       '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) +
-      (detalhe ? " · " + detalhe : "") + "</div></div>";
+      /* o detalhe as vezes chega como uma tag vazia (destino em branco) e
+         sobrava um "·" solto no fim da linha */
+      (temTexto(detalhe) ? " · " + detalhe : "") + "</div></div>";
   }
 
   /* ======================================================================= */
