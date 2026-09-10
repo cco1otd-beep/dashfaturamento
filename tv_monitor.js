@@ -20,6 +20,11 @@
      ?slide=45                     segundos por tela (padrao 45)
      ?pagina=8                     segundos por alternancia de operacao
      ?reload=10                    minutos ate recarregar sozinho
+     ?grupo=bens_latas|pranchas    trava UM grupo de operacao (TV dedicada a
+                                   uma sala/parede so daquele grupo) - sem
+                                   isso o telao alterna os dois a cada 8s
+                                   (pedido do gestor em 10/09, telao_monitora-
+                                   mento_bens_latas.html / _pranchas.html)
    =========================================================================== */
 (function () {
   "use strict";
@@ -36,12 +41,24 @@
   const M = OTD.MONITOR;
   const LIM = (M && M.limites) || { retido: 5, pernoite: 11, semPosicao: 12 };
 
-  /* Os pares de coluna que alternam a cada 8s. Duas paginas: o gestor pediu
-     Bens | Latas juntos, e Pranchas & Rodando alternando com eles. */
-  const PAGINAS = [
-    [OTD.MONITOR_OPERACOES.bens, OTD.MONITOR_OPERACOES.latas],
-    [OTD.MONITOR_OPERACOES.pranchas]
-  ];
+  /* ?grupo= trava a tela em UM dos dois grupos em vez de alternar - pedido do
+     gestor em 10/09/2026: duas TVs dedicadas na sala (uma so Bens/Latas,
+     outra so Pranchas/Rodando) em vez de uma TV so revezando os dois. Sem o
+     parametro, mantem o comportamento original (alterna a cada 8s). */
+  const GRUPO = (P.get("grupo") || "").toLowerCase();
+  const GRUPO_BENS_LATAS = [OTD.MONITOR_OPERACOES.bens, OTD.MONITOR_OPERACOES.latas];
+  const GRUPO_PRANCHAS = [OTD.MONITOR_OPERACOES.pranchas];
+  const PAGINAS =
+    GRUPO === "bens_latas" ? [GRUPO_BENS_LATAS] :
+    GRUPO === "pranchas" ? [GRUPO_PRANCHAS] :
+    [GRUPO_BENS_LATAS, GRUPO_PRANCHAS];
+
+  /* selo do cabecalho: mostra qual grupo esta travado nesta TV (mesmo padrao
+     do tv.js para as operacoes do telao de faturamento) */
+  const SELO_GRUPO =
+    GRUPO === "bens_latas" ? "📦🥫 BENS & LATAS" :
+    GRUPO === "pranchas" ? "🚜 PRANCHAS & RODANDO" :
+    "🛰️ FROTA AO VIVO";
 
   /* ======================================================================= */
   /* PAGINACAO (alterna as operacoes a cada PAGE_SECONDS)                    */
@@ -211,12 +228,18 @@
      preferiu voltar a UMA tela paginando junto com os demais cards do telao -
      com slide de 45s e pagina de 8s os quatro segmentos passam inteiros dentro
      da mesma tela e o telao nao fica pesado de mapa. */
-  const MAPAS = [
-    { rot: "Bens de Consumo", segs: ["BENS DE CONSUMO"] },
-    { rot: "Latas",           segs: ["LATAS"] },
-    { rot: "Pranchas",        segs: ["PRANCHA"] },
-    { rot: "Rodando",         segs: ["AUTOPROPULSOR"] }
+  const MAPAS_TODAS = [
+    { rot: "Bens de Consumo", segs: ["BENS DE CONSUMO"], grupo: "bens_latas" },
+    { rot: "Latas",           segs: ["LATAS"],           grupo: "bens_latas" },
+    { rot: "Pranchas",        segs: ["PRANCHA"],         grupo: "pranchas" },
+    { rot: "Rodando",         segs: ["AUTOPROPULSOR"],   grupo: "pranchas" }
   ];
+  /* mesma trava do ?grupo=: TV dedicada so mostra o mapa do seu proprio par.
+     Valor invalido de ?grupo= cai no padrao (mostra os quatro), igual ao
+     PAGINAS acima - nunca esvazia a tela por um parametro digitado errado. */
+  const MAPAS = (GRUPO === "bens_latas" || GRUPO === "pranchas")
+    ? MAPAS_TODAS.filter(function (m) { return m.grupo === GRUPO; })
+    : MAPAS_TODAS;
 
   telas.push({
     id: "mapa",
@@ -509,6 +532,8 @@
   }
 
   function iniciar() {
+    const elOp = document.getElementById("tvOp");
+    if (elOp) elOp.textContent = SELO_GRUPO;
     if (!OTD.monitorTem()) {
       document.getElementById("tvSlides").innerHTML =
         '<div class="tv-slide on"><div class="tv-full"><div class="card">' +
