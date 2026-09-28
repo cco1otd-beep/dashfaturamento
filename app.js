@@ -1345,7 +1345,7 @@
   /* ABA 11 · REGRAS                                                         */
   /* ======================================================================= */
   const REGRAS = [
-    ["R1", "<b>BENS + OTD SJP</b> → KM Vazio = 0 (carregamento na base própria)."],
+    ["R1", "<b>BENS + LATAS, cliente OTD Logistics</b> → KM Vazio = 0, em qualquer cidade de carregamento (a carga carregou no nosso Armazém, o vazio que puxa é improcedente). Confirmado com o gestor em 28/09 — antes valia só para Bens de Consumo com carregamento em São José dos Pinhais."],
     ["R2", "<b>LATAS + Crown Cabreúva → SPAL Jundiaí</b> → KM Vazio = KM Carregado = 21 km (fixo). Nunca entra como ofensora."],
     ["R3", "<b>LATAS + VIP Cajamar → SPAL Jundiaí</b> → KM Vazio = KM Carregado = 31 km (fixo). Nunca entra como ofensora."],
     ["R4", "<b>LATAS + carregamento Jundiaí (SPAL origem)</b> → KM Vazio = 0."],
@@ -1362,7 +1362,8 @@
       "A <b>meta do segmento</b> é a soma da meta das placas reais que rodaram no período; " +
       "placa ainda sem cadastro entra com o padrão e é acusada na aba Veículos. " +
       "O <b>Autopropulsor fica fora da regra de placa</b> — a frota dele é o veículo " +
-      "transportado (placa fictícia OTD-xxxx), então a meta é o último mês fechado × 1,05."]
+      "transportado (placa fictícia OTD-xxxx), então a meta é o último mês fechado × 1,05."],
+    ["R14", "<b>Leroy Merlin (Bens de Consumo)</b> → OTP (coleta) e OTD (entrega) sempre \"no prazo\", nunca entram como atrasadas. Fluxo automático de alto volume (muitos CT-es) que a OTD não controla. Confirmado com o gestor em 28/09. Conta normalmente no total de coletas/entregas do dia."]
   ];
   const REGRAS_FATURAMENTO = [
     ["F1", "Faturamento = <b>Total do conhec.</b> dos CT-e com <b>Situação = Autorizada</b>. Dedup por <b>Nº conhec.</b>"],
