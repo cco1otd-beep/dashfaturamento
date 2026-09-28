@@ -355,6 +355,12 @@ const OTD = (function () {
      mesmo caminhao, e sem normalizar a frota aparecia com 179 placas em vez
      de 121. Placa fora da tabela entra com o padrao e e denunciada. */
   const META_POR_PLACA = (META.metaPorPlaca || {});
+  /* Excecao de meta por mes, placa a placa (confirmada com o gestor, 28/09):
+     {"UCP6J81": {"2026-09": 21287.40}, ...} - so cobre o(s) mes(es) listados
+     ali dentro; mes fora da excecao cai no valor normal de META_POR_PLACA.
+     `mes` so existe quando a tela esta olhando UM mes so (ver mesDoFiltro no
+     app.js) - filtro de periodo maior nao aplica a excecao. */
+  const META_POR_PLACA_MES = (META.metaPorPlacaMes || {});
   const SEGS_META_SEM_PLACA = (META.segsMetaSemPlaca || []);
   const FATOR_META_SEM_PLACA = Number(META.fatorMetaSemPlaca) || 1.05;
 
@@ -362,13 +368,18 @@ const OTD = (function () {
     return String(placa || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   }
   function placaFicticia(placa) { return /^OTD/.test(placaChave(placa)); }
-  function metaDaPlacaCadastrada(placa) {
-    const v = META_POR_PLACA[placaChave(placa)];
+  function metaDaPlacaCadastrada(placa, mes) {
+    const k = placaChave(placa);
+    if (mes) {
+      const excecao = META_POR_PLACA_MES[k];
+      if (excecao && excecao[mes] !== undefined) return Number(excecao[mes]);
+    }
+    const v = META_POR_PLACA[k];
     return v === undefined ? 0 : Number(v);
   }
   /* padrao = o valor editavel na aba Veiculos, para placa ainda sem cadastro */
-  function metaDaPlaca(placa, padrao) {
-    const v = metaDaPlacaCadastrada(placa);
+  function metaDaPlaca(placa, padrao, mes) {
+    const v = metaDaPlacaCadastrada(placa, mes);
     return v > 0 ? v : (Number(padrao) || 0);
   }
   function segMetaSemPlaca(seg) { return SEGS_META_SEM_PLACA.indexOf(seg) >= 0; }
@@ -394,7 +405,7 @@ const OTD = (function () {
       const k = placaChave(r.placa);
       if (vistas[k]) return;
       vistas[k] = true;
-      const cad = metaDaPlacaCadastrada(r.placa);
+      const cad = metaDaPlacaCadastrada(r.placa, mes);
       if (!cad) semMeta.push(r.placa);
       total += cad > 0 ? cad : (Number(padrao) || 0);
     });
@@ -402,7 +413,7 @@ const OTD = (function () {
              placas: Object.keys(vistas).length, semMeta: semMeta,
              cadastradas: placasCadastradasDoSeg(seg),
              rodaram: Object.keys(vistas).filter(function (k) {
-               return metaDaPlacaCadastrada(k) > 0;
+               return metaDaPlacaCadastrada(k, mes) > 0;
              }).length };
   }
   /* quantas placas cadastradas pertencem ao segmento (pelo que mais faturaram) */
@@ -832,7 +843,7 @@ const OTD = (function () {
       porPlaca.delete("—");
       let abaixo = 0, acima = 0;
       porPlaca.forEach(function (v, placa) {
-        if (v >= metaDaPlaca(placa, metaVeic)) acima++; else abaixo++;
+        if (v >= metaDaPlaca(placa, metaVeic, mes)) acima++; else abaixo++;
       });
       const n = abaixo + acima;
       if (n > 0) {

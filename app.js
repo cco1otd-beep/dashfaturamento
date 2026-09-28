@@ -520,6 +520,7 @@
     barrasH("chPlacaKm", porVazio, "rgba(241,85,63,.7)", function (v) { return OTD.fmtPct(v, 1); }, "pct");
 
     const mv = metaVeiculo();
+    const mesVei = mesDoFiltro();
     const ficticias = new Set(rows.filter(function (r) { return r.otd; })
       .map(function (r) { return r.placa; }));
     /* aviso das placas que faturam sem meta cadastrada - o gestor pediu para
@@ -543,8 +544,8 @@
           "têm meta cadastrada</span></div>";
     }
     linhasCache.tbVei = ag.map(function (a) {
-      const meta = OTD.metaDaPlaca(a.chave, mv);
-      const cadastrada = OTD.metaDaPlacaCadastrada(a.chave) > 0;
+      const meta = OTD.metaDaPlaca(a.chave, mv, mesVei);
+      const cadastrada = OTD.metaDaPlacaCadastrada(a.chave, mesVei) > 0;
       const pct = meta > 0 ? 100 * a.frete / meta : 0;
       const bateu = pct >= 100;
       return [
@@ -1015,7 +1016,7 @@
     linhasCache.tbProj = agrupar(rows, function (r) { return r.placa; }).map(function (a) {
       const media = p.elapsed ? a.frete / p.elapsed : 0;
       const proj = media * p.totalDays;
-      const metaP = OTD.metaDaPlaca(a.chave, mv);
+      const metaP = OTD.metaDaPlaca(a.chave, mv, mes);
       const pctV = metaP > 0 ? 100 * proj / metaP : 0;
       return [
         '<span class="strong">' + E(a.chave) + "</span>",
