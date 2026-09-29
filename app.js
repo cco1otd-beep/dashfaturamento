@@ -1363,7 +1363,8 @@
       "placa ainda sem cadastro entra com o padrão e é acusada na aba Veículos. " +
       "O <b>Autopropulsor fica fora da regra de placa</b> — a frota dele é o veículo " +
       "transportado (placa fictícia OTD-xxxx), então a meta é o último mês fechado × 1,05."],
-    ["R14", "<b>Leroy Merlin (Bens de Consumo)</b> → OTP (coleta) e OTD (entrega) sempre \"no prazo\", nunca entram como atrasadas. Fluxo automático de alto volume (muitos CT-es) que a OTD não controla. Confirmado com o gestor em 28/09. Conta normalmente no total de coletas/entregas do dia."]
+    ["R14", "<b>Leroy Merlin (Bens de Consumo)</b> → OTP (coleta) e OTD (entrega) sempre \"no prazo\", nunca entram como atrasadas. Fluxo automático de alto volume (muitos CT-es) que a OTD não controla. Confirmado com o gestor em 28/09. Conta normalmente no total de coletas/entregas do dia."],
+    ["R15", "<b>KM vazio — romaneio sem carregamento fechado</b> → um romaneio com Dt. Carga (I) registrada mas KM Carregado = 0 (carregamento ainda não fechado no KMM, normalmente sem cliente/destino) fica <b>fora</b> da conta de vazio (não entra na média nem na lista de ofensores) — o denominador zerado inflava o % pra 100% artificialmente. Confirmado com o gestor em 29/09. O pipeline guarda esses romaneios como \"pendentes\" e, quando o carregamento fecha numa base mais nova (KM Carregado > 0), ele sai da lista de pendentes e entra na conta normal — os dois casos (novo pendente e resolvido) são sempre reportados pro gestor."]
   ];
   const REGRAS_FATURAMENTO = [
     ["F1", "Faturamento = <b>Total do conhec.</b> dos CT-e com <b>Situação = Autorizada</b>. Dedup por <b>Nº conhec.</b>"],
