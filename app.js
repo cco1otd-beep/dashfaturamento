@@ -1162,7 +1162,8 @@
     }
     if (hint) {
       hint.textContent = " foto de " + OTD.fmtDataHora(A.geradoEm) + " · " +
-        A.semReferencia + " cargas em aberto sem prazo cadastrado ficam de fora";
+        A.semReferencia + " cargas em aberto sem prazo cadastrado ficam de fora · " +
+        (A.descartadasR18 || 0) + " exceção manual confirmada (R18)";
     }
     const segs = Object.keys(A.segmentos).sort();
     function junta(tipo) {
@@ -1352,7 +1353,7 @@
     ["R5", "<b>Crown PG × Heineken PG</b> → KM Vazio = 8, KM Carregado = 8."],
     ["R6", "<b>Crown PG × SPM PG</b> → KM Vazio = 4, KM Carregado = 4."],
     ["R7", "<b>Heineken PG × Crown PG</b> → KM Vazio = 8, KM Carregado = 8."],
-    ["R8", "<b>LATAS PG × PG (não-NBH)</b> → R$ 630,53/carga (≤ abr/26) · R$ 662,06 (≥ mai/26). A data da receita é a <b>Dt. Carga (I) real da lviagens</b> (cruzando pelo romaneio); só cai na data programada do lcargas quando o romaneio não existe lá. Só conta até hoje."],
+    ["R8", "<b>LATAS PG × PG (não-NBH)</b> → R$ 630,53/carga (≤ abr/26) · R$ 662,06 (≥ mai/26). A data da receita é a <b>Dt. Carga (I) real da lviagens</b> (cruzando pelo romaneio); só cai na data programada do lcargas quando a carga já tem romaneio mas ele ainda não apareceu na lviagens (ver R17 para o caso sem romaneio nenhum). Só conta até hoje."],
     ["R9", "<b>Placa NBH9F10 + PG × PG</b> → R$ 1.600,00/dia ÷ nº de cargas do dia."],
     ["R10", "<b>CTe substituto</b> → data corrigida para a data original (\"emitido em: …\" na Observação)."],
     ["R11", "<b>SPAL (todas as filiais)</b> → consolidado como grupo único. HEINEKEN conta como CROWN (pagador)."],
@@ -1365,7 +1366,8 @@
       "transportado (placa fictícia OTD-xxxx), então a meta é o último mês fechado × 1,05."],
     ["R14", "<b>Leroy Merlin (Bens de Consumo)</b> → OTP (coleta) e OTD (entrega) sempre \"no prazo\", nunca entram como atrasadas. Fluxo automático de alto volume (muitos CT-es) que a OTD não controla. Confirmado com o gestor em 28/09. Conta normalmente no total de coletas/entregas do dia."],
     ["R15", "<b>KM vazio — romaneio sem carregamento fechado</b> → um romaneio com Dt. Carga (I) registrada mas KM Carregado = 0 (carregamento ainda não fechado no KMM, normalmente sem cliente/destino) fica <b>fora</b> da conta de vazio (não entra na média nem na lista de ofensores) — o denominador zerado inflava o % pra 100% artificialmente. Confirmado com o gestor em 29/09. O pipeline guarda esses romaneios como \"pendentes\" e, quando o carregamento fecha numa base mais nova (KM Carregado > 0), ele sai da lista de pendentes e entra na conta normal — os dois casos (novo pendente e resolvido) são sempre reportados pro gestor."],
-    ["R16", "<b>KM vazio — estimativa manual pro romaneio pendente (R15)</b> → pro romaneio ainda sem carregamento fechado no KMM, o gestor pode informar um <b>KM Carregado estimado</b> (com base no conhecimento da rota); enquanto isso, ele entra na média de vazio e na lista de ofensores com esse valor <b>marcado como \"estimado\"</b> — sempre reportado como tal pro gestor. Confirmado com o gestor em 30/09. Assim que o KMM fecha o carregamento de verdade (KM Carregado real > 0), o cálculo troca sozinho pro valor real e a estimativa é descartada — o gestor é avisado da troca."]
+    ["R16", "<b>KM vazio — estimativa manual pro romaneio pendente (R15)</b> → pro romaneio ainda sem carregamento fechado no KMM, o gestor pode informar um <b>KM Carregado estimado</b> (com base no conhecimento da rota); enquanto isso, ele entra na média de vazio e na lista de ofensores com esse valor <b>marcado como \"estimado\"</b> — sempre reportado como tal pro gestor. Confirmado com o gestor em 30/09. Assim que o KMM fecha o carregamento de verdade (KM Carregado real > 0), o cálculo troca sozinho pro valor real e a estimativa é descartada — o gestor é avisado da troca."],
+    ["R17", "<b>Ponta Grossa sintético — carga sem número de romaneio</b> → uma carga LATAS Ponta Grossa × Ponta Grossa <b>sem romaneio</b> no lcargas ainda não \"virou carga\" de verdade e fica <b>fora</b> do faturamento sintético (R8/R9) — não cai nem na data programada. Identificado em 30/09: um lote de 227 cargas sem romaneio, todas com a mesma data programada batida em bloco pro fim do dia, estava sendo faturado como se fossem cargas reais daquele dia. Confirmado com o gestor em 30/09. Só entra na conta quando ganha um romaneio (real na lviagens ou, na falta dela, pela data programada — R8). Pendentes e resolvidas são sempre reportadas pro gestor, do mesmo jeito que o R15/R16 de KM vazio."]
   ];
   const REGRAS_FATURAMENTO = [
     ["F1", "Faturamento = <b>Total do conhec.</b> dos CT-e com <b>Situação = Autorizada</b>. Dedup por <b>Nº conhec.</b>"],
@@ -1383,6 +1385,7 @@
     ["ENT1", "Controle de Entregas em 4 status exclusivos: Finalizadas → Em descarga → Em viagem → Destinado. Só Finalizadas filtra pelo dia avaliado."],
     ["ENT2", "<b>Cargas em Atraso</b> é o complemento da OMS: a OMS mede o que <b>já foi atendido</b> (no prazo ou não); esta lista mostra o que <b>ainda não chegou</b> e já passou do prazo. Entra só romaneio <b>em aberto</b>: coleta sem <b>Dt. Carga (I)</b> (prazo = programação de carregamento do lcargas) e entrega já carregada mas sem <b>Dt. Descarga (I)</b> (prazo = previsão de entrega do lcargas), sempre comparados com o horário de geração da base. Romaneio sem prazo cadastrado fica de fora e é contado à parte."],
     ["ENT3", "Severidade em Cargas em Atraso segue a mesma régua da OMS2: ≥ 8h <b>Crítico</b> · 2h–8h <b>Atenção</b> · &lt; 2h <b>Leve</b>. Nas rotas da regra OMS1b o prazo de coleta usado é o da LVIAGENS."],
+    ["R18", "<b>Cargas em Atraso — exceção manual por romaneio</b> → um romaneio específico, confirmado pelo gestor numa varredura como \"não está atrasado de verdade\" (mesmo aparecendo como tal por falta de <b>Dt. Carga (I)</b>/<b>Dt. Descarga (I)</b> na lviagens), sai da lista \"Cargas em Atraso\". <b>Não é um critério genérico</b> — cada romaneio entra na exceção só quando confirmado individualmente pelo gestor, mesmo quando o mesmo padrão de dado aparece em outros romaneios/segmentos (pedido explícito do gestor em 30/09, pra não generalizar sem confirmar caso a caso). Lista atual: 475358, 482731, 483255 (todos confirmados em 30/09). O total descartado pelo R18 aparece no cabeçalho da aba Cargas em Atraso."],
     ["M1", "<b>Rodando só opera com pedido.</b> No segmento Rodando, veículo <b>Destinado</b> com <b>Pedido/shipment em branco</b> está parado sem utilidade e sai de TODAS as contas do painel — contador, mapa e listas de ação. Na base de estreia isso tirou 286 dos 300 \"Destinado\" do Rodando."],
     ["M2", "<b>Documento pendente ignora dois casos.</b> Carga <b>internacional</b> (UF \"EX\") não entra, e <b>Ponta Grossa × Ponta Grossa</b> também não: pela regra R8 essa rota nunca emite CT-e, o faturamento é simulado."],
     ["M3", "Os campos de tempo do lmonitoramento (<b>Tempo evento</b> e <b>Tempo parado</b>) são <b>acumulados</b>: \"30:00\" são trinta horas, não seis. Lidos direto, sem tratar virada de dia."],
