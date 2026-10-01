@@ -765,6 +765,157 @@
   });
 
   /* ======================================================================= */
+  /* FECHAMENTO DO MES (telas extras, so no dia 01 - pedido do gestor em     */
+  /* 01/10/2026): 3 telas com o resultado do mes que ACABOU de fechar,       */
+  /* entrando intercaladas na rotacao normal (nao substituem as telas do    */
+  /* dia). Em qualquer outro dia nao aparecem - `aplicavel` corta todas.     */
+  /* ======================================================================= */
+  const DIA_01 = (new Date().getDate() === 1);
+  const MES_FECHADO = OTD.prevMonthKey(OTD.nowKey());
+  const MES_ANTES_FECHADO = OTD.prevMonthKey(MES_FECHADO);
+  const ROWS_FECHADO = OTD.filterAll({ meses: new Set([MES_FECHADO]), segs: F.segs });
+  const ROWS_ANTES_FECHADO = OTD.filterAll({ meses: new Set([MES_ANTES_FECHADO]), segs: F.segs });
+  const OMS_FECHADO = ((OTD.META.fechamentoMesOMS || {}).grupos) || {};
+  const OMS_ANTES_FECHADO = ((OTD.META.fechamentoMesAnteriorOMS || {}).grupos) || {};
+
+  /* menorMelhor: true para metricas onde CAIR e bom (ex.: KM vazio) - a seta
+     sempre mostra a direcao real do numero, so a cor (bom/ruim) inverte. */
+  function fDelta(atual, antes, menorMelhor) {
+    if (atual === null || atual === undefined || isNaN(atual) ||
+        antes === null || antes === undefined || isNaN(antes) || !antes) {
+      return { txt: "sem comparação vs " + OTD.monthLabel(MES_ANTES_FECHADO), pos: null };
+    }
+    const d = 100 * (atual - antes) / antes;
+    const subiu = d >= 0;
+    const bom = menorMelhor ? !subiu : subiu;
+    return { txt: (subiu ? "▲ " : "▼ ") + OTD.fmtPct(Math.abs(d), 1) +
+                  " vs " + OTD.monthLabel(MES_ANTES_FECHADO), pos: bom };
+  }
+  function cardDeltaTv(lbl, val, delta) {
+    const cor = delta.pos === null ? "#ABA69C" : (delta.pos ? "#4ADE80" : "#F1553F");
+    return '<div class="card"><div class="lbl">' + E(lbl) + "</div>" +
+      '<div class="val num">' + val + "</div>" +
+      '<div class="sub" style="color:' + cor + '">' + E(delta.txt) + "</div></div>";
+  }
+  /* placas REAIS (sem ficticia/SEM PLACA, fora dos segmentos sem placa tipo
+     Autopropulsor - R13) que bateram ou nao a meta individual NO MES FECHADO.
+     Mesma regra de meta por placa ja usada no resto da Torre (metaDaPlaca),
+     so aplicada ao mes que fechou em vez do mes corrente. */
+  function metaPlacasFechado() {
+    const padrao = Number(OTD.META.metaVeiculoMes) || 60000;
+    const elegiveis = ROWS_FECHADO.filter(function (r) {
+      return r.placa && r.placa !== "SEM PLACA" && !OTD.placaFicticia(r.placa) &&
+             !OTD.segMetaSemPlaca(r.seg);
+    });
+    const porPlaca = OTD.sumBy(elegiveis, function (r) { return OTD.placaChave(r.placa); });
+    let bateram = 0, naoBateram = 0;
+    porPlaca.forEach(function (total, chave) {
+      const meta = OTD.metaDaPlaca(chave, padrao, MES_FECHADO);
+      if (total >= meta) bateram++; else naoBateram++;
+    });
+    return { bateram: bateram, naoBateram: naoBateram, total: bateram + naoBateram };
+  }
+
+  /* --- F1. Fechamento do Mês · Resultado ---------------------------------- */
+  telas.push({
+    titulo: "Fechamento do Mês — Resultado",
+    subMes: MES_FECHADO,
+    aplicavel: function () { return DIA_01; },
+    html: function () {
+      const total = OTD.totalFaturamento(ROWS_FECHADO);
+      const totalAntes = OTD.totalFaturamento(ROWS_ANTES_FECHADO);
+      const viagens = OTD.contarViagens(ROWS_FECHADO);
+      const viagensAntes = OTD.contarViagens(ROWS_ANTES_FECHADO);
+      return '<div style="display:flex;flex-direction:column;gap:18px;height:100%">' +
+        '<div class="tv-kpi-row">' +
+        cardDeltaTv("Faturamento do Mês", OTD.fmtBRL(total), fDelta(total, totalAntes)) +
+        cardDeltaTv("Cargas/Viagens", OTD.fmtNum(viagens), fDelta(viagens, viagensAntes)) +
+        cardKpiTv("Ticket Médio", OTD.fmtBRL(viagens ? total / viagens : 0), "por viagem") +
+        "</div>" +
+        '<div class="tv-full" style="flex:1"><div class="card panel"><div class="phead">' +
+        '<span class="ptitle">Faturamento por Segmento</span>' +
+        '<span class="pcount">' + E(OTD.monthLabelFull(MES_FECHADO)) + "</span></div>" +
+        '<div class="chart-wrap"><canvas id="tvFechSeg"></canvas></div></div></div></div>';
+    },
+    after: function () {
+      const porSeg = OTD.topN(OTD.sumBy(ROWS_FECHADO, function (r) { return r.seg; }), 6);
+      barrasTv("tvFechSeg", porSeg, "rgba(240,128,14,.85)");
+    }
+  });
+
+  /* --- F2. Fechamento do Mês · OMS & Metas -------------------------------- */
+  telas.push({
+    titulo: "Fechamento do Mês — OMS & Metas",
+    subMes: MES_FECHADO,
+    aplicavel: function () { return DIA_01 && Object.keys(OMS_FECHADO).length > 0; },
+    html: function () {
+      const grupos = Object.keys(OMS_FECHADO).filter(function (g) {
+        return !F.segs || !F.segs.size || F.segs.has((OTD.GRUPO_SEG[g] || "").toUpperCase());
+      });
+      const cardsOms = grupos.map(function (g) {
+        const d = OMS_FECHADO[g] || {};
+        const antes = OMS_ANTES_FECHADO[g] || {};
+        function c(lbl, val, delta) { return cardDeltaTv(lbl, val, delta); }
+        return '<div><h3 style="margin:0 0 10px;font-size:17px;color:#ABA69C;' +
+          'text-transform:uppercase;letter-spacing:1.6px">' + E(NOME_GRUPO[g] || g) + "</h3>" +
+          '<div class="grid g-3">' +
+          c("OTP · coletas", OTD.fmtPct(d.otpPct), fDelta(d.otpPct, antes.otpPct)) +
+          c("OTD · entregas", OTD.fmtPct(d.otdPct), fDelta(d.otdPct, antes.otdPct)) +
+          c("KM vazio", OTD.fmtPct(d.vazioMedia), fDelta(d.vazioMedia, antes.vazioMedia, true)) +
+          "</div></div>";
+      }).join("");
+      const mp = metaPlacasFechado();
+      return '<div style="display:flex;flex-direction:column;gap:18px;height:100%">' +
+        cardsOms +
+        '<div class="tv-kpi-row" style="grid-template-columns:repeat(2,1fr)">' +
+        cardKpiTv("Placas que bateram a meta", OTD.fmtNum(mp.bateram),
+                  "de " + OTD.fmtNum(mp.total) + " avaliadas em " + OTD.monthLabel(MES_FECHADO)) +
+        cardKpiTv("Placas que não bateram", OTD.fmtNum(mp.naoBateram),
+                  "meta individual por placa (R13)") +
+        "</div></div>";
+    }
+  });
+
+  /* --- F3. Fechamento do Mês · Destaques ---------------------------------- */
+  telas.push({
+    titulo: "Fechamento do Mês — Destaques",
+    subMes: MES_FECHADO,
+    aplicavel: function () { return DIA_01; },
+    html: function () {
+      return '<div class="tv-2">' +
+        '<div class="card panel"><div class="phead"><span class="ptitle">Top Clientes do Mês</span>' +
+        '<span class="pcount">' + E(OTD.monthLabelFull(MES_FECHADO)) + "</span></div>" +
+        '<div class="chart-wrap"><canvas id="tvFechCli"></canvas></div></div>' +
+        '<div class="card panel"><div class="phead"><span class="ptitle">Top Rotas do Mês</span>' +
+        '<span class="pcount">' + E(OTD.monthLabelFull(MES_FECHADO)) + "</span></div>" +
+        '<div class="chart-wrap"><canvas id="tvFechRot"></canvas></div></div></div>';
+    },
+    after: function () {
+      const cli = OTD.topN(OTD.sumBy(ROWS_FECHADO, function (r) { return r.cliente; }), 8);
+      const rot = OTD.topN(OTD.sumBy(ROWS_FECHADO, function (r) { return r.rota; }), 8);
+      barrasTv("tvFechCli", cli, "rgba(240,128,14,.85)");
+      barrasTv("tvFechRot", rot, "rgba(45,212,191,.85)");
+    }
+  });
+
+  /* Intercala as 3 telas de fechamento na rotacao normal, logo apos a tela
+     tematicamente mais proxima, em vez de so empilhar no fim da lista. */
+  (function intercalarFechamento() {
+    const alvos = [["Visão Geral", "Fechamento do Mês — Resultado"],
+                   ["OMS — Qualidade", "Fechamento do Mês — OMS & Metas"],
+                   ["Clientes & Rotas", "Fechamento do Mês — Destaques"]];
+    alvos.forEach(function (par) {
+      const idxTela = telas.findIndex(function (t) { return t.titulo === par[1]; });
+      if (idxTela < 0) return;
+      const tela = telas[idxTela];
+      telas.splice(idxTela, 1);
+      const idxAlvo = telas.findIndex(function (t) { return t.titulo === par[0]; });
+      if (idxAlvo < 0) telas.push(tela);
+      else telas.splice(idxAlvo + 1, 0, tela);
+    });
+  })();
+
+  /* ======================================================================= */
   /* GRUPOS OMS VISIVEIS PARA ESTA OPERACAO                                  */
   /* ======================================================================= */
   function gruposOms() {
@@ -787,7 +938,9 @@
      de motorista/placa, que e leitura de dashboard e nao de chao de fabrica. */
   const ORDEM_MACRO = ["Visão Geral", "Contador de Cargas", "Pontos de Atenção",
                        "Faturamento Diário", "Clientes & Rotas", "OMS — Qualidade",
-                       "Controle de Entregas", "Cargas em Atraso", "Insights & Sugestões"];
+                       "Controle de Entregas", "Cargas em Atraso", "Insights & Sugestões",
+                       "Fechamento do Mês — Resultado", "Fechamento do Mês — OMS & Metas",
+                       "Fechamento do Mês — Destaques"];
   const SLIDES = MACRO
     ? ATIVAS.filter(function (t) { return ORDEM_MACRO.indexOf(t.titulo) >= 0; })
     : ATIVAS;
@@ -825,7 +978,7 @@
     const elOp = document.getElementById("tvOp");
     if (elOp) elOp.textContent = OP.icone + " " + TITULO;
     document.getElementById("tvSub").textContent =
-      t.titulo + " · " + OTD.monthLabelFull(MES);
+      t.titulo + " · " + OTD.monthLabelFull(t.subMes || MES);
 
     /* selo de alerta permanente no cabecalho quando ha critico */
     const selo = document.getElementById("tvSelo");

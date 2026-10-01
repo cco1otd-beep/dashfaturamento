@@ -531,6 +531,16 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .tv-kpi .val{ font-size:66px; font-weight:800; letter-spacing:-1px; color:#F6F4F0; }
 .tv-kpi .sub{ font-size:17px; color:#ABA69C; }
 
+/* Mesma tipografia do .tv-kpi, mas UMA linha so (altura pelo conteudo, nao
+   100%) - para quando o KPI divide a tela com outro bloco abaixo (ex.: as
+   telas de Fechamento do Mes, que tem 3 KPIs em cima e um grafico embaixo). */
+.tv-kpi-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.tv-kpi-row .card{ display:flex; flex-direction:column; justify-content:center; }
+.tv-kpi-row .card > * + *{ margin-top:10px; }
+.tv-kpi-row .lbl{ font-size:18px; text-transform:uppercase; letter-spacing:1.6px; color:#6E6A62; font-weight:800; }
+.tv-kpi-row .val{ font-size:66px; font-weight:800; letter-spacing:-1px; color:#F6F4F0; }
+.tv-kpi-row .sub{ font-size:17px; color:#ABA69C; }
+
 .tv-legend{ display:flex; flex-direction:column; justify-content:center; }
 .tv-legend .row{ display:flex; align-items:center; }
 .tv-legend .dot{ width:17px; height:17px; border-radius:5px; flex:0 0 auto; }
