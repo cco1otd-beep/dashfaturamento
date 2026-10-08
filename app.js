@@ -2294,7 +2294,6 @@
       '<option value="">Todos</option>' + meses.map(function (m) {
         return '<option value="' + m + '">' + E(m.slice(5) + "/" + m.slice(0, 4)) + "</option>";
       }).join("");
-    opcoes("selSeg", OTD.distinctSegmentos(), "Todos");
     opcoes("selMod", Array.from(new Set(OTD.DATA.map(function (r) { return r.modalidade; })
       .filter(Boolean))).sort(), "Todas");
     opcoes("selEmi", (OTD.META.emitentes || []).concat(["CRT", "PONTA GROSSA"]).sort(), "Todos");
@@ -2322,7 +2321,6 @@
         render();
       });
     }
-    ligaSelect("selSeg", F.segs);
     ligaSelect("selMod", F.modalidades);
     ligaSelect("selEmi", F.emitentes);
 
@@ -2349,8 +2347,8 @@
         .forEach(function (s) { s.clear(); });
       F.de = F.ate = null;
       ["dtDe", "dtAte"].forEach(function (id) { document.getElementById(id).value = ""; });
-      ["selMes", "selSeg", "selMod", "selEmi"].forEach(function (id) { document.getElementById(id).value = ""; });
-      ["msCliente", "msMotorista", "msPlaca", "msRota"].forEach(function (id) {
+      ["selMes", "selMod", "selEmi"].forEach(function (id) { document.getElementById(id).value = ""; });
+      ["msSegmento", "msCliente", "msMotorista", "msPlaca", "msRota"].forEach(function (id) {
         const el = document.getElementById(id); if (el.__sync) el.__sync();
       });
       const meses2 = OTD.availableMonths(), atual = OTD.nowKey();
@@ -2360,6 +2358,12 @@
       render();
     });
 
+    // Segmento: varios ao mesmo tempo (nenhum marcado = todos). F.segs ja era um Set.
+    montarMultiselect("msSegmento", "Segmento", OTD.distinctSegmentos(), F.segs, null, function (alvo) {
+      if (!alvo.size) return "Todos";
+      if (alvo.size === 1) return Array.from(alvo)[0];
+      return alvo.size + " segmentos";
+    });
     montarMultiselect("msCliente", "Cliente", OTD.distinctClientes(), F.clientes);
     montarMultiselect("msMotorista", "Motorista", OTD.distinctMotoristas(), F.motoristas);
     montarMultiselect("msPlaca", "Placa", OTD.distinctPlacas(), F.placas);
@@ -2370,7 +2374,7 @@
     });
   }
 
-  function montarMultiselect(id, rotulo, valores, alvo, aoMudar) {
+  function montarMultiselect(id, rotulo, valores, alvo, aoMudar, rotuloFn) {
     const el = document.getElementById(id);
     el.innerHTML =
       '<button class="btn ms-toggle"><span>' + E(rotulo) + '</span><span class="cnt" style="display:none">0</span></button>' +
@@ -2383,15 +2387,24 @@
              "<span>" + E(OTD.shortName(v, 40)) + "</span></label>";
     }).join("");
     const cnt = el.querySelector(".cnt");
+    const txtToggle = el.querySelector(".ms-toggle > span:first-child");
+    function atualizaRotulo() {
+      if (rotuloFn) txtToggle.textContent = rotuloFn(alvo);
+    }
+    atualizaRotulo();
     function sync() {
       cnt.textContent = alvo.size;
-      cnt.style.display = alvo.size ? "inline-block" : "none";
+      cnt.style.display = alvo.size && !rotuloFn ? "inline-block" : "none";
+      atualizaRotulo();
       (aoMudar || render)();
     }
     lista.addEventListener("change", function (ev) {
       if (ev.target.checked) alvo.add(ev.target.value); else alvo.delete(ev.target.value);
       sync();
     });
+    // clicar DENTRO da caixa nao pode fechar ela (o listener global do document fecha
+    // todas as .ms.open) - senao da pra marcar so uma opcao por vez
+    el.querySelector(".ms-pop").addEventListener("click", function (ev) { ev.stopPropagation(); });
     el.querySelector(".ms-toggle").addEventListener("click", function (ev) {
       ev.stopPropagation();
       document.querySelectorAll(".ms.open").forEach(function (o) { if (o !== el) o.classList.remove("open"); });
@@ -2416,7 +2429,8 @@
     el.__sync = function () {
       lista.querySelectorAll("input").forEach(function (cb) { cb.checked = alvo.has(cb.value); });
       cnt.textContent = alvo.size;
-      cnt.style.display = alvo.size ? "inline-block" : "none";
+      cnt.style.display = alvo.size && !rotuloFn ? "inline-block" : "none";
+      atualizaRotulo();
     };
   }
 

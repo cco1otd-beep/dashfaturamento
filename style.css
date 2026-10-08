@@ -189,6 +189,10 @@ input:focus,select:focus{ border-color:var(--orange-dark); }
 .ms-item:hover{ background:var(--bg-panel-2); color:var(--text); }
 .ms-item input{ width:auto; margin:0; accent-color:var(--orange); }
 .ms-actions{ display:flex; gap:6px; margin-top:8px; }
+/* Segmento: so 4 opcoes, sem caixa de busca e com largura menor */
+#msSegmento .ms-toggle{ min-width:170px; }
+#msSegmento .ms-pop{ width:220px; }
+#msSegmento .ms-pop input[type="text"]{ display:none; }
 
 /* ============================  GRIDS  =================================== */
 .grid{ display:grid; gap:14px; }
