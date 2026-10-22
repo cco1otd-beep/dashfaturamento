@@ -648,7 +648,12 @@
     tickRelogio();
     setInterval(tickRelogio, 1000);
 
-    if (!ROWS.length) { semDados(); return; }
+    if (!ROWS.length) {
+      semDados();
+      /* 22/10/2026: sem dados o telao ficava parado; tenta de novo em 1 min */
+      setTimeout(function () { location.reload(); }, 60000);
+      return;
+    }
 
     montar();
     mostrar(0);

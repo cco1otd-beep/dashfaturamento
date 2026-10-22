@@ -541,6 +541,11 @@
         "Sem base de monitoramento.<br><br>" +
         "Coloque o <b>lmonitoramento</b> na pasta de bases e rode o pipeline." +
         "</div></div></div></div>";
+      /* 22/10/2026: o telao ficou parado nesta mensagem porque este caminho
+         nao agendava o recarregamento (so o caminho normal agendava). Se o
+         data.js falhou na carga (publicacao em andamento, rede), tenta de
+         novo em 1 minuto em vez de ficar congelado. */
+      setTimeout(function () { location.reload(); }, 60000);
       return;
     }
     montar();
