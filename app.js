@@ -311,7 +311,14 @@
          fora da regra de placa (ultimo mes fechado x 1,05). A contagem de
          placas sai do mesmo lugar da meta, senao card e meta discordam. */
       const r13 = OTD.metaR13Seg(sub, s, mv, mesProj);
-      const metaSeg = r13.valor;
+      /* 22/10/2026 (gestor): por enquanto a meta do card acompanha SEMPRE a da
+         aba Projeção (mês anterior +5% ou o valor que ele digitou em Meta por
+         Operação) - era a soma da meta de cada placa (R13) e as duas telas
+         mostravam metas diferentes. Sem um mês só no filtro não há meta da
+         Projeção, então cai na R13 como antes. A R13 por placa continua valendo
+         na aba Veículos. */
+      const alinhadaProjecao = !!mesProj;
+      const metaSeg = alinhadaProjecao ? OTD.getGoalSeg(mesProj, s) : r13.valor;
       const nFicticias = new Set(sub.filter(function (r) { return r.placa && r.otd; })
         .map(function (r) { return OTD.placaChave(r.placa); })).size;
       let linha = OTD.contarViagens(sub) + " viagens · " + r13.placas + " placas" +
@@ -330,15 +337,18 @@
         (metaSeg > 0
           ? '<div class="pbar' + (pctMeta >= 100 ? " ok" : "") + '"><i style="width:' +
             Math.min(100, pctMeta) + '%"></i></div>' +
-            '<div class="sub">meta R13 ' + OTD.fmtBRL(metaSeg) + " · " + OTD.fmtPct(pctMeta, 0) +
-            '<span style="color:var(--text-faint)"> · ' + E(r13.regra) +
-            (r13.cadastradas && r13.rodaram < r13.cadastradas
-              ? " · " + r13.rodaram + " de " + r13.cadastradas + " cadastradas rodaram"
-              : "") +
-            (r13.semMeta.length
-              ? " · " + r13.semMeta.length + " placa" + (r13.semMeta.length > 1 ? "s" : "") +
-                " sem meta cadastrada"
-              : "") + "</span></div>"
+            '<div class="sub">meta ' + (alinhadaProjecao ? '' : 'R13 ') + OTD.fmtBRL(metaSeg) + " · " + OTD.fmtPct(pctMeta, 0) +
+            '<span style="color:var(--text-faint)"> · ' +
+            (alinhadaProjecao
+              ? E(OTD.goalSegDefinida(mesProj, s) ? "meta definida na Projeção" : "mês anterior +5% (igual à Projeção)")
+              : E(r13.regra) +
+                (r13.cadastradas && r13.rodaram < r13.cadastradas
+                  ? " · " + r13.rodaram + " de " + r13.cadastradas + " cadastradas rodaram"
+                  : "") +
+                (r13.semMeta.length
+                  ? " · " + r13.semMeta.length + " placa" + (r13.semMeta.length > 1 ? "s" : "") +
+                    " sem meta cadastrada"
+                  : "")) + "</span></div>"
           : '<div class="sub" style="color:var(--text-faint)">sem meta R13 — ' +
             (OTD.segMetaSemPlaca(s) ? "sem mês fechado anterior" : "só placas fictícias") +
             "</div>") +
@@ -1353,7 +1363,7 @@
     ["R5", "<b>Crown PG × Heineken PG</b> → KM Vazio = 8, KM Carregado = 8."],
     ["R6", "<b>Crown PG × SPM PG</b> → KM Vazio = 4, KM Carregado = 4."],
     ["R7", "<b>Heineken PG × Crown PG</b> → KM Vazio = 8, KM Carregado = 8."],
-    ["R8", "<b>LATAS PG × PG (não-NBH)</b> → R$ 630,53/carga (≤ abr/26) · R$ 662,06 (≥ mai/26). A data da receita é a <b>Dt. Carga (I) real da lviagens</b> (cruzando pelo romaneio); só cai na data programada do lcargas quando a carga já tem romaneio mas ele ainda não apareceu na lviagens (ver R17 para o caso sem romaneio nenhum). Só conta até hoje."],
+    ["R8", "<b>LATAS PG × PG (não-NBH)</b> → R$ 630,53/carga em todo o período (alinhado ao fechamento da Crown em 26/10/2026; o reajuste de R$ 662,06 de mai/26 foi retirado). A data da receita é a <b>Dt. Carga (I) real da lviagens</b> (cruzando pelo romaneio); só cai na data programada do lcargas quando a carga já tem romaneio mas ele ainda não apareceu na lviagens (ver R17 para o caso sem romaneio nenhum). Só conta até hoje."],
     ["R9", "<b>Placa NBH9F10 + PG × PG</b> → R$ 1.600,00/dia ÷ nº de cargas do dia."],
     ["R10", "<b>CTe substituto</b> → data corrigida para a data original (\"emitido em: …\" na Observação)."],
     ["R11", "<b>SPAL (todas as filiais)</b> → consolidado como grupo único. HEINEKEN conta como CROWN (pagador)."],
@@ -1363,7 +1373,8 @@
       "A <b>meta do segmento</b> é a soma da meta das placas reais que rodaram no período; " +
       "placa ainda sem cadastro entra com o padrão e é acusada na aba Veículos. " +
       "O <b>Autopropulsor fica fora da regra de placa</b> — a frota dele é o veículo " +
-      "transportado (placa fictícia OTD-xxxx), então a meta é o último mês fechado × 1,05."],
+      "transportado (placa fictícia OTD-xxxx), então a meta é o último mês fechado × 1,05. " +
+      "<b>Desde 22/10/2026</b>, por decisão do gestor, o card de cada segmento na Visão geral mostra a mesma meta da aba Projeção (mês anterior +5%, ou o valor digitado em Meta por Operação); a meta por placa segue valendo na aba Veículos."],
     ["R14", "<b>Leroy Merlin (Bens de Consumo)</b> → OTP (coleta) e OTD (entrega) sempre \"no prazo\", nunca entram como atrasadas. Fluxo automático de alto volume (muitos CT-es) que a OTD não controla. Confirmado com o gestor em 28/09. Conta normalmente no total de coletas/entregas do dia."],
     ["R15", "<b>KM vazio — romaneio sem carregamento fechado</b> → um romaneio com Dt. Carga (I) registrada mas KM Carregado = 0 (carregamento ainda não fechado no KMM, normalmente sem cliente/destino) fica <b>fora</b> da conta de vazio (não entra na média nem na lista de ofensores) — o denominador zerado inflava o % pra 100% artificialmente. Confirmado com o gestor em 29/09. O pipeline guarda esses romaneios como \"pendentes\" e, quando o carregamento fecha numa base mais nova (KM Carregado > 0), ele sai da lista de pendentes e entra na conta normal — os dois casos (novo pendente e resolvido) são sempre reportados pro gestor."],
     ["R16", "<b>KM vazio — estimativa manual pro romaneio pendente (R15)</b> → pro romaneio ainda sem carregamento fechado no KMM, o gestor pode informar um <b>KM Carregado estimado</b> (com base no conhecimento da rota); enquanto isso, ele entra na média de vazio e na lista de ofensores com esse valor <b>marcado como \"estimado\"</b> — sempre reportado como tal pro gestor. Confirmado com o gestor em 30/09. Assim que o KMM fecha o carregamento de verdade (KM Carregado real > 0), o cálculo troca sozinho pro valor real e a estimativa é descartada — o gestor é avisado da troca."],
