@@ -770,7 +770,10 @@
   /* entrando intercaladas na rotacao normal (nao substituem as telas do    */
   /* dia). Em qualquer outro dia nao aparecem - `aplicavel` corta todas.     */
   /* ======================================================================= */
-  const DIA_01 = (new Date().getDate() === 1);
+  /* 03/11/2026: o dia 01 caiu no domingo e o gestor pediu as telas de fechamento
+     na segunda-feira util (03/11). Passam a aparecer nos dias 01 a 03. Para voltar
+     so ao dia 01, troque "<= 3" por "=== 1". */
+  const DIA_01 = (new Date().getDate() <= 3);
   const MES_FECHADO = OTD.prevMonthKey(OTD.nowKey());
   const MES_ANTES_FECHADO = OTD.prevMonthKey(MES_FECHADO);
   const ROWS_FECHADO = OTD.filterAll({ meses: new Set([MES_FECHADO]), segs: F.segs });
