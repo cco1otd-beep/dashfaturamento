@@ -1174,3 +1174,10 @@ svg.mapa-sa{ max-width:100%; max-height:100%; display:block; }
   -webkit-animation:monPulse 1.8s ease-in-out infinite; animation:monPulse 1.8s ease-in-out infinite;
 }
 .tv-mon-okitem:last-child:nth-child(odd){ grid-column:1 / span 2; }
+
+/* Torre 2.0 (2 colunas): a coluna da direita continua a da esquerda */
+.tv-mon-lista2{ display:flex; flex:1; min-height:0; }
+.tv-mon-lista2 > .tv-mon-lista{ flex:1 1 0; min-width:0; }
+.tv-mon-lista2 > .tv-mon-lista + .tv-mon-lista{ margin-left:16px; }
+.tv-mon-lista > .tv-mon-linha{ flex:0 0 auto; min-height:0; overflow:hidden; }
+.tv-mon-mais{ font-size:17px; font-weight:700; color:#ABA69C; padding-top:6px; }

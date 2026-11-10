@@ -21,7 +21,9 @@
      ?slide=45                     segundos por tela (padrao 45)
      ?pagina=8                     segundos por alternancia de operacao
      ?reload=10                    minutos ate recarregar sozinho
-     ?grupo=bens|latas|pranchas    trava UMA operacao (bens_latas ainda aceito) (TV dedicada a
+     ?grupo=bens|latas|pranchas    trava UMA operacao. O link antigo bens_latas
+                                   continua valendo: alterna Bens e Latas, cada
+                                   uma na sua tela (nao mais lado a lado) (TV dedicada a
                                    uma sala/parede so daquele grupo) - sem
                                    isso o telao alterna os dois a cada 8s
                                    (pedido do gestor em 10/09, telao_monitora-
@@ -58,7 +60,7 @@
   const PAGINAS =
     GRUPO === "bens" ? [GRUPO_BENS] :
     GRUPO === "latas" ? [GRUPO_LATAS] :
-    GRUPO === "bens_latas" ? [GRUPO_BENS_LATAS] :
+    GRUPO === "bens_latas" ? [GRUPO_BENS, GRUPO_LATAS] :
     GRUPO === "pranchas" ? [GRUPO_PRANCHAS] :
     [GRUPO_BENS, GRUPO_LATAS, GRUPO_PRANCHAS];
 
@@ -73,6 +75,17 @@
     });
     return out;
   })();
+
+  /* Quantos cartoes cabem: mede a area de slides desta TV. Fixar 5 cortava os
+     cartoes em TV 720p/768p (Torre 2.0, 10/11). Descontados: moldura da coluna,
+     cabecalho, legenda e o rodape "pagina x/y". 136px = altura natural de um
+     cartao completo (status + placa + motorista + local). */
+  const ALTURA_SLIDE = (document.getElementById("tvSlides") || {}).clientHeight ||
+    Math.max(500, window.innerHeight - 140);
+  const AVAIL_LISTA = Math.max(240, ALTURA_SLIDE - 190);
+  const CARD_MIN = 136;
+  const POR_COLUNA = Math.max(2, Math.floor(AVAIL_LISTA / CARD_MIN));
+  const LINHAS_POR_PAGINA = POR_COLUNA * 2;
 
   /* selo do cabecalho: mostra qual grupo esta travado nesta TV (mesmo padrao
      do tv.js para as operacoes do telao de faturamento) */
@@ -180,15 +193,24 @@
     const pag = ((bloco % nPag) + nPag) % nPag;
     const ini = pag * porPagina;
     const fatia = lista.slice(ini, ini + porPagina);
-    return '<div class="tv-mon-lista' +
-      (fatia.length <= 2 ? " g" : fatia.length <= 4 ? " m" : "") + '">' +
-      fatia.map(montaLinha).join("") +
+    /* DUAS colunas: a da direita e a continuacao da esquerda (1..k | k+1..n).
+       Passou da capacidade da tela -> vira outra pagina, no mesmo ritmo de 8s. */
+    const meio = Math.ceil(fatia.length / 2);
+    const cols = fatia.length > 1 ? [fatia.slice(0, meio), fatia.slice(meio)] : [fatia];
+    const alt = Math.floor(AVAIL_LISTA / cols[0].length) - 9;   /* altura de cada cartao */
+    const cls = alt >= 260 ? " g" : alt >= 175 ? " m" : "";
+    return '<div class="tv-mon-lista2">' + cols.map(function (c) {
+      return '<div class="tv-mon-lista' + cls + '">' +
+        c.map(function (r) {
+          return montaLinha(r).replace('<div class="tv-mon-linha',
+            '<div style="height:' + alt + 'px" class="tv-mon-linha');
+        }).join("") + "</div>";
+    }).join("") + "</div>" +
       (nPag > 1
         ? '<div class="tv-mon-mais">' + (ini + 1) + "–" +
           (ini + fatia.length) + " de " + lista.length +
           " · página " + (pag + 1) + "/" + nPag + "</div>"
-        : "") +
-      "</div>";
+        : "");
   }
 
   const LEGENDA = '<div class="tv-mon-leg">Cor do tempo: ' +
@@ -392,7 +414,7 @@
     },
     html: function () { return colunasHtml("monPrazo"); },
     after: function () {
-      const POR_PAG = 5;
+      const POR_PAG = LINHAS_POR_PAGINA;
       paginarOperacoes("monPrazo", function (op, bloco) {
         return listaPaginada(prazoLista(op), POR_PAG, bloco, function (r) {
           const dest = '<span class="ev">→ ' + E(OTD.shortName(r.destinatario || r.destino || "—", 34)) + "</span>";
@@ -429,7 +451,7 @@
     curto: "VAZIOS — DESTINAR",
     html: function () { return colunasHtml("monVazios"); },
     after: function () {
-      const POR_PAG = 5;
+      const POR_PAG = LINHAS_POR_PAGINA;
       paginarOperacoes("monVazios", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("vazios", op.segs), POR_PAG, bloco,
           function (r) {
@@ -450,7 +472,7 @@
     curto: "RETIDOS — ACIONAR CLIENTE",
     html: function () { return colunasHtml("monRetidos"); },
     after: function () {
-      const POR_PAG = 5;
+      const POR_PAG = LINHAS_POR_PAGINA;
       paginarOperacoes("monRetidos", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("retidos", op.segs), POR_PAG, bloco,
           function (r) {
@@ -474,7 +496,7 @@
     curto: "PARADOS EM VIAGEM",
     html: function () { return colunasHtml("monParados"); },
     after: function () {
-      const POR_PAG = 5;
+      const POR_PAG = LINHAS_POR_PAGINA;
       paginarOperacoes("monParados", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("pernoite", op.segs), POR_PAG, bloco,
           function (r) {
@@ -496,7 +518,7 @@
     curto: "DOCUMENTO PENDENTE",
     html: function () { return colunasHtml("monDocs"); },
     after: function () {
-      const POR_PAG = 5;
+      const POR_PAG = LINHAS_POR_PAGINA;
       paginarOperacoes("monDocs", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("semDocumento", op.segs), POR_PAG,
           bloco, function (r) {
@@ -520,7 +542,7 @@
     curto: "SEM POSICIONAR",
     html: function () { return colunasHtml("monRastreio"); },
     after: function () {
-      const POR_PAG = 5;
+      const POR_PAG = LINHAS_POR_PAGINA;
       paginarOperacoes("monRastreio", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("semPosicao", op.segs), POR_PAG,
           bloco, function (r) {
