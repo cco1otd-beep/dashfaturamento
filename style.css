@@ -1073,3 +1073,104 @@ svg.mapa-sa{ max-width:100%; max-height:100%; display:block; }
 .mon-ins.info .vl{ color:var(--blue); }
 .mon-ins.positivo{ border-left-color:var(--green); }
 .mon-ins.positivo .vl{ color:var(--green); }
+
+/* ==========  TORRE 2.0 · MONITORAMENTO: PARA O TIME AGIR  ================== */
+/* Cartao pela gravidade: borda grossa na lateral + cor + (so no critico) pulso.
+   Sem `gap` em flex e so propriedades antigas: a TV roda Chromium velho. */
+@-webkit-keyframes monPulse{
+  0%,100%{ box-shadow:0 0 0 0 rgba(241,85,63,.55); }
+  50%{ box-shadow:0 0 26px 5px rgba(241,85,63,.50); }
+}
+@keyframes monPulse{
+  0%,100%{ box-shadow:0 0 0 0 rgba(241,85,63,.55); }
+  50%{ box-shadow:0 0 26px 5px rgba(241,85,63,.50); }
+}
+@-webkit-keyframes monPisca{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+@keyframes monPisca{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+.tv-mon-linha.sev-crit{
+  border-color:#F1553F; border-left:10px solid #F1553F;
+  background:#2a1411;
+  -webkit-animation:monPulse 1.8s ease-in-out infinite; animation:monPulse 1.8s ease-in-out infinite;
+}
+.tv-mon-linha.sev-alto{ border-color:#F0800E; border-left:10px solid #F0800E; background:#241a0f; }
+.tv-mon-linha.sev-aten{ border-color:#FFC145; border-left:10px solid #FFC145; background:#211b0e; }
+.tv-mon-linha.sev-info{ border-left:10px solid #B18CFF; }
+.tv-mon-linha.sev-crit .cab .st{ color:#FF8A78; }
+.tv-mon-linha .cab .st .ic{ margin-right:8px; }
+.tv-mon-linha .cab .tempo small{ font-size:.42em; letter-spacing:.5px; opacity:.85; margin-left:6px; }
+
+/* poucos cartoes na pagina -> letra maior: antes sobrava tela preta */
+.tv-mon-lista.g .tv-mon-linha .cab .st{ font-size:32px; }
+.tv-mon-lista.g .tv-mon-linha .cab .tempo{ font-size:72px; }
+.tv-mon-lista.g .tv-mon-linha .pl{ font-size:58px; }
+.tv-mon-lista.g .tv-mon-linha .cli{ font-size:32px; }
+.tv-mon-lista.g .tv-mon-linha .mot{ font-size:30px; }
+.tv-mon-lista.g .tv-mon-linha .lc{ font-size:25px; }
+.tv-mon-lista.m .tv-mon-linha .cab .st{ font-size:24px; }
+.tv-mon-lista.m .tv-mon-linha .cab .tempo{ font-size:46px; }
+.tv-mon-lista.m .tv-mon-linha .pl{ font-size:40px; }
+.tv-mon-lista.m .tv-mon-linha .cli{ font-size:24px; }
+.tv-mon-lista.m .tv-mon-linha .mot{ font-size:22px; }
+.tv-mon-lista.m .tv-mon-linha .lc{ font-size:19px; }
+
+/* contagem "N PARA ACAO" no cabecalho da coluna */
+.tv-mon-cab .qt .chip{
+  display:inline-block; border-radius:20px; padding:3px 16px; font-size:18px;
+  font-weight:800; letter-spacing:1px; margin-right:10px;
+}
+.tv-mon-cab .qt .chip.on{
+  background:#F1553F; color:#fff;
+  -webkit-animation:monPisca 1.4s ease-in-out infinite; animation:monPisca 1.4s ease-in-out infinite;
+}
+.tv-mon-cab .qt .chip.ok{ background:#173b25; color:#4ADE80; }
+
+/* legenda das cores, no pe da lista */
+.tv-mon-leg{
+  flex:0 0 auto; text-align:center; font-size:14px; color:#8d887f; padding-top:2px;
+}
+.tv-mon-leg i{ font-style:normal; margin:0 6px; }
+
+/* contador: variacao vs foto anterior + barra de utilizacao */
+.tv-mon-card .dl{ font-size:17px; font-weight:700; color:#8d887f; }
+.tv-mon-card .dl.up{ color:#F6F4F0; }
+.tv-mon-card .dl.dn{ color:#F6F4F0; }
+.tv-mon-card.alerta{
+  border-color:#F1553F !important;
+  -webkit-animation:monPulse 1.8s ease-in-out infinite; animation:monPulse 1.8s ease-in-out infinite;
+}
+.tv-mon-util{ flex:0 0 auto; background:#17130f; border:2px solid #241f1a; border-radius:16px; padding:12px 18px; }
+.tv-mon-util .tt{ font-size:18px; font-weight:800; letter-spacing:1px; color:#F6F4F0; }
+.tv-mon-util .tt b{ font-size:34px; color:#4ADE80; margin:0 8px 0 10px; }
+.tv-mon-util .tt span{ color:#8d887f; font-weight:700; font-size:15px; margin-left:10px; }
+.tv-mon-util .bar{ display:flex; height:22px; border-radius:11px; overflow:hidden; margin-top:8px; background:#241f1a; }
+.tv-mon-util .bar > div{ height:100%; }
+.tv-mon-util .lg{ font-size:14px; color:#ABA69C; margin-top:6px; }
+.tv-mon-util .lg i{ font-style:normal; margin-right:16px; }
+
+/* ranking de espera por cliente */
+.tv-mon-rank{ display:flex; flex-direction:column; flex:1; min-height:0; }
+.tv-mon-rank > * + *{ margin-top:10px; }
+.tv-mon-rank .rw{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; justify-content:center; }
+.tv-mon-rank .top{ display:flex; align-items:baseline; justify-content:space-between; }
+.tv-mon-rank .nm{ font-size:26px; font-weight:800; color:#F6F4F0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tv-mon-rank .vl{ font-size:30px; font-weight:800; white-space:nowrap; margin-left:14px; }
+.tv-mon-rank .br{ height:16px; border-radius:8px; background:#241f1a; margin-top:6px; overflow:hidden; }
+.tv-mon-rank .br > div{ height:100%; border-radius:8px; }
+.tv-mon-rank .sb{ font-size:16px; color:#8d887f; margin-top:4px; }
+
+/* tela "em ordem" (itens zerados, juntos num painel so) */
+.tv-mon-okgrid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; flex:1; min-height:0; }
+.tv-mon-okitem{
+  background:#10251a; border:2px solid #1f5a39; border-radius:18px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:14px;
+}
+.tv-mon-okitem .ic{ font-size:64px; }
+.tv-mon-okitem .t{ font-size:30px; font-weight:800; color:#4ADE80; margin-top:8px; }
+.tv-mon-okitem .s{ font-size:18px; color:#8fc9a6; margin-top:4px; }
+
+/* alertas criticos pulsam */
+.tvmon-ins .tv-repom-ins.critico{
+  -webkit-animation:monPulse 1.8s ease-in-out infinite; animation:monPulse 1.8s ease-in-out infinite;
+}
+.tv-mon-okitem:last-child:nth-child(odd){ grid-column:1 / span 2; }

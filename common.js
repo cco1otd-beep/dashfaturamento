@@ -1407,8 +1407,39 @@ const OTD = (function () {
   function monitorCorTempo(h, limite) {
     if (h === null || h === undefined) return "#6E6A62";
     if (h >= limite * 2) return "#F1553F";
-    if (h >= limite * 1.4) return "#FFC145";
+    if (h >= limite * 1.4) return "#F0800E";
+    if (h >= limite) return "#FFC145";
     return "#4FA3E3";
+  }
+
+  /* Torre 2.0: a MESMA escala dita a cor E o destaque do cartao no telao.
+     Tudo que aparece numa lista de acao ja passou do limite, entao o menor
+     nivel e amarelo (antes era azul, e 14h de parado parecia "tranquilo"). */
+  function monitorSev(h, limite) {
+    if (h === null || h === undefined) return "aten";
+    if (h >= limite * 2) return "crit";
+    if (h >= limite * 1.4) return "alto";
+    return "aten";
+  }
+
+  /* Contador da ultima foto do dia anterior, somado nos segmentos pedidos. */
+  function monitorAnterior(segs) {
+    const A = MONITOR && MONITOR.anterior;
+    if (!A || !A.contador) return null;
+    const c = { total: 0 };
+    MONITOR_STATUS.forEach(function (s) { c[s.id] = 0; });
+    (segs && segs.length ? segs : Object.keys(A.contador)).forEach(function (seg) {
+      const x = A.contador[seg];
+      if (!x) return;
+      MONITOR_STATUS.forEach(function (s) { c[s.id] += x[s.id] || 0; });
+      c.total += x.total || 0;
+    });
+    const h = String(A.hora || "");
+    const m = h.match(/^\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    const dm = String(A.data || "").match(/^\d{4}-(\d{2})-(\d{2})/);
+    const rot = m ? (m[2] + "/" + m[1] + " " + m[3] + ":" + m[4])
+                  : (dm ? dm[2] + "/" + dm[1] : "foto anterior");
+    return { c: c, rotulo: rot };
   }
 
   /* Limites vem do pipeline - a aba, o telao e o Excel usam o MESMO numero. */
@@ -1469,6 +1500,21 @@ const OTD = (function () {
         mot.length + " veículo" + (mot.length === 1 ? "" : "s") +
         " sem motorista designado. Depende de contratação.", mot.length);
     }
+    const pv = monitorLista("prazoVencido", segs);
+    const av = monitorLista("aVencer", segs);
+    if (pv.length) {
+      const pior = pv[0];
+      add("critico", "Entrega com prazo vencido",
+        pv.length + " veículo" + (pv.length === 1 ? "" : "s") + " em viagem ou " +
+        "descarga já passou do prazo de entrega. O mais atrasado é o " + pior.placa +
+        " (" + fmtHM(pior.atrasoH) + " de atraso). Avisar o cliente.", pv.length);
+    }
+    if (av.length) {
+      add("atencao", "Prazo de entrega vencendo",
+        av.length + " veículo" + (av.length === 1 ? "" : "s") + " com prazo nas " +
+        "próximas " + (LIM().aVencer || 6) + "h e ainda sem descarregar. " +
+        "Conferir a previsão de chegada.", av.length);
+    }
     add("info", "Frota ativa agora",
       g.total + " veículos operando: " + g.viagem + " em viagem, " +
       g.destinado + " destinados, " + (g.carga + g.descarga) +
@@ -1500,6 +1546,7 @@ const OTD = (function () {
     MONITOR_STATUS: MONITOR_STATUS, MONITOR_OPERACOES: MONITOR_OPERACOES,
     monitorTem: monitorTem, monitorContador: monitorContador,
     monitorLista: monitorLista, monitorMapa: monitorMapa,
+    monitorSev: monitorSev, monitorAnterior: monitorAnterior,
     monitorMapaUF: monitorMapaUF,
     fmtHM: fmtHM, monitorCorTempo: monitorCorTempo,
     monitorMotorista: monitorMotorista, monitorSemMotorista: monitorSemMotorista,

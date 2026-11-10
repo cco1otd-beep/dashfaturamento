@@ -5,10 +5,11 @@
    Isolado da Torre e do telao REPOM: nao compartilha estado com tv.js nem com
    tv_repom.js. Uma TV apontada aqui mostra SO a foto ao vivo da frota.
 
-   Formato pedido pelo gestor: a tela e dividida em DUAS COLUNAS, e o par de
-   operacoes ALTERNA a cada 8 segundos - primeiro Bens | Latas, depois
-   Pranchas & Rodando. Quem faz a alternancia e o mesmo mecanismo de paginacao
-   dos outros teloes (registraBloco), para o ritmo ficar igual no predio todo.
+   Formato pedido pelo gestor: desde 10/11/2026 cada operacao tem a sua tela -
+   Bens, Latas e Pranchas & Rodando (antes Bens e Latas dividiam duas colunas).
+   Sem ?grupo= o telao alterna as tres a cada 8 segundos; quem faz a alternancia
+   e o mesmo mecanismo de paginacao dos outros teloes (registraBloco), para o
+   ritmo ficar igual no predio todo.
 
    Toda a regra vem do pipeline (generate_data.py, secao 5-B) e e lida pelo
    common.js (OTD.monitor*). Se um numero aqui diverge da aba do dashboard, o
@@ -20,7 +21,7 @@
      ?slide=45                     segundos por tela (padrao 45)
      ?pagina=8                     segundos por alternancia de operacao
      ?reload=10                    minutos ate recarregar sozinho
-     ?grupo=bens_latas|pranchas    trava UM grupo de operacao (TV dedicada a
+     ?grupo=bens|latas|pranchas    trava UMA operacao (bens_latas ainda aceito) (TV dedicada a
                                    uma sala/parede so daquele grupo) - sem
                                    isso o telao alterna os dois a cada 8s
                                    (pedido do gestor em 10/09, telao_monitora-
@@ -46,16 +47,38 @@
      outra so Pranchas/Rodando) em vez de uma TV so revezando os dois. Sem o
      parametro, mantem o comportamento original (alterna a cada 8s). */
   const GRUPO = (P.get("grupo") || "").toLowerCase();
+  /* 10/11/2026: Bens e Latas deixam de dividir a mesma tela. Cada operacao
+     tem a sua (bens, latas, pranchas), igual ao modo TV gerencial (tv.js
+     ?op=). Sem ?grupo= o telao alterna as tres, uma por pagina. O valor
+     antigo bens_latas continua aceito (mostra as duas lado a lado). */
+  const GRUPO_BENS = [OTD.MONITOR_OPERACOES.bens];
+  const GRUPO_LATAS = [OTD.MONITOR_OPERACOES.latas];
   const GRUPO_BENS_LATAS = [OTD.MONITOR_OPERACOES.bens, OTD.MONITOR_OPERACOES.latas];
   const GRUPO_PRANCHAS = [OTD.MONITOR_OPERACOES.pranchas];
   const PAGINAS =
+    GRUPO === "bens" ? [GRUPO_BENS] :
+    GRUPO === "latas" ? [GRUPO_LATAS] :
     GRUPO === "bens_latas" ? [GRUPO_BENS_LATAS] :
     GRUPO === "pranchas" ? [GRUPO_PRANCHAS] :
-    [GRUPO_BENS_LATAS, GRUPO_PRANCHAS];
+    [GRUPO_BENS, GRUPO_LATAS, GRUPO_PRANCHAS];
+
+  /* segmentos que ESTA TV mostra: insights, selo de pontos criticos e a decisao
+     de pular tela vazia olham so para eles (Torre 2.0). Sem ?grupo= = todos. */
+  const SEGS_TV = (function () {
+    const out = [];
+    PAGINAS.forEach(function (ops) {
+      ops.forEach(function (op) {
+        op.segs.forEach(function (sg) { if (out.indexOf(sg) < 0) out.push(sg); });
+      });
+    });
+    return out;
+  })();
 
   /* selo do cabecalho: mostra qual grupo esta travado nesta TV (mesmo padrao
      do tv.js para as operacoes do telao de faturamento) */
   const SELO_GRUPO =
+    GRUPO === "bens" ? "📦 BENS DE CONSUMO" :
+    GRUPO === "latas" ? "🥫 LATAS" :
     GRUPO === "bens_latas" ? "📦🥫 BENS & LATAS" :
     GRUPO === "pranchas" ? "🚜 PRANCHAS & RODANDO" :
     "🛰️ FROTA AO VIVO";
@@ -114,7 +137,7 @@
    * `conta(op)` devolve quantos itens a lista daquela operacao tem; sem ela, a
    * tela pagina so entre operacoes, como antes.
    */
-  function paginarOperacoes(id, monta, conta, porPagina) {
+  function paginarOperacoes(id, monta, conta, porPagina, opts) {
     let blocosLista = 1;
     if (conta && porPagina) {
       PAGINAS.forEach(function (ops) {
@@ -131,10 +154,17 @@
       const bloco = Math.floor(p / PAGINAS.length);
       el.className = "tv-mon-colunas" + (ops.length === 1 ? " uma" : "");
       el.innerHTML = ops.map(function (op) {
-        return '<div class="tv-mon-col">' +
-          cabecalho(op.rot, OTD.fmtNum(OTD.monitorContador(op.segs).total) +
-                    " veículos") +
-          monta(op, bloco) + "</div>";
+        const totalVeic = OTD.monitorContador(op.segs).total;
+        let dir = OTD.fmtNum(totalVeic) + " veículos";
+        if (conta) {
+          const n = conta(op) || 0;
+          dir = (n
+            ? '<span class="chip on">' + n + " PARA AÇÃO</span>"
+            : '<span class="chip ok">✔ EM ORDEM</span>') +
+            "de " + OTD.fmtNum(totalVeic) + " veículos";
+        }
+        return '<div class="tv-mon-col">' + cabecalho(op.rot, dir) +
+          monta(op, bloco) + (opts && opts.leg ? LEGENDA : "") + "</div>";
       }).join("");
     });
   }
@@ -150,7 +180,9 @@
     const pag = ((bloco % nPag) + nPag) % nPag;
     const ini = pag * porPagina;
     const fatia = lista.slice(ini, ini + porPagina);
-    return '<div class="tv-mon-lista">' + fatia.map(montaLinha).join("") +
+    return '<div class="tv-mon-lista' +
+      (fatia.length <= 2 ? " g" : fatia.length <= 4 ? " m" : "") + '">' +
+      fatia.map(montaLinha).join("") +
       (nPag > 1
         ? '<div class="tv-mon-mais">' + (ini + 1) + "–" +
           (ini + fatia.length) + " de " + lista.length +
@@ -158,6 +190,11 @@
         : "") +
       "</div>";
   }
+
+  const LEGENDA = '<div class="tv-mon-leg">Cor do tempo: ' +
+    '<i style="color:#FFC145">● acima do limite</i>' +
+    '<i style="color:#F0800E">● 1,4× o limite</i>' +
+    '<i style="color:#F1553F">● 2× o limite — cobrar agora</i></div>';
 
   function vazioHtml(msg) {
     return '<div class="tv-mon-vazio">✅ ' + E(msg) + "</div>";
@@ -171,11 +208,26 @@
     return !!String(html || "").replace(/<[^>]*>/g, "").trim();
   }
 
-  function linha(r, tempoH, limite, rotulo, detalhe) {
-    const cor = OTD.monitorCorTempo(tempoH, limite);
-    return '<div class="tv-mon-linha">' +
+  const ICONE_LINHA = { crit: "🚨", alto: "⚠️", aten: "⚠️" };
+
+  /* "—/SP" na parede parecia erro: diz o que realmente falta */
+  function localTxt(r) {
+    const c = r.cidade, u = r.uf;
+    const okc = c && c !== "—", oku = u && u !== "—";
+    if (okc) return c + (oku ? "/" + u : "");
+    return oku ? u + " · cidade não identificada" : "sem localização";
+  }
+
+  function linha(r, tempoH, limite, rotulo, detalhe, forca) {
+    const sev = forca || OTD.monitorSev(tempoH, limite);
+    /* tudo que esta numa lista de acao passou do limite ou precisa de acao:
+       o menor nivel e amarelo, nunca azul (que lia como "tranquilo") */
+    const cor0 = OTD.monitorCorTempo(tempoH, limite);
+    const cor = forca === "crit" ? "#F1553F" : (cor0 === "#4FA3E3" ? "#FFC145" : cor0);
+    return '<div class="tv-mon-linha sev-' + sev + '">' +
       '<div class="cab">' +
-      '<span class="st">' + E((rotulo || r.status || "").toUpperCase()) + "</span>" +
+      '<span class="st"><span class="ic">' + ICONE_LINHA[sev] + "</span>" +
+      E((rotulo || r.status || "").toUpperCase()) + "</span>" +
       '<span class="tempo num" style="color:' + cor + '">' +
       OTD.fmtHM(tempoH) + "</span></div>" +
       '<div class="corpo"><span class="pl">' + E(r.placa || "—") + "</span>" +
@@ -186,7 +238,7 @@
          em 02/09) */
       '<div class="mot' + (OTD.monitorSemMotorista(r) ? " vazio" : "") + '">' +
       E(OTD.monitorMotorista(r, 32)) + "</div>" +
-      '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) +
+      '<div class="lc">' + E(localTxt(r)) +
       /* o detalhe as vezes chega como uma tag vazia (destino em branco) e
          sobrava um "·" solto no fim da linha */
       (temTexto(detalhe) ? " · " + detalhe : "") + "</div></div>";
@@ -206,18 +258,48 @@
     after: function () {
       paginarOperacoes("monContador", function (op) {
         const c = OTD.monitorContador(op.segs);
+        const a = OTD.monitorAnterior(op.segs);
+        function delta(id) {
+          if (!a) return "";
+          const d = c[id] - a.c[id];
+          return '<div class="dl ' + (d > 0 ? "up" : d < 0 ? "dn" : "") + '">' +
+            (d === 0 ? "= igual" : (d > 0 ? "▲ +" : "▼ ") + d) +
+            " vs " + E(a.rotulo) + "</div>";
+        }
+        /* utilizacao = produtivos (carga + viagem + descarga) / ativos. E so uma
+           leitura da propria foto, sem meta: a definicao fica escrita na tela. */
+        function util(x) {
+          return x.total ? ((x.carga + x.viagem + x.descarga) / x.total) * 100 : 0;
+        }
+        const prod = c.carga + c.viagem + c.descarga;
+        const pct = function (n) { return c.total ? (n / c.total) * 100 : 0; };
+        const uA = a ? util(a.c) : null;
+        const dPP = a ? Math.round(util(c) - uA) : null;
         return '<div class="tv-mon-grid">' +
           OTD.MONITOR_STATUS.map(function (s) {
-            return '<div class="tv-mon-card" style="border-color:' + s.cor + '55">' +
+            const alerta = s.id === "vazio" && c.vazio > 0;
+            return '<div class="tv-mon-card' + (alerta ? " alerta" : "") +
+              '" style="border-color:' + s.cor + '55">' +
               '<div class="t" style="color:' + s.cor + '">' + E(s.rot) + "</div>" +
               '<div class="n num" style="color:' + s.cor + '">' +
-              OTD.fmtNum(c[s.id]) + "</div></div>";
+              OTD.fmtNum(c[s.id]) + "</div>" + delta(s.id) + "</div>";
           }).join("") +
           '<div class="tv-mon-card" style="border-color:#4ADE8055">' +
           '<div class="t" style="color:#4ADE80">Finalizadas no dia</div>' +
           '<div class="n num" style="color:#4ADE80">' +
           OTD.fmtNum(c.finalizadas) + "</div></div>" +
-          "</div>";
+          "</div>" +
+          '<div class="tv-mon-util"><div class="tt">UTILIZAÇÃO DA FROTA' +
+          '<b>' + OTD.fmtNum(Math.round(util(c))) + "%</b>produtivos" +
+          (a ? '<span>' + (dPP === 0 ? "igual" : (dPP > 0 ? "▲ +" : "▼ ") + dPP + " p.p.") +
+               " vs " + E(a.rotulo) + "</span>" : "") + "</div>" +
+          '<div class="bar">' +
+          '<div style="width:' + pct(prod) + '%;background:#4ADE80"></div>' +
+          '<div style="width:' + pct(c.destinado) + '%;background:#B18CFF"></div>' +
+          '<div style="width:' + pct(c.vazio) + '%;background:#F1553F"></div></div>' +
+          '<div class="lg"><i style="color:#4ADE80">● produtivos (carga + viagem + descarga): ' +
+          prod + '</i><i style="color:#B18CFF">● destinados: ' + c.destinado +
+          '</i><i style="color:#F1553F">● vazios: ' + c.vazio + "</i></div></div>";
       });
     }
   });
@@ -229,16 +311,16 @@
      com slide de 45s e pagina de 8s os quatro segmentos passam inteiros dentro
      da mesma tela e o telao nao fica pesado de mapa. */
   const MAPAS_TODAS = [
-    { rot: "Bens de Consumo", segs: ["BENS DE CONSUMO"], grupo: "bens_latas" },
-    { rot: "Latas",           segs: ["LATAS"],           grupo: "bens_latas" },
-    { rot: "Pranchas",        segs: ["PRANCHA"],         grupo: "pranchas" },
-    { rot: "Rodando",         segs: ["AUTOPROPULSOR"],   grupo: "pranchas" }
+    { rot: "Bens de Consumo", segs: ["BENS DE CONSUMO"], grupos: ["bens", "bens_latas"] },
+    { rot: "Latas",           segs: ["LATAS"],           grupos: ["latas", "bens_latas"] },
+    { rot: "Pranchas",        segs: ["PRANCHA"],         grupos: ["pranchas"] },
+    { rot: "Rodando",         segs: ["AUTOPROPULSOR"],   grupos: ["pranchas"] }
   ];
   /* mesma trava do ?grupo=: TV dedicada so mostra o mapa do seu proprio par.
      Valor invalido de ?grupo= cai no padrao (mostra os quatro), igual ao
      PAGINAS acima - nunca esvazia a tela por um parametro digitado errado. */
-  const MAPAS = (GRUPO === "bens_latas" || GRUPO === "pranchas")
-    ? MAPAS_TODAS.filter(function (m) { return m.grupo === GRUPO; })
+  const MAPAS = (["bens", "latas", "bens_latas", "pranchas"].indexOf(GRUPO) >= 0)
+    ? MAPAS_TODAS.filter(function (m) { return m.grupos.indexOf(GRUPO) >= 0; })
     : MAPAS_TODAS;
 
   telas.push({
@@ -285,80 +367,144 @@
     }
   });
 
+  /* --- 2b. Prazo de entrega: vencido ou a vencer (Torre 2.0) -------------- */
+  /* Vencido = o MESMO criterio da lista "Cargas em Atraso" (previsao de
+     entrega do lcargas) cruzado pelo romaneio. A vencer = "Data na descarga"
+     do lmonitoramento dentro das proximas LIM.aVencer horas e sem descarga
+     iniciada. */
+  function prazoLista(op) {
+    return OTD.monitorLista("prazoVencido", op.segs)
+      .concat(OTD.monitorLista("aVencer", op.segs));
+  }
+  function fmtAtraso(h) {
+    if (h === null || h === undefined) return "—";
+    if (h >= 48) return Math.floor(h / 24) + "d " + Math.round(h % 24) + "h";
+    return OTD.fmtHM(h);
+  }
+  telas.push({
+    id: "prazo",
+    titulo: "Prazo de Entrega — Avisar o Cliente",
+    curto: "PRAZO DE ENTREGA",
+    okTxt: { ic: "📅", t: "Prazos de entrega em dia", s: "nenhum vencido nem vencendo" },
+    vazia: function () {
+      return !OTD.monitorLista("prazoVencido", SEGS_TV).length &&
+             !OTD.monitorLista("aVencer", SEGS_TV).length;
+    },
+    html: function () { return colunasHtml("monPrazo"); },
+    after: function () {
+      const POR_PAG = 5;
+      paginarOperacoes("monPrazo", function (op, bloco) {
+        return listaPaginada(prazoLista(op), POR_PAG, bloco, function (r) {
+          const dest = '<span class="ev">→ ' + E(OTD.shortName(r.destinatario || r.destino || "—", 34)) + "</span>";
+          if (r.atrasoH !== undefined) {
+            /* escalada so visual: vencido ja e laranja; a partir de 12h, vermelho */
+            const sev = (r.atrasoH || 0) >= 12 ? "crit" : "alto";
+            return '<div class="tv-mon-linha sev-' + sev + '"><div class="cab">' +
+              '<span class="st"><span class="ic">🚨</span>PRAZO VENCIDO</span>' +
+              '<span class="tempo num" style="color:' + (sev === "crit" ? "#F1553F" : "#F0800E") +
+              '">+' + fmtAtraso(r.atrasoH) + "<small>de atraso</small></span></div>" +
+              '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
+              (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) + "</span>" : "") +
+              '</div><div class="mot">' + E(OTD.monitorMotorista(r, 32)) + "</div>" +
+              '<div class="lc">' + E(localTxt(r)) + " · " + dest + "</div></div>";
+          }
+          return '<div class="tv-mon-linha sev-aten"><div class="cab">' +
+            '<span class="st"><span class="ic">⏳</span>PRAZO VENCENDO</span>' +
+            '<span class="tempo num" style="color:#FFC145">em ' + OTD.fmtHM(r.restaH) + "</span></div>" +
+            '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
+            (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) + "</span>" : "") +
+            '</div><div class="mot">' + E(OTD.monitorMotorista(r, 32)) + "</div>" +
+            '<div class="lc">' + E(localTxt(r)) + " · " + dest + "</div></div>";
+        }, "Nenhum prazo vencido ou vencendo.");
+      }, function (op) { return prazoLista(op).length; }, POR_PAG);
+    }
+  });
+
   /* --- 3. Vazios: precisam de destino ------------------------------------ */
   telas.push({
     id: "vazios",
+    okTxt: { ic: "🚛", t: "Nenhum veículo vazio", s: "todos com destino" },
+    vazia: function () { return !OTD.monitorLista("vazios", SEGS_TV).length; },
     titulo: "Vazios — Precisam de Destino",
     curto: "VAZIOS — DESTINAR",
     html: function () { return colunasHtml("monVazios"); },
     after: function () {
-      const POR_PAG = 7;
+      const POR_PAG = 5;
       paginarOperacoes("monVazios", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("vazios", op.segs), POR_PAG, bloco,
           function (r) {
-            return linha(r, r.hParado, 12, "parado",
-              '<span class="ev">evento ' + OTD.fmtHM(r.hEvento) + "</span>");
+            return linha(r, r.hParado, 12, "vazio — sem destino",
+              '<span class="ev">sem carga há <b>' + OTD.fmtHM(r.hEvento) + "</b></span>");
           }, "Nenhum veículo vazio.");
       }, function (op) { return OTD.monitorLista("vazios", op.segs).length; },
-        POR_PAG);
+        POR_PAG, { leg: true });
     }
   });
 
   /* --- 4. Retidos em carga/descarga acima do limite ---------------------- */
   telas.push({
     id: "retidos",
+    okTxt: { ic: "⏱️", t: "Ninguém retido", s: "carga e descarga dentro do limite" },
+    vazia: function () { return !OTD.monitorLista("retidos", SEGS_TV).length; },
     titulo: "Retidos em Carga e Descarga — Acionar Cliente",
     curto: "RETIDOS — ACIONAR CLIENTE",
     html: function () { return colunasHtml("monRetidos"); },
     after: function () {
-      const POR_PAG = 6;
+      const POR_PAG = 5;
       paginarOperacoes("monRetidos", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("retidos", op.segs), POR_PAG, bloco,
           function (r) {
             const quem = r.status === "Carga" ? r.remetente : r.destinatario;
-            return linha(r, r.hEvento, LIM.retido, r.status,
+            return linha(r, r.hEvento, LIM.retido,
+              (r.status === "Carga" ? "retido no carregamento" : "retido na descarga"),
               '<span class="ev">acionar: <b>' +
               E(OTD.shortName(quem || "—", 30)) + "</b></span>");
           }, "Nada retido acima de " + LIM.retido + "h.");
       }, function (op) { return OTD.monitorLista("retidos", op.segs).length; },
-        POR_PAG);
+        POR_PAG, { leg: true });
     }
   });
 
   /* --- 5. Parados em viagem (pernoite) ----------------------------------- */
   telas.push({
     id: "parados",
+    okTxt: { ic: "🛣️", t: "Ninguém parado em rota", s: "nenhum acima do limite de pernoite" },
+    vazia: function () { return !OTD.monitorLista("pernoite", SEGS_TV).length; },
     titulo: "Parados em Viagem — Verificar Pernoite",
     curto: "PARADOS EM VIAGEM",
     html: function () { return colunasHtml("monParados"); },
     after: function () {
-      const POR_PAG = 7;
+      const POR_PAG = 5;
       paginarOperacoes("monParados", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("pernoite", op.segs), POR_PAG, bloco,
           function (r) {
-            return linha(r, r.hParado, LIM.pernoite, "parado em rota",
+            return linha(r, r.hParado, LIM.pernoite,
+              r.naMatriz ? "na matriz — conferir" : "parado em rota",
               '<span class="ev">' + E(OTD.shortName(r.destino || "", 34)) + "</span>");
           }, "Ninguém parado além de " + LIM.pernoite + "h.");
       }, function (op) { return OTD.monitorLista("pernoite", op.segs).length; },
-        POR_PAG);
+        POR_PAG, { leg: true });
     }
   });
 
   /* --- 6. Documento pendente --------------------------------------------- */
   telas.push({
     id: "documentos",
+    okTxt: { ic: "📄", t: "Documentação em dia", s: "CT-e e MDF-e emitidos" },
+    vazia: function () { return !OTD.monitorLista("semDocumento", SEGS_TV).length; },
     titulo: "Documento Pendente — Emitir com Urgência",
     curto: "DOCUMENTO PENDENTE",
     html: function () { return colunasHtml("monDocs"); },
     after: function () {
-      const POR_PAG = 7;
+      const POR_PAG = 5;
       paginarOperacoes("monDocs", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("semDocumento", op.segs), POR_PAG,
           bloco, function (r) {
             const falta = [r.faltaCte ? "CT-e" : null,
                            r.faltaMdfe ? "MDF-e" : null].filter(Boolean).join(" e ");
-            return linha(r, r.hParado, LIM.pernoite, "falta " + falta,
-              '<span class="ev">' + E(OTD.shortName(r.destino || "—", 34)) + "</span>");
+            return linha(r, r.hParado, LIM.pernoite, "falta " + falta + " — emitir agora",
+              '<span class="ev">' + E(OTD.shortName(r.destino || "—", 34)) + "</span>",
+              "crit");
           }, "Documentação em dia.");
       }, function (op) { return OTD.monitorLista("semDocumento", op.segs).length; },
         POR_PAG);
@@ -368,33 +514,37 @@
   /* --- 7. Sem posicionar -------------------------------------------------- */
   telas.push({
     id: "rastreio",
+    okTxt: { ic: "📡", t: "Rastreio em dia", s: "toda a frota posicionando" },
+    vazia: function () { return !OTD.monitorLista("semPosicao", SEGS_TV).length; },
     titulo: "Sem Posicionar — Verificar Rastreio",
     curto: "SEM POSICIONAR",
     html: function () { return colunasHtml("monRastreio"); },
     after: function () {
-      const POR_PAG = 7;
+      const POR_PAG = 5;
       paginarOperacoes("monRastreio", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("semPosicao", op.segs), POR_PAG,
           bloco, function (r) {
             if (r.semRastreio) {
-              return '<div class="tv-mon-linha"><div class="cab">' +
-                '<span class="st">SEM RASTREIO</span>' +
+              return '<div class="tv-mon-linha sev-crit"><div class="cab">' +
+                '<span class="st"><span class="ic">🚨</span>SEM RASTREIO</span>' +
                 '<span class="tempo num" style="color:#F1553F">—</span></div>' +
                 '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
                 (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) +
                  "</span>" : "") + "</div>" +
-                '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) + "</div></div>";
+                '<div class="lc">' + E(localTxt(r)) + "</div></div>";
             }
             return linha(r, r.horas, LIM.semPosicao, "sem posição", "");
           }, "Toda a frota posicionando.");
       }, function (op) { return OTD.monitorLista("semPosicao", op.segs).length; },
-        POR_PAG);
+        POR_PAG, { leg: true });
     }
   });
 
   /* --- 8. Sem motorista (RH) ---------------------------------------------- */
   telas.push({
     id: "motorista",
+    okTxt: { ic: "🧑‍✈️", t: "Todos com motorista", s: "nenhum veículo parado por falta de motorista" },
+    vazia: function () { return !OTD.monitorLista("semMotorista", SEGS_TV).length; },
     titulo: "Veículo sem Motorista — RH Contratar",
     curto: "SEM MOTORISTA",
     html: function () { return colunasHtml("monMot"); },
@@ -403,13 +553,13 @@
       paginarOperacoes("monMot", function (op, bloco) {
         return listaPaginada(OTD.monitorLista("semMotorista", op.segs), POR_PAG,
           bloco, function (r) {
-            return '<div class="tv-mon-linha"><div class="cab">' +
-              '<span class="st">SEM MOTORISTA</span>' +
+            return '<div class="tv-mon-linha sev-info"><div class="cab">' +
+              '<span class="st"><span class="ic">🧑‍✈️</span>SEM MOTORISTA</span>' +
               '<span class="tempo num" style="color:#B18CFF">RH</span></div>' +
               '<div class="corpo"><span class="pl">' + E(r.placa) + "</span>" +
               (r.cliente ? '<span class="cli">' + E(OTD.shortName(r.cliente, 26)) +
                "</span>" : "") + "</div>" +
-              '<div class="lc">' + E(r.cidade) + "/" + E(r.uf) +
+              '<div class="lc">' + E(localTxt(r)) +
               " · precisa contratar</div></div>";
           }, "Todos os veículos com motorista.");
       }, function (op) { return OTD.monitorLista("semMotorista", op.segs).length; },
@@ -417,10 +567,70 @@
     }
   });
 
+  /* --- 8b. Onde mais se espera: clientes com maior tempo de retencao ------ */
+  /* Agrupa os RETIDOS (acima do limite) pelo cliente que o time aciona:
+     remetente se esta carregando, destinatario se esta descarregando. */
+  function rankingEspera(op) {
+    const g = {};
+    OTD.monitorLista("retidos", op.segs).forEach(function (r) {
+      const quem = OTD.shortName((r.status === "Carga" ? r.remetente : r.destinatario) || "—", 30);
+      const x = g[quem] || (g[quem] = { nome: quem, n: 0, soma: 0, max: 0 });
+      x.n++; x.soma += r.hEvento || 0; x.max = Math.max(x.max, r.hEvento || 0);
+    });
+    return Object.keys(g).map(function (k) { return g[k]; })
+      .sort(function (a, b) { return b.soma - a.soma; });
+  }
+  telas.push({
+    id: "espera",
+    titulo: "Onde Mais Se Espera — Cobrar Estadia",
+    curto: "CLIENTES COM MAIOR ESPERA",
+    okTxt: { ic: "🏭", t: "Sem espera acima do limite", s: "nenhum cliente retendo veículo" },
+    vazia: function () { return !OTD.monitorLista("retidos", SEGS_TV).length; },
+    html: function () { return colunasHtml("monEspera"); },
+    after: function () {
+      paginarOperacoes("monEspera", function (op) {
+        const rk = rankingEspera(op).slice(0, 6);
+        if (!rk.length) return vazioHtml("Nenhum cliente retendo veículo.");
+        const topo = rk[0].soma || 1;
+        return '<div class="tv-mon-rank">' + rk.map(function (x, i) {
+          const cor = i === 0 ? "#F1553F" : i === 1 ? "#F0800E" : "#FFC145";
+          return '<div class="rw"><div class="top"><span class="nm">' + (i + 1) + "º · " +
+            E(x.nome) + '</span><span class="vl" style="color:' + cor + '">' +
+            OTD.fmtHM(x.soma) + '</span></div><div class="br"><div style="width:' +
+            Math.max(4, (x.soma / topo) * 100) + "%;background:" + cor + '"></div></div>' +
+            '<div class="sb">' + x.n + " veículo" + (x.n === 1 ? "" : "s") +
+            " retido" + (x.n === 1 ? "" : "s") + " · maior espera " +
+            OTD.fmtHM(x.max) + " · soma das horas acima do limite de " + LIM.retido + "h</div></div>";
+        }).join("") + "</div>";
+      });
+    }
+  });
+
+  /* --- 8c. Itens zerados juntos num painel so (nao gasta 45s cada) -------- */
+  function itensEmOrdem() {
+    return telas.filter(function (t) { return t.okTxt && t.vazia && t.vazia(); })
+      .map(function (t) { return t.okTxt; });
+  }
+  telas.push({
+    id: "ok",
+    titulo: "Em Ordem — Nada a Cobrar",
+    curto: "EM ORDEM",
+    ehPainelOk: true,
+    html: function () {
+      return '<div class="tv-full"><div class="card panel"><div class="phead">' +
+        '<span class="ptitle tv-mon-tl">' + E(TITULO) + "</span>" +
+        '<span class="ptitle" style="color:#4ADE80;font-weight:800">✔ sem pendência nesta operação</span></div>' +
+        '<div class="tv-mon-okgrid">' + itensEmOrdem().map(function (o) {
+          return '<div class="tv-mon-okitem"><div class="ic">' + o.ic + '</div><div class="t">' +
+            E(o.t) + '</div><div class="s">' + E(o.s) + "</div></div>";
+        }).join("") + "</div></div></div>";
+    }
+  });
+
   /* --- 9. Alertas & Insights -------------------------------------------- */
   const ICONE_SEV = { critico: "🚨", atencao: "⚠️", info: "📊", positivo: "✅" };
 
-  const INSIGHTS = OTD.monitorInsights();
+  const INSIGHTS = OTD.monitorInsights(SEGS_TV);
 
 
   telas.push({
@@ -433,7 +643,7 @@
         '<span class="ptitle" style="color:#ABA69C;font-weight:700">' +
         "Leitura automática do monitoramento</span>" +
         '<span class="pcount tv-pag" id="monInsPag"></span></div>' +
-        '<div class="tv-repom-insights" id="monIns"></div></div></div>';
+        '<div class="tv-repom-insights tvmon-ins" id="monIns"></div></div></div>';
     },
     after: function () {
       const POR_PAG = 4;
@@ -465,7 +675,14 @@
   /* LOOP                                                                    */
   /* ======================================================================= */
   const fixa = (P.get("tela") || "").toLowerCase();
-  const LOOP = (fixa ? telas.filter(function (t) { return t.id === fixa; }) : telas);
+  /* Torre 2.0: tela sem item nao gasta 45s - os zerados vao juntos para a tela
+     "Em ordem". Com ?tela= fixa a tela pedida aparece mesmo vazia. */
+  const LOOP = fixa
+    ? telas.filter(function (t) { return t.id === fixa; })
+    : telas.filter(function (t) {
+        if (t.ehPainelOk) return itensEmOrdem().length > 0;
+        return !(t.vazia && t.vazia());
+      });
   const SLIDES = LOOP.length ? LOOP : telas;
 
   let atual = 0;
