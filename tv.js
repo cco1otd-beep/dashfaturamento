@@ -75,7 +75,48 @@
     gruposOms: OP.grupos || null,
     segs: OP.segs || null
   });
+  /* ---- monitoramento: previsao de estouro de prazo + tempo na etapa ------ */
+  const MON = OTD.MONITOR || null;
+  function segOk(seg) {
+    return !(F.segs && F.segs.size) || F.segs.has(String(seg || "").toUpperCase());
+  }
+  const PROJ = (function () {
+    const p = MON && MON.projecao;
+    const vazio = { velocidade: 50, estouro: [], apertado: [], semPrevisao: [], ok: 0 };
+    if (!p) return vazio;
+    return {
+      velocidade: p.velocidade, folgaApertada: p.folgaApertada, ok: p.ok,
+      estouro: (p.estouro || []).filter(function (x) { return segOk(x.seg); }),
+      apertado: (p.apertado || []).filter(function (x) { return segOk(x.seg); }),
+      semPrevisao: (p.semPrevisao || []).filter(function (x) { return segOk(x.seg); })
+    };
+  })();
+  if (PROJ.estouro.length) {
+    const pior = PROJ.estouro[0];
+    INSIGHTS.unshift({
+      nivel: "critico", icone: "⏱️", titulo: "Previsão de estouro de prazo",
+      valor: PROJ.estouro.length + (PROJ.estouro.length === 1 ? " carro" : " carros"),
+      texto: "Em viagem e não chegam no prazo a " + PROJ.velocidade + " km/h. Pior caso: rom. " +
+        pior.romaneio + " (" + pior.placa + "), " + fmtHM(-pior.folgaH) + " além do prazo."
+    });
+  }
+  if (PROJ.semPrevisao.length) {
+    INSIGHTS.push({
+      nivel: "atencao", icone: "🧭", titulo: "Sem previsão de chegada",
+      valor: PROJ.semPrevisao.length + (PROJ.semPrevisao.length === 1 ? " carro" : " carros"),
+      texto: "Sem km até o destino ou sem prazo no monitoramento: rom. " +
+        PROJ.semPrevisao.slice(0, 4).map(function (x) { return x.romaneio; }).join(", ") +
+        (PROJ.semPrevisao.length > 4 ? " e mais " + (PROJ.semPrevisao.length - 4) : "") +
+        ". Conferir o cadastro no KMM."
+    });
+  }
   const CRITICOS = INSIGHTS.filter(function (i) { return i.nivel === "critico"; });
+
+  function fmtHM(h) {
+    const n = Math.max(0, Math.round(Number(h) || 0));
+    if (n < 48) return n + "h";
+    return Math.floor(n / 24) + "d" + (n % 24 ? " " + (n % 24) + "h" : "");
+  }
 
   const NOME_GRUPO = { "BENS DE CO": "Bens de Consumo", "LATAS": "Latas" };
 
@@ -175,6 +216,27 @@
     blocos.push({ nPag: Math.max(1, nPag), render: render });
     render(0);
   }
+  /* Pagina uma lista pela ALTURA REAL do container (a TV nao e 1080p):
+     mede o maior card entre os primeiros, calcula quantos cabem e nunca
+     corta card. rotulo(ini, fim, total) escreve o rodape da pagina. */
+  function paginaPorAltura(box, lista, rend, pagEl, rotulo, maxTotal) {
+    if (!box || !lista.length) return;
+    const total = Math.min(lista.length, maxTotal || 60);
+    box.innerHTML = lista.slice(0, Math.min(4, total)).map(rend).join("");
+    let h1 = 0;
+    for (let i = 0; i < box.children.length; i++) {
+      h1 = Math.max(h1, box.children[i].offsetHeight);
+    }
+    h1 += 10;
+    const cap = Math.max(1, Math.floor(box.clientHeight / Math.max(40, h1)));
+    const nPag = Math.max(1, Math.ceil(total / cap));
+    registraBloco(nPag, function (p) {
+      const ini = p * cap;
+      box.innerHTML = lista.slice(ini, Math.min(total, ini + cap)).map(rend).join("");
+      if (pagEl) pagEl.textContent = rotulo(ini, Math.min(total, ini + cap), lista.length, nPag, p);
+    });
+  }
+
   function avancaPaginas() {
     paginaAtual++;
     blocos.forEach(function (b) { b.render(paginaAtual % b.nPag); });
@@ -226,11 +288,47 @@
     });
   }
 
-  function cardKpiTv(lbl, val, sub) {
-    return '<div class="card"><div class="lbl">' + E(lbl) + "</div>" +
-      '<div class="val num">' + val + "</div>" +
+  function cardKpiTv(lbl, val, sub, extra) {
+    extra = extra || {};
+    return '<div class="card' + (extra.cls ? " " + extra.cls : "") + '"><div class="lbl">' + E(lbl) + "</div>" +
+      '<div class="val num"' + (extra.cor ? ' style="color:' + extra.cor + '"' : "") + ">" + val + "</div>" +
+      (extra.chips ? '<div class="tv-cmp">' + extra.chips + "</div>" : "") +
       '<div class="sub">' + E(sub || "") + "</div></div>";
   }
+
+  /* chip de comparacao: seta + % + rotulo (verde sobe, vermelho cai) */
+  function chipCmp(atual, base, rotulo, inverso) {
+    if (!base || !isFinite(base) || base <= 0) return "";
+    const pct = 100 * (atual - base) / base;
+    const bom = inverso ? pct <= 0 : pct >= 0;
+    return '<span class="chip-cmp ' + (bom ? "up" : "down") + '">' +
+      (pct >= 0 ? "▲ " : "▼ ") + OTD.fmtPct(Math.abs(pct), 0) + " <small>" + E(rotulo) + "</small></span>";
+  }
+
+  /* referencias de comparacao: ontem x anteontem e mesmo ponto do mes anterior */
+  const CMP = (function () {
+    const out = { ontem: null, anteontem: null, acumAnt: null, fechAnt: null,
+                  viagensAnt: null, ticketAnt: null, dia: 0 };
+    try {
+      const hoje = new Date();
+      const dia = hoje.getDate();
+      out.dia = dia;
+      const serie = OTD.dailySeries(ROWS, MES);
+      if (dia >= 2) out.ontem = serie[dia - 2];
+      if (dia >= 3) out.anteontem = serie[dia - 3];
+      const ant = OTD.prevMonthKey ? OTD.prevMonthKey(MES) : null;
+      if (ant && OTD.availableMonths().indexOf(ant) >= 0) {
+        const rowsAnt = OTD.filterAll({ meses: new Set([ant]), segs: F.segs });
+        const sAnt = OTD.dailySeries(rowsAnt, ant);
+        out.acumAnt = sAnt.slice(0, dia).reduce(function (a, b) { return a + b; }, 0);
+        out.fechAnt = sAnt.reduce(function (a, b) { return a + b; }, 0);
+        const v = OTD.contarViagens(rowsAnt);
+        out.viagensAnt = v;
+        out.ticketAnt = v ? out.fechAnt / v : null;
+      }
+    } catch (e) { console.error(e); }
+    return out;
+  })();
 
   function cardAlerta(i, pulsa) {
     return '<div class="tv-alerta ' + (i.nivel === "critico" ? "" : "atencao") +
@@ -261,12 +359,29 @@
       const viagens = OTD.contarViagens(ROWS);
       const km = OTD.totalKm(ROWS);
       const p = OTD.projectMonth(ROWS, MES);
+      const hoje = CMP.dia, metaMes = OTD.getGoal(MES);
+      const pctProj = metaMes > 0 ? 100 * p.projected / metaMes : null;
+      const corProj = pctProj === null ? null : pctProj < 60 ? "#F1553F" : pctProj < 95 ? "#F0800E" : "#4ADE80";
+      const ticket = viagens ? total / viagens : 0;
       return '<div class="tv-kpi">' +
-        cardKpiTv("Faturamento do Mês", OTD.fmtBRL(total), OTD.monthLabelFull(MES)) +
-        cardKpiTv("Viagens", OTD.fmtNum(viagens), ROWS.length + " documentos") +
-        cardKpiTv("Ticket Médio", OTD.fmtBRL(viagens ? total / viagens : 0), "por viagem") +
+        cardKpiTv("Faturamento do Mês", OTD.fmtBRL(total),
+          CMP.ontem !== null ? "ontem " + OTD.fmtBRL(CMP.ontem) +
+            (CMP.acumAnt ? " · mês anterior até o dia " + hoje + ": " + OTD.fmtBRL(CMP.acumAnt) : "")
+            : OTD.monthLabelFull(MES),
+          { chips: chipCmp(total, CMP.acumAnt, "vs mesmo dia do mês anterior") +
+                   (CMP.ontem !== null ? chipCmp(CMP.ontem, CMP.anteontem, "ontem vs anteontem") : "") }) +
+        cardKpiTv("Viagens", OTD.fmtNum(viagens), ROWS.length + " documentos",
+          { chips: CMP.viagensAnt ? '<span class="chip-cmp">mês anterior fechou com ' +
+                    OTD.fmtNum(CMP.viagensAnt) + "</span>" : "" }) +
+        cardKpiTv("Ticket Médio", OTD.fmtBRL(ticket), "por viagem",
+          { chips: chipCmp(ticket, CMP.ticketAnt, "vs mês anterior") }) +
         cardKpiTv("Projeção do Mês", OTD.fmtBRL(p.projected),
-                  "ritmo de " + OTD.fmtBRL(p.dailyAvg) + "/dia") +
+                  "ritmo de " + OTD.fmtBRL(p.dailyAvg) + "/dia" +
+                  (metaMes > 0 ? " · meta " + OTD.fmtBRL(metaMes) : ""),
+          { cor: corProj, cls: pctProj !== null && pctProj < 60 ? "alerta" : "",
+            chips: (pctProj !== null ? '<span class="chip-cmp ' + (pctProj >= 95 ? "up" : "down") + '">' +
+                     OTD.fmtPct(pctProj, 0) + " <small>da meta</small></span>" : "") +
+                   chipCmp(p.projected, CMP.fechAnt, "vs fechamento anterior") }) +
         cardKpiTv("KM Rodado", OTD.fmtKm(km),
                   OTD.fmtPct(km ? 100 * OTD.totalKmVazio(ROWS) / km : 0, 1) + " vazio") +
         cardKpiTv("R$ / KM", km ? OTD.fmtBRLcents(total / km) : "—", "regra R12") +
@@ -529,54 +644,74 @@
   });
 
   /* --- 8. Controle de Entregas ------------------------------------------- */
+  /* tempo na etapa vem do monitoramento (cruzado pelo romaneio) */
+  const ENT_ETAPAS = [
+    ["em_descarga", "Em descarga", "#2DD4BF", "retido", 5],
+    ["destinado", "Destinado", "#B18CFF", "evento", 24],
+    ["em_viagem", "Em viagem", "#4FA3E3", "parado", 11],
+    ["finalizada", "Finalizadas no dia", "#4ADE80", null, 0]
+  ];
+  function linhaEntrega(st, c) {
+    const et = ENT_ETAPAS.filter(function (e) { return e[0] === st; })[0];
+    const m = MON && MON.porRomaneio ? MON.porRomaneio[String(c.romaneio)] : null;
+    let h = null;
+    if (m && et[3] === "parado") h = m.hParado;
+    else if (m && et[3]) h = m.hEvento;
+    const lim = et[4] || 0;
+    let sev = "";
+    if (h !== null && h !== undefined && lim && h >= lim) sev = " sev-" + OTD.monitorSev(h, lim);
+    const rotulo = et[3] === "parado" ? "parado" : et[3] ? "há" : "";
+    const tempo = (h !== null && h !== undefined && et[3])
+      ? '<div class="t">' + E(fmtHM(h)) + "<small>" + rotulo + "</small></div>" : "";
+    return '<div class="tv-ent-row' + sev + '"><div class="i">' +
+      '<div class="r">Rom. ' + E(c.romaneio) +
+      (c.placa ? ' <span>· ' + E(c.placa) + "</span>" : "") + "</div>" +
+      '<div class="d">' + E(OTD.shortName((c.cliente ? c.cliente + " · " : "") + (c.rota || "—"), 46)) +
+      "</div></div>" + tempo + "</div>";
+  }
+
   telas.push({
     titulo: "Controle de Entregas",
     aplicavel: function () { return !!(OTD.ENTREGAS && gruposOms().length); },
     html: function () {
       const ent = OTD.ENTREGAS;
       const grupos = gruposOms();
-      const ORDEM = [["em_descarga", "Em descarga", "#2DD4BF"],
-                     ["destinado", "Destinado", "#B18CFF"],
-                     ["em_viagem", "Em viagem", "#4FA3E3"],
-                     ["finalizada", "Finalizadas no dia", "#4ADE80"]];
       return '<div class="' + (grupos.length > 1 ? "tv-2" : "tv-full") + '">' +
         grupos.map(function (g) {
           const b = ent.grupos[g] || {};
-          /* fontes maiores: esta tela e lida de longe, no chao de operacao */
-          const umGrupo = grupos.length === 1;
-          return '<div class="card"><h3 style="margin:0 0 18px;font-size:24px;color:#ABA69C;' +
-            'text-transform:uppercase;letter-spacing:1.6px">' + E(NOME_GRUPO[g] || g) + "</h3>" +
-            '<div class="grid g-2" style="gap:18px;flex:1">' + ORDEM.map(function (s) {
+          return '<div class="card tv-ent"><h3>' + E(NOME_GRUPO[g] || g) + "</h3>" +
+            '<div class="tv-ent-grid">' + ENT_ETAPAS.map(function (s) {
               const lista = b[s[0]] || [];
-              return '<div class="card" style="padding:18px;background:#151210;' +
-                'justify-content:center">' +
-                '<div style="font-size:22px;color:#8E8880;text-transform:uppercase;' +
-                'letter-spacing:1.4px;font-weight:800;margin-bottom:10px">' + E(s[1]) + "</div>" +
-                '<div style="font-size:' + (umGrupo ? 132 : 104) +
-                'px;font-weight:800;line-height:1;color:' + s[2] + '" class="num">' +
-                lista.length + "</div>" +
-                '<div style="font-size:20px;color:#8E8880;margin-top:12px;line-height:1.45" class="lst-' +
-                g.replace(/\s/g, "") + "-" + s[0] + '">' +
-                (lista.length ? "" : "Nenhuma carga nesse status.") + "</div></div>";
+              const id = "ent-" + g.replace(/\s/g, "") + "-" + s[0];
+              return '<div class="tv-ent-q"><div class="cab"><span class="n num" style="color:' + s[2] + '">' +
+                lista.length + '</span><span class="l">' + E(s[1]) + "</span></div>" +
+                (lista.length ? '<div class="lst" id="' + id + '"></div><div class="tv-pag" id="' + id +
+                  '-pg"></div>' : '<div class="vz">Nenhuma carga nesse status.</div>') + "</div>";
             }).join("") + "</div></div>";
         }).join("") + "</div>";
     },
     after: function () {
-      /* lista de romaneios paginando dentro do card */
       const ent = OTD.ENTREGAS;
-      const grupos = gruposOms();
-      grupos.forEach(function (g) {
-        ["em_descarga", "destinado", "em_viagem", "finalizada"].forEach(function (st) {
-          const lista = (ent.grupos[g] || {})[st] || [];
-          const el = document.querySelector(".lst-" + g.replace(/\s/g, "") + "-" + st);
-          if (!el || !lista.length) return;
-          const porPagina = 4;
-          const nPag = Math.max(1, Math.ceil(lista.length / porPagina));
-          registraBloco(nPag, function (p) {
-            el.textContent = lista.slice(p * porPagina, p * porPagina + porPagina)
-              .map(function (c) { return c.romaneio; }).join(" · ") +
-              (nPag > 1 ? "   (" + (p + 1) + "/" + nPag + ")" : "");
-          });
+      gruposOms().forEach(function (g) {
+        ENT_ETAPAS.forEach(function (s) {
+          const lista = ((ent.grupos[g] || {})[s[0]] || []).slice();
+          const id = "ent-" + g.replace(/\s/g, "") + "-" + s[0];
+          /* os que estao parados ha mais tempo vem primeiro */
+          if (s[3]) {
+            lista.sort(function (a, b) {
+              function hh(c) {
+                const m = MON && MON.porRomaneio ? MON.porRomaneio[String(c.romaneio)] : null;
+                const v = m ? (s[3] === "parado" ? m.hParado : m.hEvento) : null;
+                return v === null || v === undefined ? -1 : v;
+              }
+              return hh(b) - hh(a);
+            });
+          }
+          paginaPorAltura(document.getElementById(id), lista,
+            function (c) { return linhaEntrega(s[0], c); }, document.getElementById(id + "-pg"),
+            function (ini, fim, tot, nPag) {
+              return nPag > 1 ? (ini + 1) + "–" + fim + " de " + tot : "";
+            }, 60);
         });
       });
     }
@@ -666,21 +801,69 @@
     after: function () {
       ["coletas", "entregas"].forEach(function (tipo) {
         const lista = listaAtrasos(tipo);
-        const box = document.getElementById("lst-" + tipo);
-        const pag = document.getElementById("pag-" + tipo);
-        if (!box || !lista.length) return;
-        const porPagina = 6;
-        const nPag = Math.max(1, Math.ceil(Math.min(lista.length, 42) / porPagina));
-        registraBloco(nPag, function (p) {
-          box.innerHTML = lista.slice(p * porPagina, p * porPagina + porPagina)
-            .map(cardAtraso).join("");
-          if (pag) {
-            pag.textContent = nPag > 1
-              ? (p * porPagina + 1) + "–" + Math.min(lista.length, p * porPagina + porPagina) +
-                " de " + lista.length + " (mais atrasadas primeiro)"
-              : lista.length + (lista.length === 1 ? " carga vencida" : " cargas vencidas");
-          }
-        });
+        paginaPorAltura(document.getElementById("lst-" + tipo), lista, cardAtraso,
+          document.getElementById("pag-" + tipo),
+          function (ini, fim, tot, nPag) {
+            return nPag > 1 ? (ini + 1) + "–" + fim + " de " + tot + " (mais atrasadas primeiro)"
+              : tot + (tot === 1 ? " carga vencida" : " cargas vencidas");
+          }, 42);
+      });
+    }
+  });
+
+  /* --- 9b. Previsao de prazo: carros que nao chegam a tempo -------------- */
+  function cardPrevisao(a) {
+    const apertado = a.folgaH >= 0;
+    const t = apertado ? fmtHM(a.folgaH) : fmtHM(-a.folgaH);
+    const sev = apertado ? "atencao" : (-a.folgaH >= 12 ? "critico" : "alto");
+    return '<div class="tv-atraso ' + sev + '"><div class="tempo">' + E(t) +
+      "<small>" + (apertado ? "de folga" : "além do prazo") + "</small></div>" +
+      '<div class="info"><div class="rom">' + E("Rom. " + a.romaneio) +
+      ' <span style="font-size:16px;color:#6E6A62;font-weight:700">· ' + E(a.placa) + "</span></div>" +
+      '<div class="cli">' + E(OTD.shortName(a.cliente || a.destinatario || "—", 34)) +
+      (segsAtraso().length > 1 ? ' <span style="color:#6E6A62">· ' + E(a.seg) + "</span>" : "") + "</div>" +
+      '<div class="rot">' + E(OTD.shortName((a.destino || "").replace(/\s*\(.*$/, ""), 30)) +
+      " · faltam " + E(OTD.fmtNum(Math.round(a.kmRestante))) + " km · precisa de " + E(fmtHM(a.precisaH)) +
+      " e restam " + E(fmtHM(a.restaH)) + (a.tt !== null && a.tt !== undefined ? " · transit " + a.tt + "%" : "") +
+      "</div></div>" +
+      '<div class="prazo">prazo<b>' + E(OTD.fmtDataHora(a.prazo)) + "</b></div></div>";
+  }
+  telas.push({
+    titulo: "Previsão de Prazo",
+    aplicavel: function () { return !!(MON && MON.projecao && (PROJ.estouro.length || PROJ.apertado.length)); },
+    html: function () {
+      const cols = [["estouro", "⏱️ Vão estourar o prazo", PROJ.estouro,
+                     "Nenhum carro em viagem projeta chegar depois do prazo."],
+                    ["apertado", "🟡 Chegada apertada (folga < " + (PROJ.folgaApertada || 2) + "h)", PROJ.apertado,
+                     "Nenhum carro com folga apertada."]];
+      return '<div style="display:flex;flex-direction:column;height:100%">' +
+        '<div class="tv-2" style="flex:1;min-height:0">' + cols.map(function (c) {
+          return '<div class="card panel" style="gap:10px">' +
+            '<div class="tv-col-titulo">' + E(c[1]) +
+            '<span class="qtd' + (c[2].length ? "" : " zero") + '">' + c[2].length + "</span></div>" +
+            (c[2].length
+              ? '<div class="tv-atraso-lista" id="prv-' + c[0] + '"></div>' +
+                '<div class="tv-pag" id="prv-' + c[0] + '-pg" style="text-align:center"></div>'
+              : '<div class="tv-atraso-vazio"><div class="ic">🟢</div><div class="tt">Tudo no prazo</div>' +
+                '<div class="ds">' + E(c[3]) + "</div></div>") + "</div>";
+        }).join("") + "</div>" +
+        '<div class="tv-pag tv-sem-prev" style="text-align:center;margin-top:8px">' +
+        "Cálculo: km que faltam ÷ " + PROJ.velocidade + " km/h (já com paradas) contra o prazo de descarga · " +
+        PROJ.ok + " carros com folga" +
+        (PROJ.semPrevisao.length ? " · <b>sem previsão (" + PROJ.semPrevisao.length + ")</b>: " +
+          E(PROJ.semPrevisao.slice(0, 8).map(function (x) {
+            return x.romaneio + " (" + x.motivo + ")"; }).join(" · ") +
+          (PROJ.semPrevisao.length > 8 ? " · +" + (PROJ.semPrevisao.length - 8) : "")) : "") +
+        "</div></div>";
+    },
+    after: function () {
+      [["estouro", PROJ.estouro], ["apertado", PROJ.apertado]].forEach(function (c) {
+        paginaPorAltura(document.getElementById("prv-" + c[0]), c[1], cardPrevisao,
+          document.getElementById("prv-" + c[0] + "-pg"),
+          function (ini, fim, tot, nPag) {
+            return nPag > 1 ? (ini + 1) + "–" + fim + " de " + tot + " (pior primeiro)"
+              : tot + (tot === 1 ? " carro" : " carros");
+          }, 42);
       });
     }
   });
@@ -941,7 +1124,7 @@
      de motorista/placa, que e leitura de dashboard e nao de chao de fabrica. */
   const ORDEM_MACRO = ["Visão Geral", "Contador de Cargas", "Pontos de Atenção",
                        "Faturamento Diário", "Clientes & Rotas", "OMS — Qualidade",
-                       "Controle de Entregas", "Cargas em Atraso", "Insights & Sugestões",
+                       "Controle de Entregas", "Cargas em Atraso", "Previsão de Prazo", "Insights & Sugestões",
                        "Fechamento do Mês — Resultado", "Fechamento do Mês — OMS & Metas",
                        "Fechamento do Mês — Destaques"];
   const SLIDES = MACRO

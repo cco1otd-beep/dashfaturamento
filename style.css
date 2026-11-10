@@ -1181,3 +1181,64 @@ svg.mapa-sa{ max-width:100%; max-height:100%; display:block; }
 .tv-mon-lista2 > .tv-mon-lista + .tv-mon-lista{ margin-left:16px; }
 .tv-mon-lista > .tv-mon-linha{ flex:0 0 auto; min-height:0; overflow:hidden; }
 .tv-mon-mais{ font-size:17px; font-weight:700; color:#ABA69C; padding-top:6px; }
+
+
+/* ===== TV GERENCIAL 2.0 (10/11/2026) ===== */
+.tv-atraso-lista{ flex:1 1 0; min-height:0; overflow:hidden; justify-content:flex-start; }
+.tv-atraso-lista > .tv-atraso{ flex:0 0 auto; }
+.tv-atraso-lista > .tv-atraso + .tv-atraso{ margin-top:10px; }
+.tv-atraso.alto:before{ background:#F0800E; }
+.tv-atraso.alto .tempo{ color:#F0800E; }
+.tv-atraso.critico{ border-color:rgba(241,85,63,.45); }
+.tv-atraso .rot{ line-height:1.3; }
+/* comparativos nos KPIs */
+.tv-kpi .tv-cmp{ margin:6px 0 2px; }
+.chip-cmp{ display:inline-block; margin:0 8px 6px 0; padding:3px 11px; border-radius:20px; font-size:17px;
+  font-weight:800; background:rgba(171,166,156,.12); color:#ABA69C; border:1px solid rgba(171,166,156,.25); }
+.chip-cmp small{ font-size:13px; font-weight:700; opacity:.8; }
+.chip-cmp.up{ background:rgba(74,222,128,.13); color:#4ADE80; border-color:rgba(74,222,128,.3); }
+.chip-cmp.down{ background:rgba(241,85,63,.14); color:#F1553F; border-color:rgba(241,85,63,.35); }
+.tv-kpi .card.alerta{ border-color:rgba(241,85,63,.55); background:linear-gradient(135deg,#2a1410,#16110f); }
+@keyframes tvPulso{ 0%,100%{ box-shadow:0 0 0 0 rgba(241,85,63,.0)} 50%{ box-shadow:0 0 0 4px rgba(241,85,63,.28)} }
+.tv-kpi .card.alerta{ animation:tvPulso 2.4s ease-in-out infinite; }
+/* controle de entregas por etapa */
+.tv-ent{ display:flex; flex-direction:column; }
+.tv-ent h3{ margin:0 0 12px; font-size:22px; color:#ABA69C; text-transform:uppercase; letter-spacing:1.6px; }
+.tv-ent-grid{ display:flex; flex-wrap:wrap; flex:1; min-height:0; margin:-7px; }
+.tv-ent-q{ box-sizing:border-box; width:calc(50% - 14px); height:calc(50% - 14px); margin:7px; padding:14px 16px;
+  background:#151210; border:1px solid #2b2620; border-radius:14px; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.tv-ent-q .cab{ display:flex; align-items:baseline; margin-bottom:8px; flex:0 0 auto; }
+.tv-ent-q .cab .n{ font-size:54px; font-weight:800; line-height:1; margin-right:14px; }
+.tv-ent-q .cab .l{ font-size:19px; font-weight:800; color:#8E8880; text-transform:uppercase; letter-spacing:1.3px; }
+.tv-ent-q .lst{ flex:1 1 0; min-height:0; overflow:hidden; }
+.tv-ent-q .vz{ color:#6E6A62; font-size:17px; }
+.tv-ent-row{ display:flex; align-items:center; padding:7px 12px; border-radius:10px; background:#0f0d0c;
+  border-left:5px solid #2b2620; }
+.tv-ent-row + .tv-ent-row{ margin-top:10px; }
+.tv-ent-row .i{ flex:1; min-width:0; }
+.tv-ent-row .r{ font-size:19px; font-weight:800; color:#F6F4F0; }
+.tv-ent-row .r span{ font-size:14px; color:#6E6A62; }
+.tv-ent-row .d{ font-size:14px; color:#8E8880; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tv-ent-row .t{ flex:0 0 auto; margin-left:10px; text-align:center; font-size:23px; font-weight:800; color:#ABA69C; line-height:1; }
+.tv-ent-row .t small{ display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#6E6A62; margin-top:3px; }
+.tv-ent-row.sev-aten{ border-left-color:#FFC145; } .tv-ent-row.sev-aten .t{ color:#FFC145; }
+.tv-ent-row.sev-alto{ border-left-color:#F0800E; } .tv-ent-row.sev-alto .t{ color:#F0800E; }
+.tv-ent-row.sev-crit{ border-left-color:#F1553F; } .tv-ent-row.sev-crit .t{ color:#F1553F; animation:tvPisca 2.4s ease-in-out infinite; }
+.tv-sem-prev b{ color:#ABA69C; }
+
+/* TV pequena (<=1500px): cabecalho nao pode empurrar o relogio para fora */
+@media (max-width:1500px){
+  .tv-header h1{ font-size:19px; }
+  .tv-header .logo{ height:38px; }
+  .tv-header .titulo-linha .tv-op-tag{ font-size:12px; padding:4px 10px; margin-left:10px; }
+  .tv-header #tvSelo{ margin-right:10px !important; }
+  .tv-header #tvSelo > *{ font-size:11px !important; padding:3px 8px; }
+  .tv-header .clock{ font-size:12px; }
+  .tv-header .clock b{ font-size:23px; }
+}
+@media (max-width:1500px){
+  .tv-kpi .val{ font-size:52px; }
+  .chip-cmp{ font-size:14px; padding:2px 9px; margin-bottom:4px; }
+  .chip-cmp small{ font-size:11px; }
+  .tv-kpi .sub{ font-size:14px; }
+}
