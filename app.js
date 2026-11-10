@@ -555,7 +555,7 @@
     }
     linhasCache.tbVei = ag.map(function (a) {
       const meta = OTD.metaDaPlaca(a.chave, mv, mesVei);
-      const cadastrada = OTD.metaDaPlacaCadastrada(a.chave, mesVei) > 0;
+      const cadastrada = OTD.metaDaPlacaCadastrada(a.chave, mesVei) > 0 || OTD.metaZerada(a.chave, mesVei);
       const pct = meta > 0 ? 100 * a.frete / meta : 0;
       const bateu = pct >= 100;
       return [

@@ -368,7 +368,16 @@ const OTD = (function () {
     return String(placa || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   }
   function placaFicticia(placa) { return /^OTD/.test(placaChave(placa)); }
+  /* placa em manutencao com meta zerada (pipeline: PLACAS_META_ZERADA): a meta
+     vale 0 a partir de "desde", sem cair no padrao da aba Veiculos */
+  const META_ZERADA = (META.metaZerada || {});
+  function metaZerada(placa, mes) {
+    const desde = META_ZERADA[placaChave(placa)];
+    if (!desde) return false;
+    return (mes || nowKey()) >= desde;
+  }
   function metaDaPlacaCadastrada(placa, mes) {
+    if (metaZerada(placa, mes)) return 0;
     const k = placaChave(placa);
     if (mes) {
       const excecao = META_POR_PLACA_MES[k];
@@ -379,6 +388,7 @@ const OTD = (function () {
   }
   /* padrao = o valor editavel na aba Veiculos, para placa ainda sem cadastro */
   function metaDaPlaca(placa, padrao, mes) {
+    if (metaZerada(placa, mes)) return 0;
     const v = metaDaPlacaCadastrada(placa, mes);
     return v > 0 ? v : (Number(padrao) || 0);
   }
@@ -405,6 +415,7 @@ const OTD = (function () {
       const k = placaChave(r.placa);
       if (vistas[k]) return;
       vistas[k] = true;
+      if (metaZerada(r.placa, mes)) return;   /* manutencao: meta 0, nao e "sem meta" */
       const cad = metaDaPlacaCadastrada(r.placa, mes);
       if (!cad) semMeta.push(r.placa);
       total += cad > 0 ? cad : (Number(padrao) || 0);
@@ -1576,6 +1587,7 @@ const OTD = (function () {
     suggestGoalSeg: suggestGoalSeg, goalSegDefinida: goalSegDefinida,
     goalLegado: goalLegado, algumaGoalSegDefinida: algumaGoalSegDefinida,
     metaDaPlaca: metaDaPlaca, metaDaPlacaCadastrada: metaDaPlacaCadastrada,
+    metaZerada: metaZerada,
     metaR13Seg: metaR13Seg, segMetaSemPlaca: segMetaSemPlaca,
     placaChave: placaChave, placaFicticia: placaFicticia,
     placasSemMeta: placasSemMeta, ultimoMesFechado: ultimoMesFechado,
