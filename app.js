@@ -182,17 +182,22 @@
     rows.forEach(function (r) {
       const k = keyFn(r) || "—";
       let a = m.get(k);
-      if (!a) { a = { chave: k, frete: 0, docs: 0, kmV: 0, kmC: 0, viagens: new Set() }; m.set(k, a); }
+      if (!a) { a = { chave: k, frete: 0, docs: 0, kmV: 0, kmC: 0, viagens: new Set(), extras: 0, dias: new Set() }; m.set(k, a); }
       a.frete += Number(r.frete) || 0;
       a.docs += 1;
       a.kmV += Number(r.kmVazio) || 0;
       a.kmC += Number(r.kmCarreg) || 0;
       if (r.id) a.viagens.add(r.id);
+      if (r.qtdCargas > 1) a.extras += r.qtdCargas - 1;   /* PG: 1 registro = dia+placa com N cargas */
+      const dia = String(r.dtCargaI || r.dtEmissao || "").slice(0, 10);
+      if (dia) a.dias.add(dia);
     });
     m.delete("—");
     const arr = Array.from(m.values());
     arr.forEach(function (a) {
       a.nViagens = a.viagens.size;
+      a.nCargas = a.nViagens + a.extras;   /* cargas reais (PG conta cada carga do dia) */
+      a.nDias = a.dias.size;
       a.pctVazio = (a.kmV + a.kmC) > 0 ? 100 * a.kmV / (a.kmV + a.kmC) : 0;
       a.rsKm = (a.kmV + a.kmC) > 0 ? a.frete / (a.kmV + a.kmC) : 0;   /* R12 */
       a.ticket = a.nViagens ? a.frete / a.nViagens : 0;
@@ -626,13 +631,14 @@
       return [
         '<span class="strong">' + E(a.chave) + "</span>",
         OTD.fmtBRL(a.frete), pctCell(total ? 100 * a.frete / total : 0),
-        OTD.fmtNum(a.nViagens), OTD.fmtNum(a.kmV, 0), OTD.fmtNum(a.kmC, 0),
+        OTD.fmtNum(a.nCargas), OTD.fmtNum(a.nDias), OTD.fmtNum(a.kmV, 0), OTD.fmtNum(a.kmC, 0),
         '<span style="color:var(--green);font-weight:700">' + OTD.fmtBRLcents(a.frete * COMISSAO) + "</span>"
       ];
     });
     pintarTabela("tbMot", [
       "Motorista", { t: "Faturamento", right: true }, { t: "% Total", right: true },
-      { t: "Cargas", right: true }, { t: "KM Vazio", right: true },
+      { t: "Cargas", right: true }, { t: "Dias", right: true },
+      { t: "KM Vazio", right: true },
       { t: "KM Carregado", right: true },
       { t: "Comissão " + Math.round(COMISSAO * 100) + "%", right: true }
     ], linhasCache.tbMot);
